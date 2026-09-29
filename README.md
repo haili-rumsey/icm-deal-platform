@@ -1,36 +1,39 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ICM Deal Platform
 
-## Getting Started
+Internal deal tracking for Stream Realty Partners' Industrial Capital Markets team.
+Scope and decisions: [docs/PRD.md](docs/PRD.md). Working rules: [CLAUDE.md](CLAUDE.md).
 
-First, run the development server:
+## Stack
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
-```
+Next.js (App Router) on Vercel · Neon Postgres via Drizzle ORM · Auth.js magic-link sign-in sent through Resend.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Local setup
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1. Install Node.js LTS (nodejs.org).
+2. `npm install`
+3. Copy `.env.example` to `.env.local` and fill in every value (each one is explained in that file).
+4. `npm run db:migrate` to create the tables, then `npm run db:seed` to create the three admins.
+5. `npm run dev` and open http://localhost:3000
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Environment variables
 
-## Learn More
+Documented in [.env.example](.env.example). In production they are set in Vercel → Project → Settings → Environment Variables.
 
-To learn more about Next.js, take a look at the following resources:
+| Name | What it is |
+|---|---|
+| `AUTH_SECRET` | Random secret signing sign-in tokens and cookies |
+| `RESEND_API_KEY` | Resend key used to send sign-in emails |
+| `EMAIL_FROM` | Sender address for sign-in emails |
+| `DATABASE_URL` | Neon Postgres connection string |
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Database changes
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+Edit `src/db/schema.ts`, run `npm run db:generate` to write a migration into `drizzle/`, commit it, then `npm run db:migrate`.
 
-## Deploy on Vercel
+## Authentication
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+All auth code lives in `src/auth/`; the rest of the app imports only from `@/auth`. To swap magic links for Entra ID later, change that folder only. Rules (15-minute single-use links, fixed 7-day sessions, `@streamrealty.com` only, immediate deactivation) are described in CLAUDE.md.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## Accounts
+
+GitHub, Vercel, Neon and Resend accounts are owned by haili.rumsey@streamrealty.com. Before the team gets access: move to Vercel Pro, a paid Neon tier with point-in-time restore, transfer this repo to a Stream-owned GitHub organization, and verify a Resend sending domain.
