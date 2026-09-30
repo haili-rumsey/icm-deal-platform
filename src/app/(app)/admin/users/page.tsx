@@ -1,5 +1,5 @@
 import { listUsers, requireAdmin } from "@/auth";
-import { setActiveAction } from "./actions";
+import { ActiveToggle } from "./active-toggle";
 import { AddUserForm } from "./add-user-form";
 
 export default async function UsersPage() {
@@ -44,16 +44,7 @@ export default async function UsersPage() {
                 </td>
                 <td className="px-4 py-2 text-right">
                   {p.id !== admin.id && (
-                    <form action={setActiveAction}>
-                      <input type="hidden" name="userId" value={p.id} />
-                      <input type="hidden" name="active" value={String(!p.isActive)} />
-                      <button
-                        type="submit"
-                        className={p.isActive ? "text-danger hover:underline" : "text-accent hover:underline"}
-                      >
-                        {p.isActive ? "Deactivate" : "Reactivate"}
-                      </button>
-                    </form>
+                    <ActiveToggle userId={p.id} isActive={p.isActive} name={p.name ?? p.email} />
                   )}
                 </td>
               </tr>
