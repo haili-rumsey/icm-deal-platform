@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Checkbox, CheckboxGroup, Section, TextInput } from "@/components/fields";
+import { Checkbox, CheckboxGroup, inputCls, Section } from "@/components/fields";
+import { FlagMark } from "@/components/data-grid";
 import { PendingButton } from "@/components/pending-button";
 import { SearchSelect, type Option } from "@/components/search-select";
 import { partyLabel, SIDES, TEAM_ROLES, type DealType } from "@/domain/options";
@@ -16,7 +17,7 @@ import { PartyAdder } from "./party-adder";
 
 type DealData = NonNullable<Awaited<ReturnType<typeof getDeal>>>;
 
-const smallBtn = "rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-background";
+const smallBtn = "rounded-sm border border-navy px-3 py-1.5 text-sm font-semibold text-navy hover:bg-hover";
 const removeBtn = "text-xs text-muted hover:text-danger";
 
 function money(v: string | null) {
@@ -51,11 +52,11 @@ export function PropertiesSection({
           {deal.properties.map((p) => (
             <li key={p.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2">
               <span>
-                <Link href={`/properties/${p.id}`} className="font-medium hover:underline">
+                <Link href={`/properties/${p.id}`} className="font-semibold text-link hover:underline">
                   {[p.address, p.buildingDesignation].filter(Boolean).join(", ") || "(no address)"}
                 </Link>
                 <span className="text-muted"> · {[p.city, p.state].filter(Boolean).join(", ")}</span>
-                {!p.addressVerified && <span className="ml-2 text-xs text-danger">Unverified</span>}
+                {!p.addressVerified && <FlagMark label="Unverified" />}
               </span>
               <span className="flex items-baseline gap-4 text-muted">
                 {p.buildingSf ? `${p.buildingSf.toLocaleString()} SF` : null}
@@ -72,23 +73,27 @@ export function PropertiesSection({
       )}
       <form
         action={addPropertyAction.bind(null, id)}
-        className="grid grid-cols-1 items-end gap-3 rounded-md border border-dashed border-border p-3 sm:grid-cols-[1fr_12rem_auto]"
+        className="grid grid-cols-1 items-end gap-3 rounded-sm border border-dashed border-gray p-3 sm:grid-cols-[1fr_12rem_auto]"
       >
         <SearchSelect
           key={`${preselectId ?? ""}-${deal.properties.length}`}
           name="propertyId"
           label="Add a property"
+          layout="stacked"
           options={propertyOptions.filter((o) => !linked.has(o.id))}
           defaultId={preselectId}
           placeholder="Search by address…"
         />
-        <TextInput label="Allocated price (optional)" name="allocatedPrice" placeholder="$" />
+        <label className="flex flex-col gap-1 text-sm">
+          <span className="text-muted">Allocated price (optional)</span>
+          <input name="allocatedPrice" placeholder="$" className={inputCls} />
+        </label>
         <PendingButton className={smallBtn} pendingLabel="Adding…">
           Add
         </PendingButton>
       </form>
       <p className="mt-2 text-sm">
-        <Link href={`/properties/new?deal=${id}`} className="text-accent hover:underline">
+        <Link href={`/properties/new?deal=${id}`} className="text-link hover:underline">
           Property not in the system? Create it
         </Link>
       </p>
@@ -127,7 +132,7 @@ export function PartiesSection({
                   {rows.map((p) => (
                     <li key={p.id} className="flex items-baseline justify-between gap-2 py-2">
                       <span>
-                        <Link href={`/companies/${p.companyId}`} className="font-medium hover:underline">
+                        <Link href={`/companies/${p.companyId}`} className="font-semibold text-link hover:underline">
                           {p.companyName}
                         </Link>
                         {p.contactId && (
@@ -174,13 +179,13 @@ export function TeamSection({ deal, streamPeople }: { deal: DealData; streamPeop
               <form action={saveTeamAction.bind(null, id)} className="flex flex-col gap-2">
                 <input type="hidden" name="contactId" value={t.contactId} />
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-semibold">
                     {t.name}
-                    {t.isLeadBroker && <span className="ml-2 rounded bg-background px-1.5 py-0.5 text-xs text-muted">Lead broker</span>}
-                    {t.isLeadAnalyst && <span className="ml-2 rounded bg-background px-1.5 py-0.5 text-xs text-muted">Lead analyst</span>}
+                    {t.isLeadBroker && <span className="ml-2 rounded-sm bg-navy px-1.5 py-0.5 text-xs font-semibold text-white">Lead broker</span>}
+                    {t.isLeadAnalyst && <span className="ml-2 rounded-sm bg-gray-dark px-1.5 py-0.5 text-xs font-semibold text-white">Lead analyst</span>}
                   </span>
                   <span className="flex items-center gap-4">
-                    <PendingButton className="text-xs text-accent hover:underline">Save changes</PendingButton>
+                    <PendingButton className="text-xs text-link hover:underline">Save changes</PendingButton>
                     <PendingButton formAction={removeTeamAction.bind(null, id, t.id)} className={removeBtn} pendingLabel="…">
                       Remove
                     </PendingButton>
@@ -196,11 +201,12 @@ export function TeamSection({ deal, streamPeople }: { deal: DealData; streamPeop
           ))}
         </ul>
       )}
-      <form action={saveTeamAction.bind(null, id)} className="flex flex-col gap-3 rounded-md border border-dashed border-border p-3">
+      <form action={saveTeamAction.bind(null, id)} className="flex flex-col gap-3 rounded-sm border border-dashed border-gray p-3">
         <SearchSelect
           key={deal.team.length}
           name="contactId"
           label="Add a team member"
+          layout="stacked"
           options={streamPeople.filter((p) => !onTeam.has(p.id))}
           placeholder="Search Stream people…"
         />

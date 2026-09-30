@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/auth";
-import type { SaveState } from "@/components/record-form";
+import type { SaveState } from "@/components/record-page";
 import {
   CATEGORIES,
   DEAL_SUBTYPES,

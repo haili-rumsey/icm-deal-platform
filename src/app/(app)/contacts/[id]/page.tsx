@@ -1,9 +1,17 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/auth";
+import { CommandBar, CommandDivider, RefreshCommand } from "@/components/command-bar";
+import { FlagMark } from "@/components/data-grid";
 import { Section } from "@/components/fields";
-import { RecordFooter } from "@/components/record-footer";
-import { RecordForm } from "@/components/record-form";
+import {
+  HousekeepingCommands,
+  MainForm,
+  ModifiedStamp,
+  RecordFormProvider,
+  RecordHeader,
+  SaveCommand,
+} from "@/components/record-page";
 import { companyOptions } from "@/server/companies";
 import { getContact } from "@/server/contacts";
 import { userName } from "@/server/people";
@@ -12,46 +20,47 @@ import { ContactFields } from "../contact-fields";
 
 export default async function ContactPage({ params }: PageProps<"/contacts/[id]">) {
   const { id } = await params;
-  const user = await requireUser();
-  const row = await getContact(id);
+  const [user, row, companies] = await Promise.all([requireUser(), getContact(id), companyOptions()]);
   if (!row) notFound();
   const { contact, companyName } = row;
-  const [companies, modifiedBy] = await Promise.all([companyOptions(), userName(contact.lastModifiedById)]);
+  const modifiedBy = await userName(contact.lastModifiedById);
 
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <p className="text-xs text-muted">
-          <Link href="/contacts" className="hover:underline">
-            Contacts
-          </Link>
-        </p>
-        <h1 className="text-xl font-semibold">
-          {contact.firstName} {contact.lastName}
-        </h1>
-        <p className="text-sm text-muted">
-          <Link href={`/companies/${contact.companyId}`} className="hover:underline">
+    <RecordFormProvider action={saveContact.bind(null, id)}>
+      <CommandBar>
+        <SaveCommand />
+        <RefreshCommand />
+        <CommandDivider />
+        <HousekeepingCommands kind="contact" id={id} archivedAt={contact.archivedAt} canDelete={user.isAdmin} />
+      </CommandBar>
+      <RecordHeader
+        kindLabel="Contact"
+        title={`${contact.firstName} ${contact.lastName}`.trim()}
+        subtitle={
+          <Link href={`/companies/${contact.companyId}`} className="text-link hover:underline">
             {companyName}
           </Link>
-          {contact.title && ` · ${contact.title}`}
-        </p>
-        {contact.noEmail && <p className="mt-1 text-xs text-danger">No email — flagged for cleanup</p>}
-      </div>
-
-      <Section title="Contact">
-        <RecordForm action={saveContact.bind(null, id)}>
-          <ContactFields contact={contact} companies={companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }))} />
-        </RecordForm>
-      </Section>
-
-      <RecordFooter
-        kind="contact"
-        id={id}
-        lastModifiedAt={contact.lastModifiedAt}
-        lastModifiedBy={modifiedBy}
-        archivedAt={contact.archivedAt}
-        canDelete={user.isAdmin}
+        }
+        facts={[
+          { label: "Title", value: contact.title },
+          { label: "Email", value: contact.email },
+          { label: "Phone", value: contact.phone },
+        ]}
+        flags={
+          <>
+            {contact.noEmail && <FlagMark label="No email — flagged for cleanup" />}
+            {contact.archivedAt && <FlagMark label="Archived" />}
+          </>
+        }
       />
-    </div>
+      <div className="flex flex-col gap-4 p-3 sm:p-5">
+        <Section title="Summary">
+          <MainForm>
+            <ContactFields contact={contact} companies={companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }))} />
+          </MainForm>
+        </Section>
+        <ModifiedStamp at={contact.lastModifiedAt} by={modifiedBy} />
+      </div>
+    </RecordFormProvider>
   );
 }

@@ -1,32 +1,42 @@
-import Link from "next/link";
-import { cellCls, ListHeader, rowCls, searchParam, Table } from "@/components/list-page";
+import { Plus } from "lucide-react";
+import { CommandBar, CommandLink, RefreshCommand } from "@/components/command-bar";
+import { DataGrid } from "@/components/data-grid";
+import { searchParam } from "@/lib/params";
 import { listCompanies } from "@/server/companies";
 
 export default async function CompaniesPage({ searchParams }: PageProps<"/companies">) {
-  const sp = await searchParams;
-  const q = searchParam(sp.q);
-  const archived = searchParam(sp.archived) === "1";
-  const rows = await listCompanies({ q, archived });
+  const archived = searchParam((await searchParams).archived) === "1";
+  const rows = await listCompanies({ archived });
 
   return (
-    <div>
-      <ListHeader title="Companies" basePath="/companies" newLabel="New company" q={q} archived={archived} count={rows.length} />
-      <Table head={["Name", "Website", "Type", "Contacts"]} empty={rows.length === 0}>
-        {rows.map((c) => (
-          <tr key={c.id} className={rowCls}>
-            <td className={cellCls}>
-              <Link href={`/companies/${c.id}`} className="font-medium hover:underline">
-                {c.name}
-              </Link>
-            </td>
-            <td className={`${cellCls} text-muted`}>
-              {c.noWebsite ? <span className="text-danger">No website</span> : c.websiteDomain}
-            </td>
-            <td className={`${cellCls} text-muted`}>{c.types.join(", ")}</td>
-            <td className={`${cellCls} text-muted`}>{c.contactCount}</td>
-          </tr>
-        ))}
-      </Table>
-    </div>
+    <>
+      <CommandBar>
+        <CommandLink href="/companies/new" icon={Plus}>
+          New
+        </CommandLink>
+        <RefreshCommand />
+      </CommandBar>
+      <DataGrid
+        views={[
+          { label: "Active companies", href: "/companies", active: !archived },
+          { label: "Archived companies", href: "/companies?archived=1", active: archived },
+        ]}
+        columns={[
+          { key: "name", label: "Name", kind: "link", hrefKey: "href" },
+          { key: "website", label: "Website", flagKey: "noWebsite", flagLabel: "No website" },
+          { key: "types", label: "Type" },
+          { key: "contacts", label: "Contacts", kind: "number" },
+        ]}
+        rows={rows.map((c) => ({
+          id: c.id,
+          href: `/companies/${c.id}`,
+          name: c.name,
+          website: c.websiteDomain,
+          noWebsite: c.noWebsite,
+          types: c.types.join(", "),
+          contacts: c.contactCount,
+        }))}
+      />
+    </>
   );
 }

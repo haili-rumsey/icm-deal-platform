@@ -1,6 +1,8 @@
+import { X } from "lucide-react";
+import { CommandBar, CommandLink } from "@/components/command-bar";
 import { Section } from "@/components/fields";
-import { searchParam } from "@/components/list-page";
-import { RecordForm } from "@/components/record-form";
+import { MainForm, RecordFormProvider, RecordHeader, SaveCommand } from "@/components/record-page";
+import { searchParam } from "@/lib/params";
 import { companyOptions } from "@/server/companies";
 import { saveProperty } from "../actions";
 import { PropertyFields } from "../property-fields";
@@ -11,14 +13,22 @@ export default async function NewPropertyPage({ searchParams }: PageProps<"/prop
   const companies = (await companyOptions()).map((c) => ({ id: c.id, name: c.name, hint: c.domain }));
 
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">New property</h1>
-      <Section title="Property">
-        <RecordForm action={saveProperty.bind(null, null)} submitLabel={dealId ? "Create and add to deal" : "Create property"}>
-          {dealId && <input type="hidden" name="returnToDeal" value={dealId} />}
-          <PropertyFields companies={companies} />
-        </RecordForm>
-      </Section>
-    </div>
+    <RecordFormProvider action={saveProperty.bind(null, null)}>
+      <CommandBar>
+        <SaveCommand label={dealId ? "Save and add to deal" : "Save"} />
+        <CommandLink href={dealId ? `/deals/${dealId}` : "/properties"} icon={X}>
+          Cancel
+        </CommandLink>
+      </CommandBar>
+      <RecordHeader kindLabel="Property" title="New property" />
+      <div className="p-3 sm:p-5">
+        <Section title="Summary">
+          <MainForm>
+            {dealId && <input type="hidden" name="returnToDeal" value={dealId} />}
+            <PropertyFields companies={companies} />
+          </MainForm>
+        </Section>
+      </div>
+    </RecordFormProvider>
   );
 }

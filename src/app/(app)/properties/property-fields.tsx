@@ -1,4 +1,4 @@
-import { Grid, Select, TextInput } from "@/components/fields";
+import { FieldRow, Grid, Select, TextInput } from "@/components/fields";
 import { MultiSelect } from "@/components/multi-select";
 import type { Option } from "@/components/search-select";
 import { BUILDING_CLASSES, CONFIGURATIONS, SPRINKLER_TYPES, TENANCY } from "@/domain/options";
@@ -17,8 +17,8 @@ export function PropertyFields({
   const p = property;
   return (
     <>
-      <span className="-mb-2 text-sm font-medium">Address</span>
-      <AddressLookup
+      <FieldRow label="Address">
+        <AddressLookup
         initial={
           p
             ? {
@@ -34,7 +34,8 @@ export function PropertyFields({
               }
             : undefined
         }
-      />
+        />
+      </FieldRow>
       <Grid>
         <TextInput
           label="Building designation"

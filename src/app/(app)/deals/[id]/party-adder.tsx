@@ -32,12 +32,13 @@ export function PartyAdder({
         setCompanyId(null);
         setFormKey((k) => k + 1);
       }}
-      className="flex flex-col gap-3 rounded-md border border-dashed border-border p-3"
+      className="flex flex-col gap-3 rounded-sm border border-dashed border-gray p-3"
     >
       <input type="hidden" name="side" value={side} />
       <SearchSelect
         name="companyId"
         label={`Add ${label.toLowerCase()} company`}
+        layout="stacked"
         options={companies}
         onChange={setCompanyId}
         placeholder="Search companies…"
@@ -47,19 +48,20 @@ export function PartyAdder({
           key={companyId}
           name="contactId"
           label="Contact (optional)"
+          layout="stacked"
           options={companyContacts}
           placeholder={companyContacts.length ? "Search this company's contacts…" : "No contacts at this company yet"}
         />
       )}
       {companyId ? (
         <PendingButton
-          className="self-start rounded-md border border-border px-3 py-1.5 text-sm font-medium hover:bg-background"
+          className="self-start rounded-sm border border-navy px-3 py-1.5 text-sm font-semibold text-navy hover:bg-hover"
           pendingLabel="Adding…"
         >
           Add to {label.toLowerCase()} side
         </PendingButton>
       ) : (
-        <button type="button" disabled className="self-start rounded-md border border-border px-3 py-1.5 text-sm font-medium opacity-50">
+        <button type="button" disabled className="self-start rounded-sm border border-gray px-3 py-1.5 text-sm font-semibold text-muted opacity-60">
           Add to {label.toLowerCase()} side
         </button>
       )}

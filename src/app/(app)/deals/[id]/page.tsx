@@ -1,11 +1,19 @@
-import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireUser } from "@/auth";
+import { CommandBar, CommandDivider, RefreshCommand } from "@/components/command-bar";
+import { FlagMark } from "@/components/data-grid";
 import { Incomplete, Section } from "@/components/fields";
-import { searchParam } from "@/components/list-page";
-import { RecordFooter } from "@/components/record-footer";
-import { RecordForm } from "@/components/record-form";
+import {
+  HousekeepingCommands,
+  MainForm,
+  ModifiedStamp,
+  RecordFormProvider,
+  RecordHeader,
+  SaveCommand,
+  Tabs,
+} from "@/components/record-page";
 import { partyLabel, type DealType } from "@/domain/options";
+import { searchParam } from "@/lib/params";
 import { companyOptions } from "@/server/companies";
 import { contactOptions, streamPeopleOptions } from "@/server/contacts";
 import { getDeal } from "@/server/deals";
@@ -39,46 +47,73 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
     !data.team.some((t) => t.isLeadAnalyst) && "lead analyst",
   ].filter((m): m is string => !!m);
 
+  const totalSf = data.properties.reduce((s, p) => s + (p.buildingSf ?? 0), 0);
+  const names = (side: "A" | "B") =>
+    [...new Set(data.parties.filter((p) => p.side === side).map((p) => p.companyName))].join(" / ");
+  const addProperty = searchParam(sp.addProperty);
+
   return (
-    <div className="flex flex-col gap-4">
-      <div>
-        <p className="text-xs text-muted">
-          <Link href="/deals" className="hover:underline">
-            Deals
-          </Link>
-        </p>
-        <h1 className="text-xl font-semibold">{deal.dealName}</h1>
-        <p className="text-sm text-muted">
-          {[deal.dealType, deal.dealSubtype, deal.category, deal.isIos && "IOS desk"].filter(Boolean).join(" · ")}
-        </p>
-      </div>
-
-      <Incomplete missing={missing} />
-
-      <Section title="Deal">
-        <RecordForm action={saveDeal.bind(null, id)}>
-          <DealFields deal={deal} streamPeople={streamPeople} />
-        </RecordForm>
-      </Section>
-
-      <PropertiesSection deal={data} propertyOptions={properties} preselectId={searchParam(sp.addProperty)} />
-
-      <PartiesSection
-        deal={data}
-        companies={companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }))}
-        contacts={contacts}
+    <RecordFormProvider action={saveDeal.bind(null, id)}>
+      <CommandBar>
+        <SaveCommand />
+        <RefreshCommand />
+        <CommandDivider />
+        <HousekeepingCommands kind="deal" id={id} archivedAt={deal.archivedAt} canDelete={user.isAdmin} />
+      </CommandBar>
+      <RecordHeader
+        kindLabel="Deal"
+        title={deal.dealName}
+        subtitle={[deal.dealType, deal.dealSubtype, deal.category, deal.isIos && "IOS desk"].filter(Boolean).join(" · ") || undefined}
+        facts={[
+          { label: partyLabel(type, "A"), value: names("A") },
+          { label: partyLabel(type, "B"), value: names("B") },
+          { label: "Total SF", value: totalSf ? totalSf.toLocaleString("en-US") : null },
+          { label: "Lead broker", value: data.team.filter((t) => t.isLeadBroker).map((t) => t.name).join(", ") },
+          { label: "Lead analyst", value: data.team.find((t) => t.isLeadAnalyst)?.name },
+        ]}
+        flags={deal.archivedAt ? <FlagMark label="Archived" /> : undefined}
       />
-
-      <TeamSection deal={data} streamPeople={streamPeople} />
-
-      <RecordFooter
-        kind="deal"
-        id={id}
-        lastModifiedAt={deal.lastModifiedAt}
-        lastModifiedBy={data.modifiedByName}
-        archivedAt={deal.archivedAt}
-        canDelete={user.isAdmin}
+      <Tabs
+        initial={addProperty ? "properties" : undefined}
+        tabs={[
+          {
+            id: "summary",
+            label: "Summary",
+            content: (
+              <>
+                <Incomplete missing={missing} />
+                <Section title="Deal">
+                  <MainForm>
+                    <DealFields deal={deal} streamPeople={streamPeople} />
+                  </MainForm>
+                </Section>
+                <ModifiedStamp at={deal.lastModifiedAt} by={data.modifiedByName} />
+              </>
+            ),
+          },
+          {
+            id: "properties",
+            label: `Properties (${data.properties.length})`,
+            content: <PropertiesSection deal={data} propertyOptions={properties} preselectId={addProperty} />,
+          },
+          {
+            id: "parties",
+            label: `Parties (${data.parties.length})`,
+            content: (
+              <PartiesSection
+                deal={data}
+                companies={companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }))}
+                contacts={contacts}
+              />
+            ),
+          },
+          {
+            id: "team",
+            label: `Team (${data.team.length})`,
+            content: <TeamSection deal={data} streamPeople={streamPeople} />,
+          },
+        ]}
       />
-    </div>
+    </RecordFormProvider>
   );
 }

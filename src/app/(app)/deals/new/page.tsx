@@ -1,5 +1,7 @@
+import { X } from "lucide-react";
+import { CommandBar, CommandLink } from "@/components/command-bar";
 import { Section } from "@/components/fields";
-import { RecordForm } from "@/components/record-form";
+import { MainForm, RecordFormProvider, RecordHeader, SaveCommand } from "@/components/record-page";
 import { streamPeopleOptions } from "@/server/contacts";
 import { saveDeal } from "../actions";
 import { DealFields } from "../deal-fields";
@@ -7,16 +9,25 @@ import { DealFields } from "../deal-fields";
 export default async function NewDealPage() {
   const streamPeople = await streamPeopleOptions();
   return (
-    <div className="flex flex-col gap-4">
-      <h1 className="text-xl font-semibold">New deal</h1>
-      <p className="text-sm text-muted">
-        Only the name is needed to start. Properties, parties and the team are added on the next screen.
-      </p>
-      <Section title="Deal">
-        <RecordForm action={saveDeal.bind(null, null)} submitLabel="Create deal">
-          <DealFields streamPeople={streamPeople} />
-        </RecordForm>
-      </Section>
-    </div>
+    <RecordFormProvider action={saveDeal.bind(null, null)}>
+      <CommandBar>
+        <SaveCommand />
+        <CommandLink href="/deals" icon={X}>
+          Cancel
+        </CommandLink>
+      </CommandBar>
+      <RecordHeader
+        kindLabel="Deal"
+        title="New deal"
+        subtitle="Only the name is needed to start — properties, parties and the team are added after saving."
+      />
+      <div className="p-3 sm:p-5">
+        <Section title="Summary">
+          <MainForm>
+            <DealFields streamPeople={streamPeople} />
+          </MainForm>
+        </Section>
+      </div>
+    </RecordFormProvider>
   );
 }

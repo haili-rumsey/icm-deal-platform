@@ -1,31 +1,46 @@
-import Link from "next/link";
-import { cellCls, ListHeader, rowCls, searchParam, Table } from "@/components/list-page";
+import { Plus } from "lucide-react";
+import { CommandBar, CommandLink, RefreshCommand } from "@/components/command-bar";
+import { DataGrid } from "@/components/data-grid";
+import { searchParam } from "@/lib/params";
 import { listProperties } from "@/server/properties";
 
 export default async function PropertiesPage({ searchParams }: PageProps<"/properties">) {
-  const sp = await searchParams;
-  const q = searchParam(sp.q);
-  const archived = searchParam(sp.archived) === "1";
-  const rows = await listProperties({ q, archived });
+  const archived = searchParam((await searchParams).archived) === "1";
+  const rows = await listProperties({ archived });
 
   return (
-    <div>
-      <ListHeader title="Properties" basePath="/properties" newLabel="New property" q={q} archived={archived} count={rows.length} />
-      <Table head={["Address", "City", "SF", "Deals"]} empty={rows.length === 0}>
-        {rows.map((p) => (
-          <tr key={p.id} className={rowCls}>
-            <td className={cellCls}>
-              <Link href={`/properties/${p.id}`} className="font-medium hover:underline">
-                {[p.address, p.buildingDesignation].filter(Boolean).join(", ") || "(no address)"}
-              </Link>
-              {!p.addressVerified && <span className="ml-2 text-xs text-danger">Unverified</span>}
-            </td>
-            <td className={`${cellCls} text-muted`}>{[p.city, p.state].filter(Boolean).join(", ")}</td>
-            <td className={`${cellCls} text-muted`}>{p.buildingSf?.toLocaleString()}</td>
-            <td className={`${cellCls} text-muted`}>{p.dealCount}</td>
-          </tr>
-        ))}
-      </Table>
-    </div>
+    <>
+      <CommandBar>
+        <CommandLink href="/properties/new" icon={Plus}>
+          New
+        </CommandLink>
+        <RefreshCommand />
+      </CommandBar>
+      <DataGrid
+        views={[
+          { label: "Active properties", href: "/properties", active: !archived },
+          { label: "Archived properties", href: "/properties?archived=1", active: archived },
+        ]}
+        columns={[
+          { key: "address", label: "Address", kind: "link", hrefKey: "href", flagKey: "unverified", flagLabel: "No Google match" },
+          { key: "building", label: "Building" },
+          { key: "city", label: "City" },
+          { key: "state", label: "State" },
+          { key: "sf", label: "SF", kind: "number" },
+          { key: "deals", label: "Deals", kind: "number" },
+        ]}
+        rows={rows.map((p) => ({
+          id: p.id,
+          href: `/properties/${p.id}`,
+          address: p.address ?? "(no address)",
+          building: p.buildingDesignation,
+          city: p.city,
+          state: p.state,
+          sf: p.buildingSf,
+          deals: p.dealCount,
+          unverified: !p.addressVerified,
+        }))}
+      />
+    </>
   );
 }

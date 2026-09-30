@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { inputCls } from "@/components/fields";
 import { US_STATES } from "@/domain/options";
 import type { GeocodeMatch } from "@/server/geocode";
 import { lookupAddressAction } from "./lookup-action";
@@ -16,8 +17,6 @@ type Address = {
   lng: string;
   verified: boolean;
 };
-
-const inputCls = "w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
 
 /**
  * Addresses are not typed free-form: type, click Look up, pick Google's match.
@@ -75,22 +74,22 @@ export function AddressLookup({ initial }: { initial?: Address }) {
   if (mode === "manual") {
     const v = chosen && !chosen.verified ? chosen : null;
     return (
-      <div className="flex flex-col gap-3 rounded-md border border-border p-3">
+      <div className="flex flex-col gap-3 rounded-sm border border-border bg-background p-3">
         <input type="hidden" name="addressVerified" value="false" />
         <p className="text-xs text-muted">
           Saving without a Google match. The property is flagged for cleanup and can be looked up again later.
         </p>
         <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
           <label className="flex flex-col gap-1 text-sm lg:col-span-2">
-            <span className="font-medium">Address or description</span>
+            <span className="text-muted">Address or description</span>
             <input name="address" defaultValue={v?.address} placeholder="e.g. NE corner of Hwy 287 & FM 1187" className={inputCls} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">City</span>
+            <span className="text-muted">City</span>
             <input name="city" defaultValue={v?.city} className={inputCls} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">State</span>
+            <span className="text-muted">State</span>
             <select name="state" defaultValue={v?.state || "TX"} className={inputCls}>
               {US_STATES.map((s) => (
                 <option key={s}>{s}</option>
@@ -98,15 +97,15 @@ export function AddressLookup({ initial }: { initial?: Address }) {
             </select>
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">Zip</span>
+            <span className="text-muted">Zip</span>
             <input name="zip" defaultValue={v?.zip} className={inputCls} />
           </label>
           <label className="flex flex-col gap-1 text-sm">
-            <span className="font-medium">County</span>
+            <span className="text-muted">County</span>
             <input name="county" defaultValue={v?.county} className={inputCls} />
           </label>
         </div>
-        <button type="button" onClick={() => setMode("lookup")} className="self-start text-sm text-accent hover:underline">
+        <button type="button" onClick={() => setMode("lookup")} className="self-start text-sm text-link hover:underline">
           Back to Google lookup
         </button>
       </div>
@@ -117,17 +116,17 @@ export function AddressLookup({ initial }: { initial?: Address }) {
     <div className="flex flex-col gap-2">
       {hidden}
       {chosen ? (
-        <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2 text-sm">
+        <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-[#c8c8c4] bg-white px-2.5 py-1.5 text-sm">
           <span>
             {chosen.address}, {chosen.city}, {chosen.state} {chosen.zip}
             {chosen.county && <span className="text-muted"> · {chosen.county} County</span>}
             {chosen.verified ? (
               <span className="ml-2 text-xs text-muted">Google match</span>
             ) : (
-              <span className="ml-2 text-xs text-danger">Unverified</span>
+              <span className="ml-2 inline-flex items-center gap-1 text-xs text-muted"><span className="h-2 w-2 rounded-[1px] bg-flag" />Unverified</span>
             )}
           </span>
-          <button type="button" onClick={() => setChosen(null)} className="text-xs text-muted hover:text-foreground">
+          <button type="button" onClick={() => setChosen(null)} className="text-xs text-link hover:underline">
             Change address
           </button>
         </div>
@@ -150,17 +149,17 @@ export function AddressLookup({ initial }: { initial?: Address }) {
               type="button"
               onClick={lookUp}
               disabled={pending}
-              className="whitespace-nowrap rounded-md border border-border px-4 py-2 text-sm font-medium hover:bg-background disabled:opacity-60"
+              className="whitespace-nowrap rounded-sm border border-navy px-4 py-1.5 text-sm font-semibold text-navy hover:bg-hover disabled:opacity-60"
             >
               {pending ? "Looking up…" : "Look up"}
             </button>
           </div>
-          {message && <p className="text-sm text-danger">{message}</p>}
+          {message && <p className="text-sm">{message}</p>}
           {matches.length > 0 && (
-            <ul className="divide-y divide-border rounded-md border border-border">
+            <ul className="divide-y divide-border rounded-sm border border-border bg-white">
               {matches.map((m) => (
                 <li key={m.placeId}>
-                  <button type="button" onClick={() => pick(m)} className="w-full px-3 py-2 text-left text-sm hover:bg-background">
+                  <button type="button" onClick={() => pick(m)} className="w-full px-3 py-2 text-left text-sm hover:bg-hover">
                     {m.formatted}
                   </button>
                 </li>

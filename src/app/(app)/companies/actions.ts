@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/auth";
-import type { SaveState } from "@/components/record-form";
+import type { SaveState } from "@/components/record-page";
 import { COMPANY_TYPES, INVESTMENT_STRATEGIES } from "@/domain/options";
 import { bool, manyOf, str } from "@/lib/form";
 import { createCompany, updateCompany, type CompanyInput } from "@/server/companies";

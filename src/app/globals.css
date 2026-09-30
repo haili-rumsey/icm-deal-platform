@@ -1,27 +1,32 @@
 @import "tailwindcss";
 
+/*
+ * Stream Realty Partners brand (2023 guidelines):
+ * Stream Navy leads, then light gray and white, with Stream Blue as an accent.
+ * Secondary colors are accents only. Body copy is black.
+ * Light mode only so brand colors always render as specified.
+ */
 :root {
-  --background: #f7f7f5;
-  --foreground: #1a1a1a;
-  --muted: #5f6368;
-  --card: #ffffff;
-  --border: #e2e2de;
-  --accent: #1f3a5f;
-  --accent-foreground: #ffffff;
-  --danger: #a1261a;
-}
+  --navy: #002f6c;
+  --blue: #004ea8;
+  --gray-light: #d9d9d6;
+  --gray: #b1b3b3;
+  --gray-dark: #53565a;
+  --orange: #e87722;
+  --green: #86d295;
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #121314;
-    --foreground: #ececec;
-    --muted: #a0a4a8;
-    --card: #1b1c1e;
-    --border: #2e3033;
-    --accent: #7fa6d6;
-    --accent-foreground: #0d1620;
-    --danger: #f08b7f;
-  }
+  --background: #f4f4f2;
+  --foreground: #000000;
+  --muted: #53565a;
+  --card: #ffffff;
+  --border: #e1e1de;
+  --sidebar: #eeeeeb;
+  --hover: #e7e7e3;
+  --accent: #002f6c;
+  --accent-foreground: #ffffff;
+  --link: #004ea8;
+  /* Not a brand color: reserved for permanent delete so it reads as dangerous. */
+  --danger: #a4262c;
 }
 
 @theme inline {
@@ -30,14 +35,37 @@
   --color-muted: var(--muted);
   --color-card: var(--card);
   --color-border: var(--border);
+  --color-sidebar: var(--sidebar);
+  --color-hover: var(--hover);
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
+  --color-link: var(--link);
   --color-danger: var(--danger);
-  --font-sans: var(--font-geist-sans);
+  --color-navy: var(--navy);
+  --color-gray-light: var(--gray-light);
+  --color-gray: var(--gray);
+  --color-gray-dark: var(--gray-dark);
+  --color-blue: var(--blue);
+  --color-flag: var(--orange);
+  --color-ok: var(--green);
+  --font-sans: var(--font-nunito);
+  --font-serif: var(--font-merriweather);
+}
+
+html {
+  color-scheme: light;
 }
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-nunito), system-ui, sans-serif;
+  font-variant-numeric: lining-nums proportional-nums;
+}
+
+input,
+select,
+textarea,
+button {
+  font: inherit;
 }

@@ -1,18 +1,33 @@
 /**
- * Plain form fields. Nothing here is `required` except where the PRD makes it a
+ * Form fields in the Dynamics layout: label on the left, field on the right
+ * (stacked on phones). Nothing here is `required` except where the PRD makes it a
  * hard requirement — the system prompts for missing data, it never blocks.
  */
 
-const inputCls =
-  "w-full rounded-md border border-border bg-background px-3 py-2 text-sm outline-none focus:border-accent";
+export const inputCls =
+  "w-full rounded-sm border border-[#c8c8c4] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-navy focus:ring-1 focus:ring-navy disabled:bg-background disabled:text-muted";
 
-export function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
+export function FieldRow({
+  label,
+  hint,
+  htmlFor,
+  children,
+}: {
+  label: string;
+  hint?: string;
+  htmlFor?: string;
+  children: React.ReactNode;
+}) {
   return (
-    <label className="flex min-w-0 flex-col gap-1 text-sm">
-      <span className="font-medium">{label}</span>
-      {children}
-      {hint && <span className="text-xs text-muted">{hint}</span>}
-    </label>
+    <div className="grid min-w-0 grid-cols-1 gap-1 text-sm sm:grid-cols-[9.5rem_minmax(0,1fr)] sm:items-start sm:gap-3">
+      <label htmlFor={htmlFor} className="pt-1.5 text-muted">
+        {label}
+      </label>
+      <div className="flex min-w-0 flex-col gap-1">
+        {children}
+        {hint && <span className="text-xs text-muted">{hint}</span>}
+      </div>
+    </div>
   );
 }
 
@@ -34,8 +49,9 @@ export function TextInput({
   required?: boolean;
 }) {
   return (
-    <Field label={label} hint={hint}>
+    <FieldRow label={label} hint={hint} htmlFor={name}>
       <input
+        id={name}
         name={name}
         type={type}
         defaultValue={defaultValue ?? ""}
@@ -43,15 +59,15 @@ export function TextInput({
         required={required}
         className={inputCls}
       />
-    </Field>
+    </FieldRow>
   );
 }
 
 export function TextArea({ label, name, defaultValue }: { label: string; name: string; defaultValue?: string | null }) {
   return (
-    <Field label={label}>
-      <textarea name={name} defaultValue={defaultValue ?? ""} rows={3} className={inputCls} />
-    </Field>
+    <FieldRow label={label} htmlFor={name}>
+      <textarea id={name} name={name} defaultValue={defaultValue ?? ""} rows={3} className={inputCls} />
+    </FieldRow>
   );
 }
 
@@ -69,8 +85,8 @@ export function Select({
   hint?: string;
 }) {
   return (
-    <Field label={label} hint={hint}>
-      <select name={name} defaultValue={defaultValue ?? ""} className={inputCls}>
+    <FieldRow label={label} hint={hint} htmlFor={name}>
+      <select id={name} name={name} defaultValue={defaultValue ?? ""} className={inputCls}>
         <option value="">—</option>
         {options.map((o) => {
           const { value, label } = typeof o === "string" ? { value: o, label: o } : o;
@@ -81,14 +97,14 @@ export function Select({
           );
         })}
       </select>
-    </Field>
+    </FieldRow>
   );
 }
 
 export function Checkbox({ label, name, defaultChecked }: { label: string; name: string; defaultChecked?: boolean }) {
   return (
     <label className="flex items-center gap-2 text-sm">
-      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 accent-accent" />
+      <input type="checkbox" name={name} defaultChecked={defaultChecked} className="h-4 w-4 accent-navy" />
       {label}
     </label>
   );
@@ -105,60 +121,52 @@ export function CheckboxGroup({
   options: readonly string[];
   defaultValues?: readonly string[];
 }) {
-  return (
-    <fieldset className="flex flex-col gap-1 text-sm">
-      <legend className="mb-1 font-medium">{label}</legend>
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {options.map((o) => (
-          <label key={o} className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              name={name}
-              value={o}
-              defaultChecked={defaultValues.includes(o)}
-              className="h-4 w-4 accent-accent"
-            />
-            {o}
-          </label>
-        ))}
-      </div>
-    </fieldset>
+  const boxes = (
+    <div className="flex flex-wrap gap-x-4 gap-y-1.5 pt-1.5">
+      {options.map((o) => (
+        <label key={o} className="flex items-center gap-2 text-sm">
+          <input
+            type="checkbox"
+            name={name}
+            value={o}
+            defaultChecked={defaultValues.includes(o)}
+            className="h-4 w-4 accent-navy"
+          />
+          {o}
+        </label>
+      ))}
+    </div>
   );
+  return label ? <FieldRow label={label}>{boxes}</FieldRow> : boxes;
 }
 
-export function SubmitButton({ children }: { children: React.ReactNode }) {
-  return (
-    <button
-      type="submit"
-      className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90"
-    >
-      {children}
-    </button>
-  );
-}
-
+/** A titled panel on a record page. */
 export function Section({ title, children, action }: { title: string; children: React.ReactNode; action?: React.ReactNode }) {
   return (
-    <section className="rounded-lg border border-border bg-card p-4 sm:p-5">
-      <div className="mb-4 flex items-center justify-between gap-3">
-        <h2 className="text-sm font-semibold">{title}</h2>
+    <section className="rounded-md border border-border bg-card shadow-sm">
+      <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-2.5 sm:px-5">
+        <h2 className="text-sm font-bold">{title}</h2>
         {action}
       </div>
-      {children}
+      <div className="p-4 sm:p-5">{children}</div>
     </section>
   );
 }
 
+/** Two columns of label/field rows on wide screens. */
 export function Grid({ children }: { children: React.ReactNode }) {
-  return <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">{children}</div>;
+  return <div className="grid grid-cols-1 gap-x-10 gap-y-3 xl:grid-cols-2">{children}</div>;
 }
 
-/** "Missing: X, Y" — prompts for data without blocking. */
+/** "Still missing: X, Y" — prompts for data without blocking. */
 export function Incomplete({ missing }: { missing: string[] }) {
   if (!missing.length) return null;
   return (
-    <p className="rounded-md border border-border bg-background px-3 py-2 text-xs text-muted">
-      <span className="font-medium text-foreground">Still missing:</span> {missing.join(", ")}
+    <p className="flex items-start gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm">
+      <span className="mt-1.5 h-2 w-2 shrink-0 rounded-[1px] bg-flag" aria-hidden />
+      <span>
+        <span className="font-semibold">Still missing:</span> <span className="text-muted">{missing.join(", ")}</span>
+      </span>
     </p>
   );
 }

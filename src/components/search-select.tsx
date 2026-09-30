@@ -1,6 +1,7 @@
 "use client";
 
 import { useId, useMemo, useState } from "react";
+import { FieldRow, inputCls } from "./fields";
 
 export type Option = { id: string; name: string; hint?: string | null };
 
@@ -15,6 +16,7 @@ export function SearchSelect({
   defaultId,
   placeholder = "Search…",
   onChange,
+  layout = "row",
 }: {
   name: string;
   label: string;
@@ -22,6 +24,7 @@ export function SearchSelect({
   defaultId?: string | null;
   placeholder?: string;
   onChange?: (id: string | null) => void;
+  layout?: "row" | "stacked";
 }) {
   const listId = useId();
   const [selected, setSelected] = useState<Option | null>(() => options.find((o) => o.id === defaultId) ?? null);
@@ -43,17 +46,16 @@ export function SearchSelect({
     onChange?.(o?.id ?? null);
   }
 
-  return (
-    <div className="relative flex min-w-0 flex-col gap-1 text-sm">
-      <span className="font-medium">{label}</span>
+  const control = (
+    <div className="relative min-w-0 text-sm">
       <input type="hidden" name={name} value={selected?.id ?? ""} />
       {selected ? (
-        <div className="flex items-center justify-between gap-2 rounded-md border border-border bg-background px-3 py-2">
+        <div className="flex items-center justify-between gap-2 rounded-sm border border-[#c8c8c4] bg-white px-2.5 py-1.5">
           <span className="truncate">
             {selected.name}
             {selected.hint && <span className="ml-2 text-xs text-muted">{selected.hint}</span>}
           </span>
-          <button type="button" onClick={() => choose(null)} className="text-xs text-muted hover:text-foreground">
+          <button type="button" onClick={() => choose(null)} className="text-xs text-link hover:underline">
             Change
           </button>
         </div>
@@ -70,14 +72,14 @@ export function SearchSelect({
           }}
           onFocus={() => setOpen(true)}
           onBlur={() => setTimeout(() => setOpen(false), 150)}
-          className="w-full rounded-md border border-border bg-background px-3 py-2 outline-none focus:border-accent"
+          className={inputCls}
         />
       )}
       {open && !selected && (
         <ul
           id={listId}
           role="listbox"
-          className="absolute top-full z-20 mt-1 max-h-64 w-full overflow-auto rounded-md border border-border bg-card shadow-lg"
+          className="absolute top-full z-30 mt-1 max-h-64 w-full overflow-auto rounded-md border border-border bg-card shadow-lg"
         >
           {matches.length === 0 && <li className="px-3 py-2 text-muted">No matches</li>}
           {matches.map((o) => (
@@ -86,7 +88,7 @@ export function SearchSelect({
                 type="button"
                 onMouseDown={(e) => e.preventDefault()}
                 onClick={() => choose(o)}
-                className="flex w-full items-baseline justify-between gap-2 px-3 py-2 text-left hover:bg-background"
+                className="flex w-full items-baseline justify-between gap-2 px-3 py-2 text-left hover:bg-hover"
               >
                 <span className="truncate">{o.name}</span>
                 {o.hint && <span className="shrink-0 text-xs text-muted">{o.hint}</span>}
@@ -97,4 +99,15 @@ export function SearchSelect({
       )}
     </div>
   );
+
+  if (!label) return control;
+  if (layout === "stacked") {
+    return (
+      <div className="flex min-w-0 flex-col gap-1 text-sm">
+        <span className="text-muted">{label}</span>
+        {control}
+      </div>
+    );
+  }
+  return <FieldRow label={label}>{control}</FieldRow>;
 }

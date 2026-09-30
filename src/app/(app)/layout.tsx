@@ -1,12 +1,6 @@
-import Link from "next/link";
+import { LogOut } from "lucide-react";
 import { requireUser, signOut } from "@/auth";
-
-const NAV = [
-  ["/deals", "Deals"],
-  ["/properties", "Properties"],
-  ["/companies", "Companies"],
-  ["/contacts", "Contacts"],
-] as const;
+import { AppShell } from "@/components/shell/app-shell";
 
 async function doSignOut() {
   "use server";
@@ -17,33 +11,19 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const user = await requireUser();
 
   return (
-    <div className="flex flex-1 flex-col">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto flex max-w-6xl items-center justify-between gap-4 px-4 py-3">
-          <Link href="/" className="font-semibold">
-            ICM Deal Platform
-          </Link>
-          <nav className="flex items-center gap-4 overflow-x-auto text-sm">
-            {NAV.map(([href, label]) => (
-              <Link key={href} href={href} className="text-muted hover:text-foreground">
-                {label}
-              </Link>
-            ))}
-            {user.isAdmin && (
-              <Link href="/admin/users" className="text-muted hover:text-foreground">
-                Users
-              </Link>
-            )}
-            <span className="hidden text-muted lg:inline">{user.name ?? user.email}</span>
-            <form action={doSignOut}>
-              <button type="submit" className="text-muted hover:text-foreground">
-                Sign out
-              </button>
-            </form>
-          </nav>
-        </div>
-      </header>
-      <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8">{children}</main>
-    </div>
+    <AppShell
+      isAdmin={user.isAdmin}
+      userLabel={user.name ?? user.email}
+      signOut={
+        <form action={doSignOut}>
+          <button type="submit" className="flex items-center gap-1.5 rounded px-2 py-1 text-white/90 hover:bg-white/10">
+            <LogOut size={16} />
+            <span className="hidden sm:inline">Sign out</span>
+          </button>
+        </form>
+      }
+    >
+      {children}
+    </AppShell>
   );
 }

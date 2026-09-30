@@ -13,30 +13,30 @@ export function AddUserForm() {
 
   return (
     <form ref={formRef} action={action} className="flex flex-col gap-3 sm:flex-row sm:items-end">
-      <label className="flex flex-1 flex-col gap-1 text-sm">
+      <label className="flex flex-1 flex-col gap-1 text-sm text-muted">
         First name
         <input
           name="firstName"
           required
-          className="rounded-md border border-border bg-background px-3 py-2 outline-none focus:border-accent"
+          className="rounded-sm border border-[#c8c8c4] bg-white px-2.5 py-1.5 outline-none focus:border-navy focus:ring-1 focus:ring-navy"
         />
       </label>
-      <label className="flex flex-1 flex-col gap-1 text-sm">
+      <label className="flex flex-1 flex-col gap-1 text-sm text-muted">
         Last name
         <input
           name="lastName"
           required
-          className="rounded-md border border-border bg-background px-3 py-2 outline-none focus:border-accent"
+          className="rounded-sm border border-[#c8c8c4] bg-white px-2.5 py-1.5 outline-none focus:border-navy focus:ring-1 focus:ring-navy"
         />
       </label>
-      <label className="flex flex-1 flex-col gap-1 text-sm">
+      <label className="flex flex-1 flex-col gap-1 text-sm text-muted">
         Email
         <input
           name="email"
           type="email"
           required
           placeholder="name@streamrealty.com"
-          className="rounded-md border border-border bg-background px-3 py-2 outline-none focus:border-accent"
+          className="rounded-sm border border-[#c8c8c4] bg-white px-2.5 py-1.5 outline-none focus:border-navy focus:ring-1 focus:ring-navy"
         />
       </label>
       <button

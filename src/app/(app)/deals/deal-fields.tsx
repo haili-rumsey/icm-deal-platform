@@ -16,20 +16,20 @@ export function DealFields({ deal, streamPeople }: { deal?: Deal; streamPeople: 
           required
           placeholder="Client Name-Deal Name"
         />
-        <Select label="Category" name="category" options={CATEGORIES} defaultValue={d?.category} />
         <TextInput label="REApps ID" name="reappsId" defaultValue={d?.reappsId} hint="Assigned by accounting at closing." />
         <DealTypeFields dealType={d?.dealType} dealSubtype={d?.dealSubtype} />
+        <Select label="Category" name="category" options={CATEGORIES} defaultValue={d?.category} />
         <Select label="Opportunity type" name="opportunityType" options={OPPORTUNITY_TYPES} defaultValue={d?.opportunityType} />
         <Select label="Represented" name="represented" options={REPRESENTED} defaultValue={d?.represented} />
-        <TextInput label="WALT (years)" name="waltYears" defaultValue={d?.waltYears} />
-        <TextInput label="WALT as of" name="waltAsOf" type="date" defaultValue={d?.waltAsOf} />
         <SearchSelect
-          label="Referral (Stream employee)"
+          label="Referral"
           name="referralContactId"
           options={streamPeople}
           defaultId={d?.referralContactId}
           placeholder="Search Stream people…"
         />
+        <TextInput label="WALT (years)" name="waltYears" defaultValue={d?.waltYears} />
+        <TextInput label="WALT as of" name="waltAsOf" type="date" defaultValue={d?.waltAsOf} />
       </Grid>
       <div className="flex flex-wrap gap-x-6 gap-y-2">
         <Checkbox label="IOS desk deal" name="isIos" defaultChecked={d?.isIos} />

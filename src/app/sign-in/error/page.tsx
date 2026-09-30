@@ -12,7 +12,7 @@ export default async function SignInErrorPage({ searchParams }: PageProps<"/sign
   return (
     <div className="flex flex-col gap-3 text-sm">
       <p>{message}</p>
-      <Link href="/sign-in" className="text-accent underline underline-offset-2">
+      <Link href="/sign-in" className="text-link underline underline-offset-2">
         Request a new link
       </Link>
     </div>

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { requireUser } from "@/auth";
-import type { SaveState } from "@/components/record-form";
+import type { SaveState } from "@/components/record-page";
 import { BUILDING_CLASSES, CONFIGURATIONS, SPRINKLER_TYPES, TENANCY } from "@/domain/options";
 import { dec, ids, int, oneOf, str } from "@/lib/form";
 import { createProperty, updateProperty, type PropertyInput } from "@/server/properties";

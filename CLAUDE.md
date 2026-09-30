@@ -76,6 +76,14 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 - Google Geocoding lookup is in 1.2, *type then Look up* (no Places autocomplete). No match → "Save without Google match", flagged unverified for cleanup.
 - Records are archived by anyone, deleted only by the three admins.
 
+## Look and feel
+
+Microsoft Dynamics layout, Stream brand (2023 Brand Guidelines, in `Context/`):
+- Navy top bar with the white Stream logo; light-gray grouped sidebar with icons; command bar (New / Save / Refresh / Archive / Delete) on every page; lists with a view switcher, Quick find and sortable columns; record pages with a header of key facts and tabs.
+- Colors: Stream Navy #002F6C leads, light gray and white next, Stream Blue #004EA8 as accent (links). Secondary colors only as accents — Sunset Orange marks records flagged for cleanup. Never blue on navy. Body text black. A non-brand red is reserved for permanent Delete.
+- Type: Nunito Sans (body), Merriweather (titles). Light mode only.
+- Only show commands that work — no placeholder buttons for later milestones.
+
 ## Data sensitivity
 
 Holds client contacts, deal financials, bid terms and fee data. Do not log sensitive values, do not commit secrets, and keep environment variables documented so the project survives a change of maintainer.
