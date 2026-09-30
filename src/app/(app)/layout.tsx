@@ -1,6 +1,13 @@
 import Link from "next/link";
 import { requireUser, signOut } from "@/auth";
 
+const NAV = [
+  ["/deals", "Deals"],
+  ["/properties", "Properties"],
+  ["/companies", "Companies"],
+  ["/contacts", "Contacts"],
+] as const;
+
 async function doSignOut() {
   "use server";
   await signOut();
@@ -16,13 +23,18 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <Link href="/" className="font-semibold">
             ICM Deal Platform
           </Link>
-          <nav className="flex items-center gap-4 text-sm">
+          <nav className="flex items-center gap-4 overflow-x-auto text-sm">
+            {NAV.map(([href, label]) => (
+              <Link key={href} href={href} className="text-muted hover:text-foreground">
+                {label}
+              </Link>
+            ))}
             {user.isAdmin && (
               <Link href="/admin/users" className="text-muted hover:text-foreground">
                 Users
               </Link>
             )}
-            <span className="hidden text-muted sm:inline">{user.name ?? user.email}</span>
+            <span className="hidden text-muted lg:inline">{user.name ?? user.email}</span>
             <form action={doSignOut}>
               <button type="submit" className="text-muted hover:text-foreground">
                 Sign out

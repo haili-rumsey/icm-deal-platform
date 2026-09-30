@@ -12,7 +12,7 @@ Next.js (App Router) on Vercel · Neon Postgres via Drizzle ORM · Auth.js magic
 1. Install Node.js LTS (nodejs.org).
 2. `npm install`
 3. Copy `.env.example` to `.env.local` and fill in every value (each one is explained in that file).
-4. `npm run db:migrate` to create the tables, then `npm run db:seed` to create the three admins.
+4. `npm run db:migrate` to create the tables, then `npm run db:seed` to create the three admins, the Stream Realty Partners and Private Investors companies, and a Stream contact for each user.
 5. `npm run dev` and open http://localhost:3000
 
 ## Environment variables
@@ -25,6 +25,7 @@ Documented in [.env.example](.env.example). In production they are set in Vercel
 | `RESEND_API_KEY` | Resend key used to send sign-in emails |
 | `EMAIL_FROM` | Sender address for sign-in emails |
 | `DATABASE_URL` | Neon Postgres connection string |
+| `GOOGLE_MAPS_API_KEY` | Google Geocoding key for address Look up (optional until set up) |
 
 ## Database changes
 

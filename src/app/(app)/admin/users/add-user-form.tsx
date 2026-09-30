@@ -14,9 +14,17 @@ export function AddUserForm() {
   return (
     <form ref={formRef} action={action} className="flex flex-col gap-3 sm:flex-row sm:items-end">
       <label className="flex flex-1 flex-col gap-1 text-sm">
-        Name
+        First name
         <input
-          name="name"
+          name="firstName"
+          required
+          className="rounded-md border border-border bg-background px-3 py-2 outline-none focus:border-accent"
+        />
+      </label>
+      <label className="flex flex-1 flex-col gap-1 text-sm">
+        Last name
+        <input
+          name="lastName"
           required
           className="rounded-md border border-border bg-background px-3 py-2 outline-none focus:border-accent"
         />

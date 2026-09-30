@@ -1,8 +1,8 @@
 # ICM Deal Platform — PRD
 
 Stream Realty Partners · Industrial Capital Markets
-Rev. 4.1 · Scope: ICM only · Custom build on Vercel
-(Rev. 4.1: authentication changed from Entra ID SSO to email magic links — see §9)
+Rev. 4.2 · Scope: ICM only · Custom build on Vercel
+(Rev. 4.1: authentication changed from Entra ID SSO to email magic links — see §9. Rev. 4.2: decisions made at the start of 1.2 — see §1 "Decisions added in Rev. 4.2")
 
 Internal deal tracking system replacing a hand-maintained pipeline spreadsheet. Single source of truth for deals, properties, bids, companies and contacts. 12 users across Dallas and Houston.
 
@@ -141,6 +141,17 @@ Every team member, lead or not, can pull a list of deals they worked on.
 |---|---|---|
 | Delete | Haili Rumsey, Seth Koschak, Matteson Hamilton | Records created in error. Permanent. |
 | Archive | Any user | Contacts who left the industry, housekeeping. Reversible. |
+
+### Decisions added in Rev. 4.2
+
+Resolved with Haili Rumsey at the start of milestone 1.2.
+
+- **Contact names:** first name + last name, two fields (the Contact field list above omitted a name).
+- **Stream people are Contacts** at a "Stream Realty Partners" company — Deal Team, Referral and imported Brokers all point to Contacts. A signed-in user is the same person as the Contact with the same email; adding a user creates their Stream contact if missing.
+- **Every contact has a company.** Individuals without one are linked to a general **"Private Investors"** company (marked no website). Bids from private investors therefore attach to that company; the bid matrix shows the contact's name alongside so bidders stay distinguishable.
+- **Deal Team roles:** a person appears once per deal but may hold several roles (e.g. producer + leasing). Lead broker / lead analyst flags sit on that row.
+- **Google address lookup moves into 1.2** (from 1.3). Entry style is *type, then Look up* — Geocoding API only, no Places autocomplete.
+- **No Google match** (e.g. new construction without an address): try an intersection first; otherwise *Save without Google match* — address typed, property flagged unverified for cleanup, re-looked-up later. Duplicate checks cannot run on it until verified.
 
 ### Change log
 
@@ -341,8 +352,8 @@ Phase 1 ends when the pipeline spreadsheet is retired. A system running alongsid
 | Milestone | Delivers | Done when |
 |---|---|---|
 | 1.1 Foundation | Repo, Vercel deploy, Neon database, magic-link sign-in (Resend), user administration | A Stream user signs in with their own credentials and reaches an empty app |
-| 1.2 Core records | Deal, Property, Company, Contact, Deal Team, Deal Party | A multi-property deal can be created with a JV on both sides and a full team |
-| 1.3 Geography and duplicates | State/city/submarket lists, Google geocoding, website and email keys | Entering an existing address surfaces the existing property instead of creating a second one |
+| 1.2 Core records | Deal, Property, Company, Contact, Deal Team, Deal Party, Google address lookup | A multi-property deal can be created with a JV on both sides and a full team |
+| 1.3 Geography and duplicates | State/city/submarket lists, duplicate matching on place_id, website and email keys | Entering an existing address surfaces the existing property instead of creating a second one |
 | 1.4 Stages and money | All stages incl. Track, dates, three financial blocks, fee fields, closed-record lock | A deal runs BOV 1 → Closed, and a non-privileged user cannot edit it afterward |
 | 1.5 Historical import | Bulk load of accounting's closed-deal export | The real file loads with no rejected rows, and IOS sales and leases both land as closed with the flag set |
 | 1.6 Core reports | Pipeline, opportunity and property reports, Excel export, search | The weekly meeting is run off the system instead of the spreadsheet |

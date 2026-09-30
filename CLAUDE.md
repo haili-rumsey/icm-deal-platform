@@ -35,7 +35,7 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 - **Isolated layer:** all auth code lives in `src/auth/`. The rest of the app uses only its exported helpers (`getCurrentUser`, `requireUser`, `requireAdmin`, `signIn`, `signOut`), so Entra ID can be swapped in later by changing that folder alone.
 - **Admins** (user administration, delete, closed-deal unlock): haili.rumsey@streamrealty.com, skoschak@streamrealty.com, mhamilton@streamrealty.com. Seeded in the database, not editable in the UI.
 - User admin screen: add a user, list everyone with access, deactivate (immediately blocks new links **and** kills active sessions), reactivate.
-- Stream people who aren't app users (referrers, former brokers) are stored as **Contacts**, not users. How an app user links to their own contact record is to be confirmed at the start of 1.2.
+- Stream people (users, referrers, former brokers) are **Contacts** at the "Stream Realty Partners" company. A user is linked to their contact **by matching email**; adding a user creates the contact if missing.
 
 ## Non-negotiable principles
 
@@ -68,6 +68,13 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 - **Stop at the end of each milestone** for testing against its "done when" criteria. Do not work ahead.
 - Ask questions before writing code rather than assuming.
 - Flag anything that would expand scope beyond the PRD.
+
+## Decisions made during the build (PRD Rev. 4.2)
+
+- Contacts have first + last name. Every contact has a company; individuals without one go under the general "Private Investors" company.
+- Deal Team: one row per person per deal, multiple roles allowed, lead flags on the row. One lead analyst per deal (setting a new one clears the old).
+- Google Geocoding lookup is in 1.2, *type then Look up* (no Places autocomplete). No match → "Save without Google match", flagged unverified for cleanup.
+- Records are archived by anyone, deleted only by the three admins.
 
 ## Data sensitivity
 
