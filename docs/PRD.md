@@ -76,7 +76,7 @@ No per-person splits — those live in accounting software.
 
 ### Property
 
-Standalone and persistent; accumulates transaction history across repeat trades. Joined to deals many-to-many via `deal_property`, which carries an optional `allocated_price`.
+Standalone and persistent; accumulates transaction history across repeat trades. Joined to deals many-to-many via `deal_property`. (Rev. 4.2: per-property `allocated_price` removed — pricing is deal-level only; individual property values live in the team's files.)
 
 | Field | Notes |
 |---|---|
@@ -153,6 +153,7 @@ Resolved with Haili Rumsey at the start of milestone 1.2.
 - **No Google match** (e.g. new construction without an address): try an intersection first; otherwise *Save without Google match* — address typed, property flagged unverified for cleanup, re-looked-up later. Duplicate checks cannot run on it until verified.
 
 - **Removed (Rev. 4.2):** WALT (`walt_years`, `walt_as_of`) on deals and `occupancy_as_of` on properties — not realistic to track.
+- **Removed (Rev. 4.2):** `allocated_price` on `deal_property`. A portfolio often trades at a different value than its parts, so every price is entered once, for the whole deal, in the BOV / OM / Closed blocks (1.4). Property-level values are not tracked or reported.
 - **ICM team roster:** an admin-only **Manage teams** screen holds the "ICM team", the only source of the deal team dropdown. It is separate from app access (Users): some team members never sign in. Each member carries a **location** (Dallas / Houston). Built as "teams" so more teams can be added later; today there is one. Adding a user offers "Also add to ICM team".
 - **Deal team on the deal's Summary:** a dropdown checklist of the ICM team (select several at once), with **Lead broker(s)** and **Lead analyst** dropdowns filled from whoever is on the deal, and **Referred by** as a dropdown of all Stream people. Roles are toggled per person on the Team tab.
 - **New companies from the Parties tab:** if a search finds nothing, the company can be created inline (name + website or "no website") and added to that side in one step.

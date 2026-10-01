@@ -64,7 +64,6 @@ export async function getDeal(id: string) {
         buildingSf: properties.buildingSf,
         acreage: properties.acreage,
         addressVerified: properties.addressVerified,
-        allocatedPrice: dealProperties.allocatedPrice,
       })
       .from(dealProperties)
       .innerJoin(properties, eq(properties.id, dealProperties.propertyId))
@@ -125,12 +124,12 @@ function touch(dealId: string, byId: string) {
 
 // ---- Properties on a deal ----
 
-export async function addDealProperty(dealId: string, propertyId: string, allocatedPrice: string | null, byId: string) {
+export async function addDealProperty(dealId: string, propertyId: string, byId: string) {
   await db.batch([
     db
       .insert(dealProperties)
-      .values({ dealId, propertyId, allocatedPrice })
-      .onConflictDoUpdate({ target: [dealProperties.dealId, dealProperties.propertyId], set: { allocatedPrice } }),
+      .values({ dealId, propertyId })
+      .onConflictDoNothing({ target: [dealProperties.dealId, dealProperties.propertyId] }),
     touch(dealId, byId),
   ]);
 }

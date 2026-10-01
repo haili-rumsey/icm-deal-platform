@@ -1,0 +1,1 @@
+ALTER TABLE "deal_properties" DROP COLUMN "allocated_price";

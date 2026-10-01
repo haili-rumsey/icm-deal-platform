@@ -29,6 +29,13 @@
       "when": 1790870713185,
       "tag": "0003_contact_location",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1790871819789,
+      "tag": "0004_drop_allocated_price",
+      "breakpoints": true
     }
   ]
 }

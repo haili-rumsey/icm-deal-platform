@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { inputCls, Section } from "@/components/fields";
+import { Section } from "@/components/fields";
 import { FlagMark } from "@/components/data-grid";
 import { PendingButton } from "@/components/pending-button";
 import { SearchSelect, type Option } from "@/components/search-select";
@@ -20,10 +20,6 @@ type DealData = NonNullable<Awaited<ReturnType<typeof getDeal>>>;
 
 const smallBtn = "rounded-sm border border-navy px-3 py-1.5 text-sm font-semibold text-navy hover:bg-hover";
 const removeBtn = "text-xs text-muted hover:text-danger";
-
-function money(v: string | null) {
-  return v ? `$${Number(v).toLocaleString("en-US", { maximumFractionDigits: 0 })}` : null;
-}
 
 export function PropertiesSection({
   deal,
@@ -61,7 +57,6 @@ export function PropertiesSection({
               </span>
               <span className="flex items-baseline gap-4 text-muted">
                 {p.buildingSf ? `${p.buildingSf.toLocaleString()} SF` : null}
-                {money(p.allocatedPrice) && <span>Allocated {money(p.allocatedPrice)}</span>}
                 <form action={removePropertyAction.bind(null, id, p.id)}>
                   <PendingButton className={removeBtn} pendingLabel="Removing…">
                     Remove
@@ -74,7 +69,7 @@ export function PropertiesSection({
       )}
       <form
         action={addPropertyAction.bind(null, id)}
-        className="grid grid-cols-1 items-end gap-3 rounded-sm border border-dashed border-gray p-3 sm:grid-cols-[1fr_12rem_auto]"
+        className="grid grid-cols-1 items-end gap-3 rounded-sm border border-dashed border-gray p-3 sm:grid-cols-[1fr_auto]"
       >
         <SearchSelect
           key={`${preselectId ?? ""}-${deal.properties.length}`}
@@ -85,10 +80,6 @@ export function PropertiesSection({
           defaultId={preselectId}
           placeholder="Search by address…"
         />
-        <label className="flex flex-col gap-1 text-sm">
-          <span className="text-muted">Allocated price (optional)</span>
-          <input name="allocatedPrice" placeholder="$" className={inputCls} />
-        </label>
         <PendingButton className={smallBtn} pendingLabel="Adding…">
           Add
         </PendingButton>

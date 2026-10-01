@@ -13,7 +13,7 @@ import {
   SIDES,
   TEAM_ROLES,
 } from "@/domain/options";
-import { bool, dec, ids, oneOf, str } from "@/lib/form";
+import { bool, ids, oneOf, str } from "@/lib/form";
 import { createCompany } from "@/server/companies";
 import {
   addDealParty,
@@ -72,7 +72,7 @@ export async function addPropertyAction(dealId: string, fd: FormData) {
   const user = await requireUser();
   const propertyId = str(fd, "propertyId");
   if (!propertyId) return;
-  await addDealProperty(dealId, propertyId, dec(fd, "allocatedPrice"), user.id);
+  await addDealProperty(dealId, propertyId, user.id);
   refresh(dealId);
   // Drop the ?addProperty= hint once it's been used.
   redirect(`/deals/${dealId}`);

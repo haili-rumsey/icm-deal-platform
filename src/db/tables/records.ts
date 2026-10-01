@@ -188,7 +188,6 @@ export const dealProperties = pgTable(
     propertyId: uuid("property_id")
       .notNull()
       .references(() => properties.id),
-    allocatedPrice: numeric("allocated_price", { precision: 16, scale: 2 }),
   },
   (t) => [primaryKey({ columns: [t.dealId, t.propertyId] }), index("deal_properties_property_idx").on(t.propertyId)],
 );

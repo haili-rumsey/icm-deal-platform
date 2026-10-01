@@ -71,7 +71,7 @@ export async function getProperty(id: string) {
     .orderBy(asc(companies.name));
   // Every deal this property has been part of.
   const dealRows = await db
-    .select({ id: deals.id, dealName: deals.dealName, dealType: deals.dealType, allocatedPrice: dealProperties.allocatedPrice })
+    .select({ id: deals.id, dealName: deals.dealName, dealType: deals.dealType })
     .from(dealProperties)
     .innerJoin(deals, eq(deals.id, dealProperties.dealId))
     .where(eq(dealProperties.propertyId, id))
