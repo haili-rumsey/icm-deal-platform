@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useActionState, useContext, useState } from "react";
+import { createContext, useActionState, useContext, useEffect, useRef, useState } from "react";
 import { Archive, ArchiveRestore, Save, Trash2 } from "lucide-react";
 import { archiveAction, deleteAction, type DeleteState } from "@/app/(app)/housekeeping-actions";
 import type { EntityKind } from "@/server/housekeeping";
@@ -11,7 +11,13 @@ type SaveAction = (prev: SaveState, fd: FormData) => Promise<SaveState>;
 
 const FORM_ID = "record-form";
 
-type Ctx = { formAction: (fd: FormData) => void; pending: boolean; state: SaveState };
+type Ctx = {
+  formAction: (fd: FormData) => void;
+  pending: boolean;
+  state: SaveState;
+  dirty: boolean;
+  setDirty: (d: boolean) => void;
+};
 const RecordFormContext = createContext<Ctx | null>(null);
 
 /**
@@ -20,7 +26,19 @@ const RecordFormContext = createContext<Ctx | null>(null);
  */
 export function RecordFormProvider({ action, children }: { action: SaveAction; children: React.ReactNode }) {
   const [state, formAction, pending] = useActionState(action, null);
-  return <RecordFormContext.Provider value={{ state, formAction, pending }}>{children}</RecordFormContext.Provider>;
+  const [dirty, setDirty] = useState(false);
+  return (
+    <RecordFormContext.Provider value={{ state, formAction, pending, dirty, setDirty }}>{children}</RecordFormContext.Provider>
+  );
+}
+
+/** True while the record's main form has changes that haven't been saved. Safe outside a provider. */
+export function useUnsavedChanges() {
+  return useContext(RecordFormContext)?.dirty ?? false;
+}
+
+function serialize(form: HTMLFormElement) {
+  return JSON.stringify([...new FormData(form).entries()].map(([k, v]) => [k, String(v)]));
 }
 
 function useRecordForm() {
@@ -30,9 +48,42 @@ function useRecordForm() {
 }
 
 export function MainForm({ children, readOnly }: { children: React.ReactNode; readOnly?: boolean }) {
-  const { formAction } = useRecordForm();
+  const { formAction, dirty, setDirty } = useRecordForm();
+  const ref = useRef<HTMLFormElement>(null);
+  const snapshot = useRef<string | null>(null);
+
+  // What the form looked like when it loaded. A remount (after a save or a stage
+  // move) takes a fresh snapshot, so it starts clean again.
+  useEffect(() => {
+    if (ref.current) snapshot.current = serialize(ref.current);
+    setDirty(false);
+  }, [setDirty]);
+
+  // Warn before closing the tab or reloading with unsaved changes.
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
+
+  // Compare after React has applied the change (pickers update hidden fields on click).
+  function check() {
+    setTimeout(() => {
+      if (ref.current && snapshot.current !== null) setDirty(serialize(ref.current) !== snapshot.current);
+    }, 0);
+  }
+
   return (
-    <form id={FORM_ID} action={formAction} className="flex flex-col gap-4">
+    <form
+      ref={ref}
+      id={FORM_ID}
+      action={formAction}
+      onInput={check}
+      onChange={check}
+      onClick={check}
+      className="flex flex-col gap-4"
+    >
       {/* A disabled fieldset makes every field inside read-only in one go. */}
       <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-4">
         {children}

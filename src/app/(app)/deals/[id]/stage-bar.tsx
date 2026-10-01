@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useState } from "react";
 import { Check } from "lucide-react";
 import { inputCls } from "@/components/fields";
+import { useUnsavedChanges } from "@/components/record-page";
 import { SearchSelect, type Option } from "@/components/search-select";
 import type { Stage } from "@/domain/options";
 import { OFF_PIPELINE, PIPELINE, STAGE_DATE, STAGE_HINTS } from "@/domain/stages";
@@ -47,6 +48,7 @@ export function StageBar({
   // Once the move lands, the deal's stage becomes the chosen one and the prompt closes.
   const target = chosen && chosen !== stage ? chosen : null;
   const currentIndex = PIPELINE.indexOf(stage);
+  const unsaved = useUnsavedChanges();
 
   function needsPrompt(s: Stage) {
     const df = STAGE_DATE[s];
@@ -61,6 +63,14 @@ export function StageBar({
 
   function click(s: Stage) {
     if (locked || s === stage || pending) return;
+    if (
+      unsaved &&
+      !confirm(
+        "You have unsaved changes on this deal. Moving the stage will discard them.\n\nOK — move anyway\nCancel — stay and Save first",
+      )
+    ) {
+      return;
+    }
     if (needsPrompt(s)) return setTarget(s);
     const fd = new FormData();
     fd.set("stage", s);
