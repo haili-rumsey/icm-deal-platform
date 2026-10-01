@@ -401,7 +401,7 @@ Custom build, developed in-house.
 | Authentication | Email magic links (Auth.js email provider via Resend) | No passwords, no dependency on Stream IT. Replaces Entra ID SSO — see Authentication below |
 | Scheduled jobs | Vercel Cron | Required for the weekly recap |
 | Outbound email | Resend | Sign-in links from 1.1; also required for the recap |
-| Geocoding | Google Geocoding API | Address normalization and the `place_id` duplicate key |
+| Geocoding | Google Geocoding API + Places API (New) | Address normalization and the `place_id` duplicate key. Places (Rev. 4.2) gives suggestions as you type; Geocoding turns the pick into the stored address. Both called server-side; key restricted to these two APIs |
 
 ### Authentication
 

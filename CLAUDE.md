@@ -15,7 +15,7 @@ The PRD is the source of truth for scope. Every field in it was deliberately cho
 | Auth | Email magic links — Auth.js email provider, sent via Resend (**not** Entra ID) |
 | Scheduled jobs | Vercel Cron |
 | Outbound email | Resend |
-| Geocoding | Google Geocoding API |
+| Geocoding | Google Geocoding API + Places API (New), server-side |
 | Source control | Private GitHub repo, Stream-owned account |
 
 Serverless — nothing runs continuously. Scheduled work must go through Vercel Cron.
@@ -76,7 +76,7 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 - Deal team is picked on the deal's Summary from the **ICM team roster** (admin "Manage teams" screen, `contacts.is_icm_team`), not from app users — some members never sign in. Leads are chosen from the deal's team. Members have a location (Dallas/Houston).
 - WALT, occupancy as-of date and per-property allocated price were removed from the PRD. All pricing is deal-level (typed in the 1.4 blocks), never summed from properties.
 - The IOS flag is labelled "IOS Deal" in the UI.
-- Google Geocoding lookup is in 1.2, *type then Look up* (no Places autocomplete). No match → "Save without Google match", flagged unverified for cleanup.
+- Address entry: suggestions as you type (Places API New, Texas-biased), resolved through the Geocoding API; "Look up" stays as a fallback for intersections. All Google calls are server-side; the key is restricted to those two APIs. No match → "Save without Google match", flagged unverified for cleanup.
 - Records are archived by anyone, deleted only by the three admins.
 
 ## Look and feel

@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useId, useRef, useState, useTransition } from "react";
 import { DuplicateWarning } from "@/components/duplicate-warning";
 import { inputCls } from "@/components/fields";
 import { US_STATES } from "@/domain/options";
@@ -49,15 +49,13 @@ export function AddressLookup({
   // One token per address being entered; Google bills a typing session as one unit.
   const session = useRef<string>(crypto.randomUUID());
   const latest = useRef(0);
+  const listId = useId();
 
   // Suggestions as you type, after a short pause and from 4 characters.
   useEffect(() => {
     const q = query.trim();
-    if (q.length < 4) {
-      setSuggestions([]);
-      return;
-    }
     const id = ++latest.current;
+    if (q.length < 4) return;
     const t = setTimeout(async () => {
       const r = await suggestAddressesAction(q, session.current);
       if (id !== latest.current) return; // a newer keystroke won
@@ -217,6 +215,7 @@ export function AddressLookup({
                 onChange={(e) => {
                   setQuery(e.target.value);
                   setMessage(null);
+                  if (e.target.value.trim().length < 4) setSuggestions([]);
                 }}
                 onFocus={() => suggestions.length && setOpen(true)}
                 onBlur={() => setTimeout(() => setOpen(false), 150)}
@@ -229,13 +228,14 @@ export function AddressLookup({
                   if (e.key === "Escape") setOpen(false);
                 }}
                 role="combobox"
+                aria-controls={listId}
                 aria-expanded={open && suggestions.length > 0}
                 aria-autocomplete="list"
                 placeholder="Start typing an address…"
                 className={inputCls}
               />
               {open && suggestions.length > 0 && (
-                <ul role="listbox" className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border border-border bg-card shadow-lg">
+                <ul id={listId} role="listbox" className="absolute z-30 mt-1 w-full overflow-hidden rounded-md border border-border bg-card shadow-lg">
                   {suggestions.map((sg) => (
                     <li key={sg.placeId} role="option" aria-selected={false}>
                       <button

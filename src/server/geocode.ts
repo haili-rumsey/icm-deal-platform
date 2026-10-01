@@ -129,7 +129,13 @@ export async function suggestAddresses(input: string, sessionToken: string): Pro
       method: "POST",
       cache: "no-store",
       headers: { "Content-Type": "application/json", "X-Goog-Api-Key": key },
-      body: JSON.stringify({ input: input.trim(), includedRegionCodes: ["us"], sessionToken }),
+      body: JSON.stringify({
+        input: input.trim(),
+        includedRegionCodes: ["us"],
+        // Lean toward Texas (where nearly all deals are) without excluding other states.
+        locationBias: { rectangle: { low: { latitude: 25.8, longitude: -106.7 }, high: { latitude: 36.5, longitude: -93.5 } } },
+        sessionToken,
+      }),
     });
     body = await res.json();
   } catch {
