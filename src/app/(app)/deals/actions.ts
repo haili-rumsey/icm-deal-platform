@@ -15,6 +15,7 @@ import {
   STAGES,
   TEAM_ROLES,
 } from "@/domain/options";
+import { closeBlockedMessage } from "@/domain/close-check";
 import { bool, dec, ids, oneOf, str } from "@/lib/form";
 import { createCompany } from "@/server/companies";
 import {
@@ -22,7 +23,9 @@ import {
   addDealProperty,
   assertCanEdit,
   createDeal,
+  currentStage,
   DealLockedError,
+  missingToClose,
   moveStage,
   removeDealParty,
   removeDealProperty,
@@ -113,6 +116,19 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
   const input = parse(fd);
   if (typeof input === "string") return { ok: false, message: input };
   const team = { teamIds: ids(fd, "teamIds"), leadBrokerIds: ids(fd, "leadBrokerIds"), leadAnalystId: str(fd, "leadAnalystId") };
+  if (!id && input.stage === "Closed") {
+    // Properties and parties are added after the first save, so a new deal can't meet
+    // the minimum to close yet.
+    return {
+      ok: false,
+      message: "A new deal can't start at Closed. Save it at Under Contract, add its property and buyer side, then move it to Closed.",
+    };
+  }
+  if (id && input.stage === "Closed" && (await currentStage(id)) !== "Closed") {
+    // Moving into Closed: check what's being saved now, plus the deal's properties and parties.
+    const missing = await missingToClose(id, { ...input, teamCount: team.teamIds.length });
+    if (missing.length) return { ok: false, message: closeBlockedMessage(missing) };
+  }
   if (!id) {
     const newId = await createDeal(input, user.id);
     await syncTeam(newId, team);
@@ -220,11 +236,16 @@ export async function moveStageAction(dealId: string, _prev: StageState, fd: For
   }
   const stage = oneOf(fd, "stage", STAGES);
   if (!stage) return { message: "Pick a stage." };
+  const date = fd.has("skipDate") ? null : str(fd, "date");
+  if (stage === "Closed" && (await currentStage(dealId)) !== "Closed") {
+    const missing = await missingToClose(dealId, date ? { closeDate: date } : {});
+    if (missing.length) return { message: closeBlockedMessage(missing) };
+  }
   await moveStage(
     dealId,
     {
       stage,
-      date: fd.has("skipDate") ? null : str(fd, "date"),
+      date,
       lostToCompanyId: fd.has("lostToCompanyId") ? str(fd, "lostToCompanyId") : undefined,
       lostNote: fd.has("lostNote") ? str(fd, "lostNote") : undefined,
     },

@@ -213,7 +213,9 @@ Required for the initial pipeline load, for IOS deals entering as Closed, for de
 - For a sale, deal value **follows the stage**: BOV mid (BOV 1–2), guidance (Engaged, Marketing), contract price (Awarded, Under Contract), closed price (Closed). If that stage's price isn't entered, the value shows as missing rather than borrowing another. Track and Dead/Lost use the latest price entered. Equity, debt and lease use their headline figure. Price/SF = value ÷ total SF.
 - In-house gross fills itself as total − outside commission and can be typed over when accounting's figure differs.
 
-**Missing data is prompted for, never enforced.** Show what's incomplete; let the user proceed. Earlier-stage fields stay editable up until the deal closes — a BOV entered six months late is still worth having.
+**Rev. 4.2 — the one blocked move: into Closed.** Because closed deals lock, a deal can't move into Closed until it has: REApps ID, deal type, subtype (not for leases), opportunity type, side represented, close date, closed value (closed price / total capitalization / loan amount / total lease consideration by type), total commission, at least one property with an address, total SF **or** total acreage, a buyer-side (side B) party and a deal team. Checked only on the move into Closed — an admin editing an already-closed deal (including imported ones) isn't held to it, and the historical import (1.5) loads closed deals directly. A new deal can't be created at Closed (properties and parties are added after the first save).
+
+**Missing data is prompted for, never enforced** (except the move into Closed, above). Show what's incomplete; let the user proceed. Earlier-stage fields stay editable up until the deal closes — a BOV entered six months late is still worth having.
 
 Trade-off, stated plainly: reports will have gaps, and a completeness view is more useful than validation rules. Partial data on every deal beats complete data on the half that made it in.
 

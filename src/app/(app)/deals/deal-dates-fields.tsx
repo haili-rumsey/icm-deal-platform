@@ -11,7 +11,11 @@ export function DealDatesFields({ deal, companies }: { deal?: Deal; companies: O
     <Grid>
       <StageSelect
         defaultValue={d?.stage ?? "BOV 1"}
-        hint={d ? undefined : "A deal can start at any stage. IOS deals are entered as Closed."}
+        hint={
+          d
+            ? undefined
+            : "A deal can start at any stage except Closed. For an IOS deal, save it at Under Contract, add the property and buyer, then move it to Closed."
+        }
       />
       <TextInput label="Pitch date" name="pitchDate" type="date" defaultValue={d?.pitchDate} hint="Proposal delivered (→ BOV 2)." />
       <Select label="Pitch status" name="pitchStatus" options={PITCH_STATUSES} defaultValue={d?.pitchStatus} />

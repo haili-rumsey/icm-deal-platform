@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { companies, contacts, dealParties, dealProperties, deals, dealTeam, properties, submarkets, users } from "@/db/schema";
 import type { Side } from "@/domain/options";
 import { SUBTYPES_BY_TYPE, type Stage } from "@/domain/options";
+import { closeBlockers, type CloseCheckInput } from "@/domain/close-check";
 import { ACTIVE_STAGES, STAGE_DATE } from "@/domain/stages";
 
 export type Deal = typeof deals.$inferSelect;
@@ -292,4 +293,46 @@ export async function moveStage(dealId: string, move: StageMove, byId: string) {
     if (move.lostNote !== undefined) set.lostNote = move.lostNote;
   }
   await db.update(deals).set(set).where(eq(deals.id, dealId));
+}
+
+// ---- Minimum info to close ----
+
+/** What's still missing to close this deal, using saved data plus any unsaved overrides. */
+export async function missingToClose(dealId: string, overrides: Partial<CloseCheckInput> = {}) {
+  const [[d], props, [{ sideB }], [{ team }]] = await Promise.all([
+    db.select().from(deals).where(eq(deals.id, dealId)),
+    db
+      .select({ address: properties.address, buildingSf: properties.buildingSf, acreage: properties.acreage })
+      .from(dealProperties)
+      .innerJoin(properties, eq(properties.id, dealProperties.propertyId))
+      .where(eq(dealProperties.dealId, dealId)),
+    db
+      .select({ sideB: sql<number>`count(*)::int` })
+      .from(dealParties)
+      .where(and(eq(dealParties.dealId, dealId), eq(dealParties.side, "B"))),
+    db.select({ team: sql<number>`count(*)::int` }).from(dealTeam).where(eq(dealTeam.dealId, dealId)),
+  ]);
+  if (!d) return [];
+  return closeBlockers({
+    dealType: d.dealType,
+    dealSubtype: d.dealSubtype,
+    reappsId: d.reappsId,
+    opportunityType: d.opportunityType,
+    represented: d.represented,
+    closeDate: d.closeDate,
+    closedPrice: d.closedPrice,
+    totalCapitalization: d.totalCapitalization,
+    loanAmount: d.loanAmount,
+    totalLeaseConsideration: d.totalLeaseConsideration,
+    totalCommission: d.totalCommission,
+    properties: props,
+    sideBCount: sideB,
+    teamCount: team,
+    ...overrides,
+  });
+}
+
+export async function currentStage(dealId: string) {
+  const [row] = await db.select({ stage: deals.stage }).from(deals).where(eq(deals.id, dealId));
+  return row?.stage ?? null;
 }

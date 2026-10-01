@@ -17,7 +17,7 @@ import { dealValue, formatMoney, pricePerSf } from "@/domain/stages";
 import { searchParam } from "@/lib/params";
 import { companyOptions } from "@/server/companies";
 import { contactOptions, icmTeamOptions, streamPeopleOptions } from "@/server/contacts";
-import { getDeal, isLockedFor } from "@/server/deals";
+import { getDeal, isLockedFor, missingToClose } from "@/server/deals";
 import { propertyOptions } from "@/server/properties";
 import { moveStageAction, saveDeal } from "../actions";
 import { DealDatesFields } from "../deal-dates-fields";
@@ -42,6 +42,8 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
   ]);
   if (!data) notFound();
   const { deal } = data;
+  // The close-date prompt fills that one in, so leave it off the up-front list.
+  const closeMissing = deal.stage === "Closed" ? [] : (await missingToClose(id)).filter((m) => m !== "close date");
 
   const value = dealValue(deal);
   // Prompted, never enforced.
@@ -119,6 +121,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
         }}
         companies={companyOpts}
         locked={locked}
+        closeMissing={closeMissing}
         action={moveStageAction.bind(null, id)}
       />
       {locked && (

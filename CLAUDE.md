@@ -41,6 +41,7 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 
 1. **Never block a user.** Required fields are prompted, not enforced. Deals can be created at any stage and moved between stages with incomplete data. Exit conditions describe transitions; they do not gate them.
    - The only hard requirements: a note when a bid is marked fell out; company website and contact email — both with explicit "none" overrides.
+   - **Exception (Rev. 4.2): moving into Closed is blocked** until the minimum-to-close fields are filled (list in `src/domain/close-check.ts`). Only on the move into Closed; never applied to the historical import or to admins editing already-closed deals.
 2. **Closed deals lock.** Read-only except for the three admins, who can always edit them (no unlock step). Covers the whole record, not just financials. Enforced server-side on every deal action (`assertCanEdit`).
 3. **One deal, many properties.** About half are multi-property. Never model a single property per deal.
 4. **Three independent financial blocks** — BOV, OM/Guidance, Closed. Each holds its own price and underwriting. They never overwrite each other. BOV overwrites in place on repricing.

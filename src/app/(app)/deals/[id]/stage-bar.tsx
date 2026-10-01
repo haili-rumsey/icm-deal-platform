@@ -3,6 +3,7 @@
 import { startTransition, useActionState, useState } from "react";
 import { Check } from "lucide-react";
 import { inputCls } from "@/components/fields";
+import { useConfirm } from "@/components/confirm-dialog";
 import { useUnsavedChanges } from "@/components/record-page";
 import { SearchSelect, type Option } from "@/components/search-select";
 import type { Stage } from "@/domain/options";
@@ -35,12 +36,15 @@ export function StageBar({
   dates,
   companies,
   locked,
+  closeMissing,
   action,
 }: {
   stage: Stage;
   dates: Dates;
   companies: Option[];
   locked: boolean;
+  /** What's still needed to close (close date excluded — the move asks for it). */
+  closeMissing: string[];
   action: (prev: StageState, fd: FormData) => Promise<StageState>;
 }) {
   const [state, formAction, pending] = useActionState(action, null);
@@ -49,6 +53,7 @@ export function StageBar({
   const target = chosen && chosen !== stage ? chosen : null;
   const currentIndex = PIPELINE.indexOf(stage);
   const unsaved = useUnsavedChanges();
+  const [confirm, confirmDialog] = useConfirm();
 
   function needsPrompt(s: Stage) {
     const df = STAGE_DATE[s];
@@ -61,13 +66,26 @@ export function StageBar({
     formAction(fd);
   }
 
-  function click(s: Stage) {
+  async function click(s: Stage) {
     if (locked || s === stage || pending) return;
+    // Closing needs the minimum information first — the one stage move that's blocked.
+    if (s === "Closed" && closeMissing.length > 0) {
+      await confirm({
+        title: "Can't close yet",
+        message: "Fill these in on the deal first, then move it to Closed:",
+        items: closeMissing,
+        cancelLabel: "OK",
+      });
+      return;
+    }
     if (
       unsaved &&
-      !confirm(
-        "You have unsaved changes on this deal. Moving the stage will discard them.\n\nOK — move anyway\nCancel — stay and Save first",
-      )
+      !(await confirm({
+        title: "Unsaved changes",
+        message: `You've changed this deal without saving. Moving it to ${s} will discard those changes. To keep them, cancel and click Save first.`,
+        confirmLabel: "Move anyway",
+        cancelLabel: "Cancel",
+      }))
     ) {
       return;
     }
@@ -83,6 +101,7 @@ export function StageBar({
 
   return (
     <div className="border-b border-border bg-card px-3 py-3 sm:px-5">
+      {confirmDialog}
       <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
         {/* Chevrons stretch across the row; on narrow screens they keep a readable width and scroll. */}
         <ol className="flex min-w-0 flex-1 overflow-x-auto pb-0.5" aria-label="Stage">
@@ -174,7 +193,7 @@ export function StageBar({
             >
               {pending ? "Moving…" : `Move to ${target}`}
             </button>
-            {dateInfo && (
+            {dateInfo && target !== "Closed" && (
               <button
                 type="submit"
                 name="skipDate"

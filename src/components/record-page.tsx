@@ -5,6 +5,7 @@ import { Archive, ArchiveRestore, Save, Trash2 } from "lucide-react";
 import { archiveAction, deleteAction, type DeleteState } from "@/app/(app)/housekeeping-actions";
 import type { EntityKind } from "@/server/housekeeping";
 import { CommandButton } from "./command-buttons";
+import { useConfirm } from "./confirm-dialog";
 
 export type SaveState = { ok: boolean; message: string } | null;
 type SaveAction = (prev: SaveState, fd: FormData) => Promise<SaveState>;
@@ -129,8 +130,11 @@ export function HousekeepingCommands({
   canDelete: boolean;
 }) {
   const [delState, del, deleting] = useActionState<DeleteState, FormData>(deleteAction, null);
+  const [confirm, confirmDialog] = useConfirm();
+  const deleteConfirmed = useRef(false);
   return (
     <>
+      {confirmDialog}
       <form action={archiveAction} className="contents">
         <input type="hidden" name="kind" value={kind} />
         <input type="hidden" name="id" value={id} />
@@ -143,9 +147,22 @@ export function HousekeepingCommands({
         <form
           action={del}
           className="contents"
-          onSubmit={(e) => {
-            if (!confirm("Permanently delete this record? This can't be undone. Use Archive for housekeeping.")) {
-              e.preventDefault();
+          onSubmit={async (e) => {
+            if (deleteConfirmed.current) {
+              deleteConfirmed.current = false;
+              return;
+            }
+            e.preventDefault();
+            const form = e.currentTarget;
+            const ok = await confirm({
+              title: "Delete permanently?",
+              message: "This can't be undone. For housekeeping, use Archive instead — it can be reversed.",
+              confirmLabel: "Delete",
+              danger: true,
+            });
+            if (ok) {
+              deleteConfirmed.current = true;
+              form.requestSubmit();
             }
           }}
         >
