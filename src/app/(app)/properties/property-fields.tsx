@@ -1,24 +1,29 @@
-import { FieldRow, Grid, Select, TextInput } from "@/components/fields";
+import { Grid, Select, TextInput } from "@/components/fields";
 import { MultiSelect } from "@/components/multi-select";
 import type { Option } from "@/components/search-select";
 import { BUILDING_CLASSES, CONFIGURATIONS, SPRINKLER_TYPES, TENANCY } from "@/domain/options";
+import type { GeoLookup } from "@/server/geography";
 import type { Property } from "@/server/properties";
-import { AddressLookup } from "./address-lookup";
+import { PropertyLocation } from "./property-location";
 
 export function PropertyFields({
   property,
   companies,
   ownerIds,
+  geo,
 }: {
   property?: Property;
   companies: Option[];
   ownerIds?: string[];
+  geo: GeoLookup;
 }) {
   const p = property;
   return (
     <>
-      <FieldRow label="Address">
-        <AddressLookup
+      <PropertyLocation
+        geo={geo}
+        excludeId={p?.id}
+        initialSubmarketId={p?.submarketId}
         initial={
           p
             ? {
@@ -34,8 +39,7 @@ export function PropertyFields({
               }
             : undefined
         }
-        />
-      </FieldRow>
+      />
       <Grid>
         <TextInput
           label="Building designation"

@@ -28,7 +28,6 @@ Six entities plus join tables: Deal, Property, Company, Contact, Bid, Note. Join
 | `is_ios` | bool | IOS-desk deal (sales and leases both). Marks the **desk**, not the asset type. |
 | `direct_award` | bool | Awarded without a competitive process; marketing and bid rounds skipped. |
 | `stage` | enum | See §3 |
-| `submarket` | lookup | Filtered by city. See §4. |
 | `referral` | user | Stream employee who sent the business |
 | `closing_notes` | text | Extensions, delays, anything abnormal |
 | `last_modified_at` / `_by` | auto | On every entity |
@@ -243,6 +242,12 @@ Cities without a submarket list carry city-level detail only. Because State is i
 **Houston (7):** North · Northwest · West · Southwest · South · Southeast · East
 
 Compound submarkets stay combined as published. Fort Worth is a separate city from Dallas; 287 Corridor and Great Southwest–Arlington remain on the Dallas list, following the published submarket map.
+
+**Rev. 4.2 — how City and Submarket work:**
+- "City" is the **address city** (Grand Prairie, Katy…). Operations maintains a **city → market** list so each city uses one market's submarket list: Grand Prairie, Irving, Arlington → Dallas list; Haslet, Keller → Fort Worth; Katy, Baytown → Houston. A city not yet on any list is city-level only until an admin adds it.
+- **Submarket is recorded on the property only** — not on the deal. A deal shows its properties' submarkets. Portfolios can span submarkets.
+- The **submarket report** marks a property that is part of a multi-property deal as "Part of portfolio: [deal]".
+- Admins maintain the lists on a **Geography** screen: add a city to a market, add or retire a submarket (retired submarkets stay on existing properties). Users cannot add entries.
 
 ---
 

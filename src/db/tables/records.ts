@@ -28,6 +28,7 @@ import {
   TENANCY,
 } from "@/domain/options";
 import { users } from "./auth";
+import { submarkets } from "./geography";
 
 // ---- Enums (values come from src/domain/options.ts) ----
 export const categoryEnum = pgEnum("category", CATEGORIES);
@@ -118,6 +119,8 @@ export const properties = pgTable(
     state: text("state"),
     zip: text("zip"),
     county: text("county"),
+    // Picked from the market's list for this city (see geography.ts).
+    submarketId: uuid("submarket_id").references(() => submarkets.id),
     buildingDesignation: text("building_designation"),
     // Matching attribute only — Google reissues these, so never a key.
     googlePlaceId: text("google_place_id"),

@@ -26,6 +26,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
           { key: "building", label: "Building" },
           { key: "city", label: "City" },
           { key: "state", label: "State" },
+          { key: "submarket", label: "Submarket" },
           { key: "sf", label: "SF", kind: "number" },
           { key: "deals", label: "Deals", kind: "number" },
         ]}
@@ -36,6 +37,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
           building: p.buildingDesignation,
           city: p.city,
           state: p.state,
+          submarket: p.submarket,
           sf: p.buildingSf,
           deals: p.dealCount,
           unverified: !p.addressVerified,

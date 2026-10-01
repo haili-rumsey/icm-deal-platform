@@ -56,7 +56,7 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 
 - **Stages:** BOV 1 → BOV 2 → Engaged → Marketing → Awarded (DD + PSA) → Under Contract → Closed. Plus Track (dormant, excluded from active pipeline totals) and Dead/Lost.
 - **"Awarded" always means a buyer was selected**, never that Stream won the listing. Winning the listing is `won_date`.
-- **Geography is three levels:** state → city → submarket, submarket filtered by city. Controlled list, closed to user additions.
+- **Geography is three levels:** state → city → submarket. City is the address city, mapped to a market (Grand Prairie → Dallas) whose submarket list it uses. Submarket lives on the **property only**, not the deal. Controlled lists, maintained by admins on the Geography screen; closed to user additions.
 - **Duplicate prevention:** properties match on Google `place_id` plus building designation; companies on website domain; contacts on email. All warn rather than block.
 - **Companies are recorded under the institutional owner's real name**, never the LP or LLC holding the asset. There is no parent/subsidiary hierarchy — the rollup happens at data entry.
 - **The IOS desk does both sales and leases.** All of it — sales and leases alike — is entered as closed only, never tracked as active pipeline, and carries `is_ios` so revenue reports can separate that desk from core ICM. `is_ios` marks the desk; `category` marks the asset type. A core ICM deal can involve an IOS property without being an IOS-desk deal.

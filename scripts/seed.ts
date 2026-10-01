@@ -16,7 +16,7 @@ const ADMINS = [
 async function main() {
   const { db } = await import("../src/db");
   const { users, companies, contacts } = await import("../src/db/schema");
-  const { eq } = await import("drizzle-orm");
+  const { eq, sql } = await import("drizzle-orm");
 
   for (const a of ADMINS) {
     await db
@@ -41,6 +41,24 @@ async function main() {
     .onConflictDoNothing({ target: companies.systemKey });
   const [stream] = await db.select({ id: companies.id }).from(companies).where(eq(companies.systemKey, "stream"));
   console.log("system companies ready");
+
+  // Geography: markets, submarkets and the city → market list. Adds what's missing only,
+  // so edits made on the Geography screen are never overwritten.
+  const { markets, submarkets, marketCities } = await import("../src/db/schema");
+  const { GEOGRAPHY_SEED } = await import("../src/domain/geography-seed");
+  for (const [mi, m] of GEOGRAPHY_SEED.entries()) {
+    await db.insert(markets).values({ name: m.market, state: m.state, sortOrder: mi }).onConflictDoNothing();
+    const [market] = await db.select({ id: markets.id }).from(markets).where(eq(markets.name, m.market));
+    const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(submarkets).where(eq(submarkets.marketId, market.id));
+    if (n === 0) {
+      await db.insert(submarkets).values(m.submarkets.map((name, i) => ({ marketId: market.id, name, sortOrder: i })));
+    }
+    const [{ c }] = await db.select({ c: sql<number>`count(*)::int` }).from(marketCities).where(eq(marketCities.marketId, market.id));
+    if (c === 0) {
+      await db.insert(marketCities).values(m.cities.map((city) => ({ marketId: market.id, city, state: m.state }))).onConflictDoNothing();
+    }
+  }
+  console.log("geography ready");
 
   // Users and contacts are matched by email.
   for (const u of await db.select().from(users)) {

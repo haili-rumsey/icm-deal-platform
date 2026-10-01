@@ -53,6 +53,7 @@ export function PropertiesSection({
                   {[p.address, p.buildingDesignation].filter(Boolean).join(", ") || "(no address)"}
                 </Link>
                 <span className="text-muted"> · {[p.city, p.state].filter(Boolean).join(", ")}</span>
+                {p.submarket && <span className="text-muted"> · {p.submarket}</span>}
                 {!p.addressVerified && <FlagMark label="Unverified" />}
               </span>
               <span className="flex items-baseline gap-4 text-muted">

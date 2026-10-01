@@ -4,13 +4,15 @@ import { Section } from "@/components/fields";
 import { MainForm, RecordFormProvider, RecordHeader, SaveCommand } from "@/components/record-page";
 import { searchParam } from "@/lib/params";
 import { companyOptions } from "@/server/companies";
+import { geoLookup } from "@/server/geography";
 import { saveProperty } from "../actions";
 import { PropertyFields } from "../property-fields";
 
 export default async function NewPropertyPage({ searchParams }: PageProps<"/properties/new">) {
   const sp = await searchParams;
   const dealId = searchParam(sp.deal);
-  const companies = (await companyOptions()).map((c) => ({ id: c.id, name: c.name, hint: c.domain }));
+  const [companyRows, geo] = await Promise.all([companyOptions(), geoLookup()]);
+  const companies = companyRows.map((c) => ({ id: c.id, name: c.name, hint: c.domain }));
 
   return (
     <RecordFormProvider action={saveProperty.bind(null, null)}>
@@ -25,7 +27,7 @@ export default async function NewPropertyPage({ searchParams }: PageProps<"/prop
         <Section title="Summary">
           <MainForm>
             {dealId && <input type="hidden" name="returnToDeal" value={dealId} />}
-            <PropertyFields companies={companies} />
+            <PropertyFields companies={companies} geo={geo} />
           </MainForm>
         </Section>
       </div>

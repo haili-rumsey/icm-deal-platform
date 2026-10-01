@@ -2,7 +2,7 @@ import "server-only";
 import { and, asc, desc, eq, ilike, inArray, isNull, notInArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
-import { companies, contacts, dealParties, dealProperties, deals, dealTeam, properties, users } from "@/db/schema";
+import { companies, contacts, dealParties, dealProperties, deals, dealTeam, properties, submarkets, users } from "@/db/schema";
 import type { Side } from "@/domain/options";
 import { SUBTYPES_BY_TYPE } from "@/domain/options";
 
@@ -64,9 +64,11 @@ export async function getDeal(id: string) {
         buildingSf: properties.buildingSf,
         acreage: properties.acreage,
         addressVerified: properties.addressVerified,
+        submarket: submarkets.name,
       })
       .from(dealProperties)
       .innerJoin(properties, eq(properties.id, dealProperties.propertyId))
+      .leftJoin(submarkets, eq(submarkets.id, properties.submarketId))
       .where(eq(dealProperties.dealId, id))
       .orderBy(asc(properties.address)),
     db

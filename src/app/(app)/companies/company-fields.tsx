@@ -1,5 +1,6 @@
 import { CheckboxGroup, Grid, TextArea, TextInput } from "@/components/fields";
 import { OverrideField } from "@/components/override-field";
+import { checkCompanyWebsite } from "../duplicate-actions";
 import { COMPANY_TYPES, INVESTMENT_STRATEGIES } from "@/domain/options";
 import type { Company } from "@/server/companies";
 
@@ -22,6 +23,8 @@ export function CompanyFields({ company }: { company?: Company }) {
           placeholder="blackstone.com"
           defaultValue={company?.website}
           defaultOverride={company?.noWebsite}
+          duplicateCheck={checkCompanyWebsite.bind(null, company?.id ?? null)}
+          duplicateTitle="A company with this website is already in the system"
         />
       </Grid>
       <CheckboxGroup label="Type" name="types" options={COMPANY_TYPES} defaultValues={company?.types} />

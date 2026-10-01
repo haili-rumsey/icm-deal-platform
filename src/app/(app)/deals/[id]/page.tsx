@@ -70,6 +70,10 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
           { label: partyLabel(type, "A"), value: names("A") },
           { label: partyLabel(type, "B"), value: names("B") },
           { label: "Total SF", value: totalSf ? totalSf.toLocaleString("en-US") : null },
+          {
+            label: "Submarket",
+            value: [...new Set(data.properties.map((p) => p.submarket).filter(Boolean))].join(", "),
+          },
           { label: "Lead broker", value: data.team.filter((t) => t.isLeadBroker).map((t) => t.name).join(", ") },
           { label: "Lead analyst", value: data.team.find((t) => t.isLeadAnalyst)?.name },
         ]}

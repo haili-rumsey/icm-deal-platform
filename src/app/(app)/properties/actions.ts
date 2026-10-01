@@ -16,6 +16,7 @@ function parse(fd: FormData): PropertyInput {
     state: str(fd, "state"),
     zip: str(fd, "zip"),
     county: str(fd, "county"),
+    submarketId: str(fd, "submarketId"),
     buildingDesignation: str(fd, "buildingDesignation"),
     googlePlaceId: verified ? str(fd, "googlePlaceId") : null,
     lat: verified ? dec(fd, "lat") : null,

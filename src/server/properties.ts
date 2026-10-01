@@ -1,7 +1,7 @@
 import "server-only";
 import { and, asc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { companies, dealProperties, deals, properties, propertyOwners } from "@/db/schema";
+import { companies, dealProperties, deals, properties, propertyOwners, submarkets } from "@/db/schema";
 
 export type Property = typeof properties.$inferSelect;
 export type PropertyInput = Omit<
@@ -38,9 +38,11 @@ export async function listProperties(opts: { q?: string; archived?: boolean } = 
       state: properties.state,
       buildingSf: properties.buildingSf,
       addressVerified: properties.addressVerified,
+      submarket: submarkets.name,
       dealCount: sql<number>`(select count(*)::int from deal_properties dp where dp.property_id = "properties"."id")`,
     })
     .from(properties)
+    .leftJoin(submarkets, eq(submarkets.id, properties.submarketId))
     .where(and(...where))
     .orderBy(asc(properties.state), asc(properties.city), asc(properties.address));
 }

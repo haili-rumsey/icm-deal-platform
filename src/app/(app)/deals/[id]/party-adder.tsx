@@ -6,6 +6,7 @@ import { OverrideField } from "@/components/override-field";
 import { PendingButton } from "@/components/pending-button";
 import { SearchSelect, type Option } from "@/components/search-select";
 import type { QuickCompanyState } from "../actions";
+import { checkCompanyWebsite } from "../../duplicate-actions";
 
 type ContactOption = { id: string; name: string; companyId: string };
 
@@ -128,6 +129,8 @@ function QuickCompany({
         overrideName="noWebsite"
         overrideLabel="No website (flags for cleanup)"
         placeholder="blackstone.com"
+        duplicateCheck={checkCompanyWebsite.bind(null, null)}
+        duplicateTitle="Already in the system — cancel and search for it above instead"
       />
       {state?.message && <p className="text-sm text-danger">{state.message}</p>}
       <div className="flex items-center gap-3">

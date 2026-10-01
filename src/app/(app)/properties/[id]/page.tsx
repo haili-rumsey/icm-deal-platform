@@ -14,6 +14,7 @@ import {
   Tabs,
 } from "@/components/record-page";
 import { companyOptions } from "@/server/companies";
+import { geoLookup, submarketName } from "@/server/geography";
 import { userName } from "@/server/people";
 import { getProperty } from "@/server/properties";
 import { saveProperty } from "../actions";
@@ -24,6 +25,7 @@ export default async function PropertyPage({ params }: PageProps<"/properties/[i
   const [user, data, companies] = await Promise.all([requireUser(), getProperty(id), companyOptions()]);
   if (!data) notFound();
   const { property: p, owners, deals } = data;
+  const [geo, submarket] = await Promise.all([geoLookup(p.submarketId), submarketName(p.submarketId)]);
   const modifiedBy = await userName(p.lastModifiedById);
   const title = [p.address, p.buildingDesignation].filter(Boolean).join(", ") || "(no address)";
 
@@ -40,6 +42,7 @@ export default async function PropertyPage({ params }: PageProps<"/properties/[i
         title={title}
         subtitle={[p.city, p.state].filter(Boolean).join(", ") || undefined}
         facts={[
+          { label: "Submarket", value: submarket?.name },
           { label: "Building SF", value: p.buildingSf?.toLocaleString("en-US") },
           { label: "Clear height", value: p.clearHeightFt ? `${Number(p.clearHeightFt)} ft` : null },
           { label: "Class", value: p.buildingClass },
@@ -65,6 +68,7 @@ export default async function PropertyPage({ params }: PageProps<"/properties/[i
                       property={p}
                       companies={companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }))}
                       ownerIds={owners.map((o) => o.id)}
+                      geo={geo}
                     />
                   </MainForm>
                 </Section>

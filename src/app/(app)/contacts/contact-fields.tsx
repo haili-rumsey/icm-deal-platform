@@ -1,5 +1,6 @@
 import { Grid, TextArea, TextInput } from "@/components/fields";
 import { OverrideField } from "@/components/override-field";
+import { checkContactEmail } from "../duplicate-actions";
 import { SearchSelect, type Option } from "@/components/search-select";
 import type { Contact } from "@/server/contacts";
 
@@ -33,6 +34,8 @@ export function ContactFields({
           overrideLabel="No email (flags for cleanup)"
           defaultValue={contact?.email}
           defaultOverride={contact?.noEmail}
+          duplicateCheck={checkContactEmail.bind(null, contact?.id ?? null)}
+          duplicateTitle="Someone with this email is already in the system"
         />
         <TextInput label="Phone" name="phone" type="tel" defaultValue={contact?.phone} />
       </Grid>
