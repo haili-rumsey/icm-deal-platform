@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { createContext, useActionState, useContext, useEffect, useRef, useState } from "react";
 import { Archive, ArchiveRestore, Save, Trash2 } from "lucide-react";
 import { archiveAction, deleteAction, type DeleteState } from "@/app/(app)/housekeeping-actions";
@@ -60,13 +61,40 @@ export function MainForm({ children, readOnly }: { children: React.ReactNode; re
     setDirty(false);
   }, [setDirty]);
 
-  // Warn before closing the tab or reloading with unsaved changes.
+  // Warn before closing the tab or reloading with unsaved changes (the browser draws that box).
   useEffect(() => {
     if (!dirty) return;
     const warn = (e: BeforeUnloadEvent) => e.preventDefault();
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
+
+  // Links inside the app (sidebar, names, breadcrumbs) get our own box instead.
+  const router = useRouter();
+  const [confirmLeave, leaveDialog] = useConfirm();
+  useEffect(() => {
+    if (!dirty) return;
+    const onClick = async (e: MouseEvent) => {
+      const a = (e.target as HTMLElement | null)?.closest("a[href]") as HTMLAnchorElement | null;
+      if (!a || a.target === "_blank" || e.metaKey || e.ctrlKey || e.shiftKey || e.button !== 0) return;
+      const url = new URL(a.href, window.location.href);
+      if (url.origin !== window.location.origin || url.pathname === window.location.pathname) return;
+      e.preventDefault();
+      e.stopPropagation();
+      const leave = await confirmLeave({
+        title: "Unsaved changes",
+        message: "You've changed this record without saving. Leaving this page will discard those changes. To keep them, cancel and click Save first.",
+        confirmLabel: "Leave without saving",
+        cancelLabel: "Cancel",
+      });
+      if (leave) {
+        setDirty(false);
+        router.push(url.pathname + url.search);
+      }
+    };
+    document.addEventListener("click", onClick, true);
+    return () => document.removeEventListener("click", onClick, true);
+  }, [dirty, confirmLeave, router, setDirty]);
 
   // Compare after React has applied the change (pickers update hidden fields on click).
   function check() {
@@ -85,6 +113,7 @@ export function MainForm({ children, readOnly }: { children: React.ReactNode; re
       onClick={check}
       className="flex flex-col gap-4"
     >
+      {leaveDialog}
       {/* A disabled fieldset makes every field inside read-only in one go. */}
       <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-4">
         {children}
