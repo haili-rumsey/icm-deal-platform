@@ -41,7 +41,7 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 
 1. **Never block a user.** Required fields are prompted, not enforced. Deals can be created at any stage and moved between stages with incomplete data. Exit conditions describe transitions; they do not gate them.
    - The only hard requirements: a note when a bid is marked fell out; company website and contact email — both with explicit "none" overrides.
-2. **Closed deals lock.** Read-only except for three named users, who can unlock, edit and relock. Covers the whole record, not just financials.
+2. **Closed deals lock.** Read-only except for the three admins, who can always edit them (no unlock step). Covers the whole record, not just financials. Enforced server-side on every deal action (`assertCanEdit`).
 3. **One deal, many properties.** About half are multi-property. Never model a single property per deal.
 4. **Three independent financial blocks** — BOV, OM/Guidance, Closed. Each holds its own price and underwriting. They never overwrite each other. BOV overwrites in place on repricing.
 5. **Bids attach to companies, not contacts.** The record survives a contact changing firms.
@@ -78,6 +78,7 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 - The IOS flag is labelled "IOS Deal" in the UI.
 - Address entry: suggestions as you type (Places API New, Texas-biased), resolved through the Geocoding API; "Look up" stays as a fallback for intersections. All Google calls are server-side; the key is restricted to those two APIs. No match → "Save without Google match", flagged unverified for cleanup.
 - Records are archived by anyone, deleted only by the three admins.
+- Sale deal value follows the stage (BOV mid → guidance → contract → closed); missing stage price shows as missing, not borrowed. Logic in `src/domain/stages.ts`.
 
 ## Look and feel
 

@@ -1,5 +1,6 @@
 import {
   boolean,
+  date,
   index,
   integer,
   numeric,
@@ -21,9 +22,11 @@ import {
   DEAL_TYPES,
   LOCATIONS,
   OPPORTUNITY_TYPES,
+  PITCH_STATUSES,
   REPRESENTED,
   SIDES,
   SPRINKLER_TYPES,
+  STAGES,
   TEAM_ROLES,
   TENANCY,
 } from "@/domain/options";
@@ -44,8 +47,13 @@ export const companyTypeEnum = pgEnum("company_type", COMPANY_TYPES);
 export const teamRoleEnum = pgEnum("team_role", TEAM_ROLES);
 export const sideEnum = pgEnum("side", SIDES);
 export const locationEnum = pgEnum("location", LOCATIONS);
+export const stageEnum = pgEnum("stage", STAGES);
+export const pitchStatusEnum = pgEnum("pitch_status", PITCH_STATUSES);
 
 const stamp = (name: string) => timestamp(name, { mode: "date", withTimezone: true });
+const money = (name: string) => numeric(name, { precision: 16, scale: 2 });
+/** Percentages stored as written, e.g. 5.25 for 5.25%. */
+const pct = (name: string) => numeric(name, { precision: 7, scale: 4 });
 
 /** created / last modified, on every entity. */
 const tracking = () => ({
@@ -177,9 +185,67 @@ export const deals = pgTable(
     // Stream employee who sent the business — a contact at Stream Realty Partners.
     referralContactId: uuid("referral_contact_id").references(() => contacts.id),
     closingNotes: text("closing_notes"),
+
+    // ---- Stage and dates (PRD §1, §3). Dates overwrite; there is no date history. ----
+    stage: stageEnum("stage").notNull().default("BOV 1"),
+    pitchDate: date("pitch_date"),
+    pitchStatus: pitchStatusEnum("pitch_status"),
+    lostToCompanyId: uuid("lost_to_company_id").references(() => companies.id),
+    lostNote: text("lost_note"),
+    wonDate: date("won_date"),
+    launchDate: date("launch_date"),
+    callForOffersDate: date("call_for_offers_date"),
+    awardedDate: date("awarded_date"),
+    ddExpirationDate: date("dd_expiration_date"),
+    closeDate: date("close_date"),
+
+    // ---- Three independent financial blocks. They never overwrite each other. ----
+    // BOV — overwritten in place on repricing.
+    bovPriceLow: money("bov_price_low"),
+    bovPriceMid: money("bov_price_mid"),
+    bovPriceHigh: money("bov_price_high"),
+    bovYear1Cap: pct("bov_year1_cap"),
+    bovUlirr: pct("bov_ulirr"),
+    bovLirr: pct("bov_lirr"),
+    bovExitCap: pct("bov_exit_cap"),
+    bovHoldYears: numeric("bov_hold_years", { precision: 5, scale: 2 }),
+    // OM / Guidance — guidance_price is internal only, never in client-facing output.
+    guidancePrice: money("guidance_price"),
+    omYear1Cap: pct("om_year1_cap"),
+    omUlirr: pct("om_ulirr"),
+    omLirr: pct("om_lirr"),
+    omExitCap: pct("om_exit_cap"),
+    omHoldYears: numeric("om_hold_years", { precision: 5, scale: 2 }),
+    // Closed — as transacted.
+    contractPrice: money("contract_price"),
+    closedPrice: money("closed_price"),
+    closedYear1Cap: pct("closed_year1_cap"),
+    closedUlirr: pct("closed_ulirr"),
+    closedLirr: pct("closed_lirr"),
+    closedExitCap: pct("closed_exit_cap"),
+    closedHoldYears: numeric("closed_hold_years", { precision: 5, scale: 2 }),
+    priceNotes: text("price_notes"),
+
+    // ---- Headline figures for non-sale deal types (PRD §2). ----
+    totalCapitalization: money("total_capitalization"),
+    loanAmount: money("loan_amount"),
+    interestRate: pct("interest_rate"),
+    loanTermYears: numeric("loan_term_years", { precision: 5, scale: 2 }),
+    ltv: pct("ltv"),
+    totalLeaseConsideration: money("total_lease_consideration"),
+
+    // ---- Fee — mirrors accounting. ----
+    totalCommission: money("total_commission"),
+    outsideCommission: money("outside_commission"),
+    outsideCommissionNote: text("outside_commission_note"),
+    // Defaults to total − outside; once typed over, the typed figure is kept.
+    inHouseGross: money("in_house_gross"),
+    inHouseGrossManual: boolean("in_house_gross_manual").notNull().default(false),
+    feeRate: pct("fee_rate"),
+
     ...tracking(),
   },
-  (t) => [index("deals_name_idx").on(t.dealName)],
+  (t) => [index("deals_name_idx").on(t.dealName), index("deals_stage_idx").on(t.stage)],
 );
 
 export const dealProperties = pgTable(

@@ -29,11 +29,14 @@ function useRecordForm() {
   return ctx;
 }
 
-export function MainForm({ children }: { children: React.ReactNode }) {
+export function MainForm({ children, readOnly }: { children: React.ReactNode; readOnly?: boolean }) {
   const { formAction } = useRecordForm();
   return (
     <form id={FORM_ID} action={formAction} className="flex flex-col gap-4">
-      {children}
+      {/* A disabled fieldset makes every field inside read-only in one go. */}
+      <fieldset disabled={readOnly} className="flex min-w-0 flex-col gap-4">
+        {children}
+      </fieldset>
       {/* Lets Enter-to-submit work from any field. */}
       <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
     </form>

@@ -4,7 +4,8 @@ import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import { companies, contacts, dealParties, dealProperties, deals, dealTeam, properties, submarkets, users } from "@/db/schema";
 import type { Side } from "@/domain/options";
-import { SUBTYPES_BY_TYPE } from "@/domain/options";
+import { SUBTYPES_BY_TYPE, type Stage } from "@/domain/options";
+import { ACTIVE_STAGES, STAGE_DATE } from "@/domain/stages";
 
 export type Deal = typeof deals.$inferSelect;
 export type DealInput = Omit<
@@ -19,9 +20,50 @@ function cleanSubtype(input: DealInput): DealInput {
   return { ...input, dealSubtype: input.dealSubtype && allowed.includes(input.dealSubtype) ? input.dealSubtype : null };
 }
 
-export async function listDeals(opts: { q?: string; archived?: boolean } = {}) {
+/** In-house gross defaults to total − outside commission unless someone typed over it. */
+function withInHouseGross(input: DealInput): DealInput {
+  if (input.inHouseGrossManual) return input;
+  const total = input.totalCommission === null ? null : Number(input.totalCommission);
+  const outside = input.outsideCommission === null ? 0 : Number(input.outsideCommission);
+  return { ...input, inHouseGross: total === null ? null : (total - outside).toFixed(2) };
+}
+
+function prepare(input: DealInput): DealInput {
+  return withInHouseGross(cleanSubtype(input));
+}
+
+// ---- Closed-deal lock (PRD §3) ----
+
+/** Closed deals are read-only for everyone except the three admins. */
+export function isLockedFor(stage: string, user: { isAdmin: boolean }) {
+  return stage === "Closed" && !user.isAdmin;
+}
+
+export class DealLockedError extends Error {
+  constructor() {
+    super("This deal is closed. Only Haili Rumsey, Seth Koschak and Matteson Hamilton can change it.");
+  }
+}
+
+/** Throws if this user may not change this deal. Call before every deal change. */
+export async function assertCanEdit(dealId: string, user: { isAdmin: boolean }) {
+  const [row] = await db.select({ stage: deals.stage }).from(deals).where(eq(deals.id, dealId));
+  if (row && isLockedFor(row.stage, user)) throw new DealLockedError();
+}
+
+export type DealView = "active" | "track" | "closed" | "dead" | "all";
+
+const VIEW_STAGES: Record<Exclude<DealView, "all">, Stage[]> = {
+  active: ACTIVE_STAGES,
+  track: ["Track"],
+  closed: ["Closed"],
+  dead: ["Dead/Lost"],
+};
+
+export async function listDeals(opts: { q?: string; archived?: boolean; view?: DealView } = {}) {
   const where = [opts.archived ? sql`${deals.archivedAt} is not null` : isNull(deals.archivedAt)];
   if (opts.q?.trim()) where.push(ilike(deals.dealName, `%${opts.q.trim()}%`));
+  if (opts.view && opts.view !== "all" && !opts.archived) where.push(inArray(deals.stage, VIEW_STAGES[opts.view]));
   return db
     .select({
       id: deals.id,
@@ -29,6 +71,14 @@ export async function listDeals(opts: { q?: string; archived?: boolean } = {}) {
       dealType: deals.dealType,
       category: deals.category,
       isIos: deals.isIos,
+      stage: deals.stage,
+      bovPriceMid: deals.bovPriceMid,
+      guidancePrice: deals.guidancePrice,
+      contractPrice: deals.contractPrice,
+      closedPrice: deals.closedPrice,
+      totalCapitalization: deals.totalCapitalization,
+      loanAmount: deals.loanAmount,
+      totalLeaseConsideration: deals.totalLeaseConsideration,
       lastModifiedAt: deals.lastModifiedAt,
       propertyCount: sql<number>`(select count(*)::int from deal_properties dp where dp.deal_id = "deals"."id")`,
       totalSf: sql<number>`(select coalesce(sum(p.building_sf), 0)::int from deal_properties dp join properties p on p.id = dp.property_id where dp.deal_id = "deals"."id")`,
@@ -107,7 +157,7 @@ export async function getDeal(id: string) {
 export async function createDeal(input: DealInput, byId: string) {
   const [row] = await db
     .insert(deals)
-    .values({ ...cleanSubtype(input), createdById: byId, lastModifiedById: byId })
+    .values({ ...prepare(input), createdById: byId, lastModifiedById: byId })
     .returning({ id: deals.id });
   return row.id;
 }
@@ -115,7 +165,7 @@ export async function createDeal(input: DealInput, byId: string) {
 export async function updateDeal(id: string, input: DealInput, byId: string) {
   await db
     .update(deals)
-    .set({ ...cleanSubtype(input), lastModifiedAt: new Date(), lastModifiedById: byId })
+    .set({ ...prepare(input), lastModifiedAt: new Date(), lastModifiedById: byId })
     .where(eq(deals.id, id));
 }
 
@@ -211,4 +261,35 @@ export async function toggleRole(dealId: string, teamId: string, role: TeamRole,
       .where(and(eq(dealTeam.id, teamId), eq(dealTeam.dealId, dealId))),
     touch(dealId, byId),
   ]);
+}
+
+// ---- Stage moves ----
+
+export type StageMove = {
+  stage: Stage;
+  /** The stage's date (e.g. launch date), if one was given. Skipping leaves it as is. */
+  date?: string | null;
+  lostToCompanyId?: string | null;
+  lostNote?: string | null;
+};
+
+/**
+ * Moves a deal to any stage — forward, back or skipping. Never blocked by missing
+ * data. Records the stage's date when given; winning the pitch (→ Engaged) marks it
+ * Won, and a pitch that goes Dead/Lost from BOV 1–2 is marked Lost.
+ */
+export async function moveStage(dealId: string, move: StageMove, byId: string) {
+  const [current] = await db.select({ stage: deals.stage }).from(deals).where(eq(deals.id, dealId));
+  if (!current) return;
+  const set: Partial<typeof deals.$inferInsert> = { stage: move.stage, lastModifiedAt: new Date(), lastModifiedById: byId };
+  const dateField = STAGE_DATE[move.stage]?.field;
+  if (dateField && move.date) set[dateField] = move.date;
+  const fromPitch = current.stage === "BOV 1" || current.stage === "BOV 2";
+  if (move.stage === "Engaged" && fromPitch) set.pitchStatus = "Won";
+  if (move.stage === "Dead/Lost" && fromPitch) {
+    set.pitchStatus = "Lost";
+    if (move.lostToCompanyId !== undefined) set.lostToCompanyId = move.lostToCompanyId;
+    if (move.lostNote !== undefined) set.lostNote = move.lostNote;
+  }
+  await db.update(deals).set(set).where(eq(deals.id, dealId));
 }

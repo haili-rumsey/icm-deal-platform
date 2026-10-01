@@ -43,6 +43,13 @@
       "when": 1790872481906,
       "tag": "0005_geography",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1790883774693,
+      "tag": "0006_stages_and_money",
+      "breakpoints": true
     }
   ]
 }

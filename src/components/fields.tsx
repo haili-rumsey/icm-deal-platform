@@ -170,3 +170,41 @@ export function Incomplete({ missing }: { missing: string[] }) {
     </p>
   );
 }
+
+/** "42500000.00" → "42,500,000"; keeps cents only when there are some. */
+export function formatAmount(v: string | null | undefined) {
+  if (v === null || v === undefined || v === "") return "";
+  const n = Number(v);
+  return Number.isNaN(n) ? v : n.toLocaleString("en-US", { maximumFractionDigits: 2 });
+}
+
+/** "5.2500" → "5.25" */
+export function formatPct(v: string | null | undefined) {
+  if (v === null || v === undefined || v === "") return "";
+  const n = Number(v);
+  return Number.isNaN(n) ? v : String(n);
+}
+
+/** Dollar amount. Accepts "$42,500,000" or "42500000". */
+export function MoneyInput({ label, name, defaultValue, hint }: { label: string; name: string; defaultValue?: string | null; hint?: string }) {
+  return (
+    <FieldRow label={label} hint={hint} htmlFor={name}>
+      <div className="relative">
+        <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-sm text-muted">$</span>
+        <input id={name} name={name} inputMode="decimal" defaultValue={formatAmount(defaultValue)} className={`${inputCls} pl-6`} />
+      </div>
+    </FieldRow>
+  );
+}
+
+/** Percentage, entered as written: 5.25 means 5.25%. */
+export function PctInput({ label, name, defaultValue }: { label: string; name: string; defaultValue?: string | null }) {
+  return (
+    <FieldRow label={label} htmlFor={name}>
+      <div className="relative">
+        <input id={name} name={name} inputMode="decimal" defaultValue={formatPct(defaultValue)} className={`${inputCls} pr-7`} />
+        <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-sm text-muted">%</span>
+      </div>
+    </FieldRow>
+  );
+}

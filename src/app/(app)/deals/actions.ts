@@ -9,16 +9,21 @@ import {
   DEAL_SUBTYPES,
   DEAL_TYPES,
   OPPORTUNITY_TYPES,
+  PITCH_STATUSES,
   REPRESENTED,
   SIDES,
+  STAGES,
   TEAM_ROLES,
 } from "@/domain/options";
-import { bool, ids, oneOf, str } from "@/lib/form";
+import { bool, dec, ids, oneOf, str } from "@/lib/form";
 import { createCompany } from "@/server/companies";
 import {
   addDealParty,
   addDealProperty,
+  assertCanEdit,
   createDeal,
+  DealLockedError,
+  moveStage,
   removeDealParty,
   removeDealProperty,
   removeTeamMember,
@@ -43,7 +48,63 @@ function parse(fd: FormData): DealInput | string {
     directAward: bool(fd, "directAward"),
     referralContactId: str(fd, "referralContactId"),
     closingNotes: str(fd, "closingNotes"),
+
+    stage: oneOf(fd, "stage", STAGES) ?? "BOV 1",
+    pitchDate: str(fd, "pitchDate"),
+    pitchStatus: oneOf(fd, "pitchStatus", PITCH_STATUSES),
+    lostToCompanyId: str(fd, "lostToCompanyId"),
+    lostNote: str(fd, "lostNote"),
+    wonDate: str(fd, "wonDate"),
+    launchDate: str(fd, "launchDate"),
+    callForOffersDate: str(fd, "callForOffersDate"),
+    awardedDate: str(fd, "awardedDate"),
+    ddExpirationDate: str(fd, "ddExpirationDate"),
+    closeDate: str(fd, "closeDate"),
+
+    bovPriceLow: dec(fd, "bovPriceLow"),
+    bovPriceMid: dec(fd, "bovPriceMid"),
+    bovPriceHigh: dec(fd, "bovPriceHigh"),
+    bovYear1Cap: dec(fd, "bovYear1Cap"),
+    bovUlirr: dec(fd, "bovUlirr"),
+    bovLirr: dec(fd, "bovLirr"),
+    bovExitCap: dec(fd, "bovExitCap"),
+    bovHoldYears: dec(fd, "bovHoldYears"),
+    guidancePrice: dec(fd, "guidancePrice"),
+    omYear1Cap: dec(fd, "omYear1Cap"),
+    omUlirr: dec(fd, "omUlirr"),
+    omLirr: dec(fd, "omLirr"),
+    omExitCap: dec(fd, "omExitCap"),
+    omHoldYears: dec(fd, "omHoldYears"),
+    contractPrice: dec(fd, "contractPrice"),
+    closedPrice: dec(fd, "closedPrice"),
+    closedYear1Cap: dec(fd, "closedYear1Cap"),
+    closedUlirr: dec(fd, "closedUlirr"),
+    closedLirr: dec(fd, "closedLirr"),
+    closedExitCap: dec(fd, "closedExitCap"),
+    closedHoldYears: dec(fd, "closedHoldYears"),
+    priceNotes: str(fd, "priceNotes"),
+
+    totalCapitalization: dec(fd, "totalCapitalization"),
+    loanAmount: dec(fd, "loanAmount"),
+    interestRate: dec(fd, "interestRate"),
+    loanTermYears: dec(fd, "loanTermYears"),
+    ltv: dec(fd, "ltv"),
+    totalLeaseConsideration: dec(fd, "totalLeaseConsideration"),
+
+    totalCommission: dec(fd, "totalCommission"),
+    outsideCommission: dec(fd, "outsideCommission"),
+    outsideCommissionNote: str(fd, "outsideCommissionNote"),
+    inHouseGross: dec(fd, "inHouseGross"),
+    inHouseGrossManual: bool(fd, "inHouseGrossManual"),
+    feeRate: dec(fd, "feeRate"),
   };
+}
+
+/** Every change to a deal goes through this: closed deals are admin-only. */
+async function editor(dealId: string) {
+  const user = await requireUser();
+  await assertCanEdit(dealId, user);
+  return user;
 }
 
 export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData): Promise<SaveState> {
@@ -57,6 +118,12 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
     revalidatePath("/deals");
     redirect(`/deals/${newId}`);
   }
+  try {
+    await assertCanEdit(id, user);
+  } catch (e) {
+    if (e instanceof DealLockedError) return { ok: false, message: e.message };
+    throw e;
+  }
   await updateDeal(id, input, user.id);
   await syncTeam(id, team);
   revalidatePath("/deals", "layout");
@@ -69,7 +136,7 @@ function refresh(dealId: string) {
 }
 
 export async function addPropertyAction(dealId: string, fd: FormData) {
-  const user = await requireUser();
+  const user = await editor(dealId);
   const propertyId = str(fd, "propertyId");
   if (!propertyId) return;
   await addDealProperty(dealId, propertyId, user.id);
@@ -79,13 +146,13 @@ export async function addPropertyAction(dealId: string, fd: FormData) {
 }
 
 export async function removePropertyAction(dealId: string, propertyId: string) {
-  const user = await requireUser();
+  const user = await editor(dealId);
   await removeDealProperty(dealId, propertyId, user.id);
   refresh(dealId);
 }
 
 export async function addPartyAction(dealId: string, fd: FormData) {
-  const user = await requireUser();
+  const user = await editor(dealId);
   const side = oneOf(fd, "side", SIDES);
   const companyId = str(fd, "companyId");
   if (!side || !companyId) return;
@@ -101,7 +168,7 @@ export async function createPartyCompanyAction(
   _prev: QuickCompanyState,
   fd: FormData,
 ): Promise<QuickCompanyState> {
-  const user = await requireUser();
+  const user = await editor(dealId);
   const side = oneOf(fd, "side", SIDES);
   const name = str(fd, "name");
   const website = str(fd, "website");
@@ -120,13 +187,13 @@ export async function createPartyCompanyAction(
 }
 
 export async function removePartyAction(dealId: string, partyId: string) {
-  const user = await requireUser();
+  const user = await editor(dealId);
   await removeDealParty(dealId, partyId, user.id);
   refresh(dealId);
 }
 
 export async function toggleRoleAction(dealId: string, teamId: string, role: string) {
-  const user = await requireUser();
+  const user = await editor(dealId);
   const valid = TEAM_ROLES.find((r) => r === role);
   if (!valid) return;
   await toggleRole(dealId, teamId, valid, user.id);
@@ -134,7 +201,34 @@ export async function toggleRoleAction(dealId: string, teamId: string, role: str
 }
 
 export async function removeTeamAction(dealId: string, teamId: string) {
-  const user = await requireUser();
+  const user = await editor(dealId);
   await removeTeamMember(dealId, teamId, user.id);
   refresh(dealId);
+}
+
+export type StageState = { message: string } | null;
+
+/** Stage bar: move to any stage, with the stage's date and (for a lost pitch) who won it. */
+export async function moveStageAction(dealId: string, _prev: StageState, fd: FormData): Promise<StageState> {
+  let user;
+  try {
+    user = await editor(dealId);
+  } catch (e) {
+    if (e instanceof DealLockedError) return { message: e.message };
+    throw e;
+  }
+  const stage = oneOf(fd, "stage", STAGES);
+  if (!stage) return { message: "Pick a stage." };
+  await moveStage(
+    dealId,
+    {
+      stage,
+      date: fd.has("skipDate") ? null : str(fd, "date"),
+      lostToCompanyId: fd.has("lostToCompanyId") ? str(fd, "lostToCompanyId") : undefined,
+      lostNote: fd.has("lostNote") ? str(fd, "lostNote") : undefined,
+    },
+    user.id,
+  );
+  refresh(dealId);
+  return null;
 }

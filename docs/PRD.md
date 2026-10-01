@@ -206,6 +206,12 @@ A deal can be created at **any** stage and moved between stages **without** comp
 
 Required for the initial pipeline load, for IOS deals entering as Closed, for deals reaching the team mid-flight, and for direct awards.
 
+**Rev. 4.2 — stage moves and value:**
+- Stages are changed from a stage bar across the top of the deal (click any stage — forward, back or skipping) or the Stage field on the deal. New deals default to BOV 1.
+- Moving into a stage with a date (BOV 2 → pitch date, Engaged → won date, Marketing → launch date, Awarded → awarded date, Closed → close date) asks for it, pre-filled with today; it can be skipped. Moving to Engaged from BOV 1–2 marks the pitch Won; moving to Dead/Lost from BOV 1–2 marks it Lost and asks (optionally) who won it and why.
+- For a sale, deal value **follows the stage**: BOV mid (BOV 1–2), guidance (Engaged, Marketing), contract price (Awarded, Under Contract), closed price (Closed). If that stage's price isn't entered, the value shows as missing rather than borrowing another. Track and Dead/Lost use the latest price entered. Equity, debt and lease use their headline figure. Price/SF = value ÷ total SF.
+- In-house gross fills itself as total − outside commission and can be typed over when accounting's figure differs.
+
 **Missing data is prompted for, never enforced.** Show what's incomplete; let the user proceed. Earlier-stage fields stay editable up until the deal closes — a BOV entered six months late is still worth having.
 
 Trade-off, stated plainly: reports will have gaps, and a completeness view is more useful than validation rules. Partial data on every deal beats complete data on the half that made it in.
@@ -221,7 +227,7 @@ Both go to the deal team. Lead time is configurable, since a 30-day DD and a 5-d
 
 ### The one exception — closed deals lock
 
-A closed deal is **read-only for everyone except Haili Rumsey, Seth Koschak and Matteson Hamilton**, who can unlock, edit and relock. The lock covers the whole record.
+A closed deal is **read-only for everyone except Haili Rumsey, Seth Koschak and Matteson Hamilton**, who can always edit it (Rev. 4.2: no unlock/relock step). The lock covers the whole record. Anyone can move a deal into Closed; only those three can change it afterward, including moving it back out.
 
 Reason: closed deals carry the REApps ID and the three commission figures, which originate in accounting and are reconciled against a system ICM does not control.
 

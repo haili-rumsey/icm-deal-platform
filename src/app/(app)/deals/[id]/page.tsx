@@ -13,15 +13,19 @@ import {
   Tabs,
 } from "@/components/record-page";
 import { partyLabel, type DealType } from "@/domain/options";
+import { dealValue, formatMoney, pricePerSf } from "@/domain/stages";
 import { searchParam } from "@/lib/params";
 import { companyOptions } from "@/server/companies";
 import { contactOptions, icmTeamOptions, streamPeopleOptions } from "@/server/contacts";
-import { getDeal } from "@/server/deals";
+import { getDeal, isLockedFor } from "@/server/deals";
 import { propertyOptions } from "@/server/properties";
-import { saveDeal } from "../actions";
+import { moveStageAction, saveDeal } from "../actions";
+import { DealDatesFields } from "../deal-dates-fields";
 import { DealFields } from "../deal-fields";
+import { DealFeeFields, DealMoneyFields } from "../deal-money-fields";
 import { DealTeamFields } from "../deal-team-fields";
 import { PartiesSection, PropertiesSection, TeamSection } from "./sections";
+import { StageBar } from "./stage-bar";
 
 export default async function DealPage({ params, searchParams }: PageProps<"/deals/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
@@ -38,6 +42,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
   if (!data) notFound();
   const { deal } = data;
 
+  const value = dealValue(deal);
   // Prompted, never enforced.
   const type = deal.dealType as DealType | null;
   const missing = [
@@ -47,26 +52,40 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
     !data.parties.some((p) => p.side === "A") && (type ? partyLabel(type, "A").toLowerCase() : "side A party"),
     !data.team.some((t) => t.isLeadBroker) && "lead broker",
     !data.team.some((t) => t.isLeadAnalyst) && "lead analyst",
+    value.missing,
   ].filter((m): m is string => !!m);
 
   const totalSf = data.properties.reduce((s, p) => s + (p.buildingSf ?? 0), 0);
   const names = (side: "A" | "B") =>
     [...new Set(data.parties.filter((p) => p.side === side).map((p) => p.companyName))].join(" / ");
   const addProperty = searchParam(sp.addProperty);
+  const companyOpts = companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }));
+
+  // Closed deals are read-only except for the three admins.
+  const isClosed = deal.stage === "Closed";
+  const locked = isLockedFor(deal.stage, user);
+  const psf = pricePerSf(value.value, totalSf);
 
   return (
     <RecordFormProvider action={saveDeal.bind(null, id)}>
       <CommandBar>
-        <SaveCommand />
+        {!locked && <SaveCommand />}
         <RefreshCommand />
-        <CommandDivider />
-        <HousekeepingCommands kind="deal" id={id} archivedAt={deal.archivedAt} canDelete={user.isAdmin} />
+        {!locked && (
+          <>
+            <CommandDivider />
+            <HousekeepingCommands kind="deal" id={id} archivedAt={deal.archivedAt} canDelete={user.isAdmin} />
+          </>
+        )}
       </CommandBar>
       <RecordHeader
         kindLabel="Deal"
         title={deal.dealName}
         subtitle={[deal.dealType, deal.dealSubtype, deal.category, deal.isIos && "IOS Deal"].filter(Boolean).join(" · ") || undefined}
         facts={[
+          { label: "Stage", value: deal.stage },
+          { label: value.source, value: formatMoney(value.value, true) },
+          { label: "Price / SF", value: psf ? `$${psf.toLocaleString("en-US", { maximumFractionDigits: 2 })}` : null },
           { label: partyLabel(type, "A"), value: names("A") },
           { label: partyLabel(type, "B"), value: names("B") },
           { label: "Total SF", value: totalSf ? totalSf.toLocaleString("en-US") : null },
@@ -77,8 +96,35 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
           { label: "Lead broker", value: data.team.filter((t) => t.isLeadBroker).map((t) => t.name).join(", ") },
           { label: "Lead analyst", value: data.team.find((t) => t.isLeadAnalyst)?.name },
         ]}
-        flags={deal.archivedAt ? <FlagMark label="Archived" /> : undefined}
+        flags={
+          <>
+            {isClosed && (
+              <span className="inline-flex items-center gap-1.5 rounded-sm bg-navy px-2 py-0.5 text-xs font-semibold text-white">
+                Closed · {locked ? "read-only" : "admin can edit"}
+              </span>
+            )}
+            {deal.archivedAt && <FlagMark label="Archived" />}
+          </>
+        }
       />
+      <StageBar
+        stage={deal.stage}
+        dates={{
+          pitchDate: deal.pitchDate,
+          wonDate: deal.wonDate,
+          launchDate: deal.launchDate,
+          awardedDate: deal.awardedDate,
+          closeDate: deal.closeDate,
+        }}
+        companies={companyOpts}
+        locked={locked}
+        action={moveStageAction.bind(null, id)}
+      />
+      {locked && (
+        <p className="border-b border-border bg-[#eef2f8] px-4 py-2 text-sm sm:px-5">
+          This deal is closed, so it&apos;s read-only. Only Haili Rumsey, Seth Koschak and Matteson Hamilton can change it.
+        </p>
+      )}
       <Tabs
         initial={addProperty ? "properties" : undefined}
         tabs={[
@@ -88,9 +134,18 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
             content: (
               <>
                 <Incomplete missing={missing} />
-                <MainForm>
+                <MainForm readOnly={locked}>
                   <Section title="Deal">
                     <DealFields deal={deal} />
+                  </Section>
+                  <Section title="Stage and dates">
+                    <DealDatesFields deal={deal} companies={companyOpts} />
+                  </Section>
+                  <Section title="Pricing and underwriting">
+                    <DealMoneyFields deal={deal} />
+                  </Section>
+                  <Section title="Fee">
+                    <DealFeeFields deal={deal} />
                   </Section>
                   <Section title="Team">
                     <DealTeamFields
@@ -112,7 +167,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
           {
             id: "properties",
             label: `Properties (${data.properties.length})`,
-            content: <PropertiesSection deal={data} propertyOptions={properties} preselectId={addProperty} />,
+            content: <PropertiesSection deal={data} propertyOptions={properties} preselectId={addProperty} locked={locked} />,
           },
           {
             id: "parties",
@@ -120,15 +175,16 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
             content: (
               <PartiesSection
                 deal={data}
-                companies={companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }))}
+                companies={companyOpts}
                 contacts={contacts}
+                locked={locked}
               />
             ),
           },
           {
             id: "team",
             label: `Team (${data.team.length})`,
-            content: <TeamSection deal={data} />,
+            content: <TeamSection deal={data} locked={locked} />,
           },
         ]}
       />

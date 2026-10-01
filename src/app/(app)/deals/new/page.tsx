@@ -2,13 +2,16 @@ import { X } from "lucide-react";
 import { CommandBar, CommandLink } from "@/components/command-bar";
 import { Section } from "@/components/fields";
 import { MainForm, RecordFormProvider, RecordHeader, SaveCommand } from "@/components/record-page";
+import { companyOptions } from "@/server/companies";
 import { icmTeamOptions, streamPeopleOptions } from "@/server/contacts";
 import { saveDeal } from "../actions";
+import { DealDatesFields } from "../deal-dates-fields";
 import { DealFields } from "../deal-fields";
+import { DealFeeFields, DealMoneyFields } from "../deal-money-fields";
 import { DealTeamFields } from "../deal-team-fields";
 
 export default async function NewDealPage() {
-  const [streamPeople, icmTeam] = await Promise.all([streamPeopleOptions(), icmTeamOptions()]);
+  const [streamPeople, icmTeam, companies] = await Promise.all([streamPeopleOptions(), icmTeamOptions(), companyOptions()]);
   return (
     <RecordFormProvider action={saveDeal.bind(null, null)}>
       <CommandBar>
@@ -27,12 +30,21 @@ export default async function NewDealPage() {
           <Section title="Deal">
             <DealFields />
           </Section>
+          <Section title="Stage and dates">
+            <DealDatesFields companies={companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }))} />
+          </Section>
           <Section title="Team">
             <DealTeamFields
               icmTeam={icmTeam}
               streamPeople={streamPeople}
               initial={{ teamIds: [], leadBrokerIds: [], leadAnalystId: null, referralId: null }}
             />
+          </Section>
+          <Section title="Pricing and underwriting">
+            <DealMoneyFields />
+          </Section>
+          <Section title="Fee">
+            <DealFeeFields />
           </Section>
         </MainForm>
       </div>

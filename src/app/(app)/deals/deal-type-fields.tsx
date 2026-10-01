@@ -12,7 +12,18 @@ export function DealTypeFields({ dealType, dealSubtype }: { dealType?: string | 
   return (
     <>
       <FieldRow label="Deal type" htmlFor="dealType">
-        <select id="dealType" name="dealType" value={type} onChange={(e) => setType(e.target.value as DealType | "")} className={inputCls}>
+        <select
+          id="dealType"
+          name="dealType"
+          value={type}
+          onChange={(e) => {
+            const v = e.target.value as DealType | "";
+            setType(v);
+            // Lets the money section switch to this type's fields without a save.
+            window.dispatchEvent(new CustomEvent("deal-type-change", { detail: v }));
+          }}
+          className={inputCls}
+        >
           <option value="">—</option>
           {DEAL_TYPES.map((t) => (
             <option key={t}>{t}</option>

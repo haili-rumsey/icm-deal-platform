@@ -25,10 +25,12 @@ export function PropertiesSection({
   deal,
   propertyOptions,
   preselectId,
+  locked,
 }: {
   deal: DealData;
   propertyOptions: Option[];
   preselectId?: string;
+  locked?: boolean;
 }) {
   const id = deal.deal.id;
   const linked = new Set(deal.properties.map((p) => p.id));
@@ -58,16 +60,20 @@ export function PropertiesSection({
               </span>
               <span className="flex items-baseline gap-4 text-muted">
                 {p.buildingSf ? `${p.buildingSf.toLocaleString()} SF` : null}
-                <form action={removePropertyAction.bind(null, id, p.id)}>
-                  <PendingButton className={removeBtn} pendingLabel="Removing…">
-                    Remove
-                  </PendingButton>
-                </form>
+                {!locked && (
+                  <form action={removePropertyAction.bind(null, id, p.id)}>
+                    <PendingButton className={removeBtn} pendingLabel="Removing…">
+                      Remove
+                    </PendingButton>
+                  </form>
+                )}
               </span>
             </li>
           ))}
         </ul>
       )}
+      {!locked && (
+        <>
       <form
         action={addPropertyAction.bind(null, id)}
         className="grid grid-cols-1 items-end gap-3 rounded-sm border border-dashed border-gray p-3 sm:grid-cols-[1fr_auto]"
@@ -90,6 +96,8 @@ export function PropertiesSection({
           Property not in the system? Create it
         </Link>
       </p>
+        </>
+      )}
     </Section>
   );
 }
@@ -98,10 +106,12 @@ export function PartiesSection({
   deal,
   companies,
   contacts,
+  locked,
 }: {
   deal: DealData;
   companies: Option[];
   contacts: { id: string; name: string; companyId: string }[];
+  locked?: boolean;
 }) {
   const id = deal.deal.id;
   const type = deal.deal.dealType as DealType | null;
@@ -135,15 +145,18 @@ export function PartiesSection({
                           </Link>
                         )}
                       </span>
-                      <form action={removePartyAction.bind(null, id, p.id)}>
-                        <PendingButton className={removeBtn} pendingLabel="Removing…">
-                          Remove
-                        </PendingButton>
-                      </form>
+                      {!locked && (
+                        <form action={removePartyAction.bind(null, id, p.id)}>
+                          <PendingButton className={removeBtn} pendingLabel="Removing…">
+                            Remove
+                          </PendingButton>
+                        </form>
+                      )}
                     </li>
                   ))}
                 </ul>
               )}
+              {!locked && (
               <PartyAdder
                 side={side}
                 label={label}
@@ -152,6 +165,7 @@ export function PartiesSection({
                 action={addPartyAction.bind(null, id)}
                 createAction={createPartyCompanyAction.bind(null, id)}
               />
+              )}
             </div>
           );
         })}
@@ -160,7 +174,7 @@ export function PartiesSection({
   );
 }
 
-export function TeamSection({ deal }: { deal: DealData }) {
+export function TeamSection({ deal, locked }: { deal: DealData; locked?: boolean }) {
   const id = deal.deal.id;
 
   return (
@@ -202,6 +216,7 @@ export function TeamSection({ deal }: { deal: DealData }) {
                         return (
                           <form key={role} action={toggleRoleAction.bind(null, id, t.id, role)}>
                             <PendingButton
+                              disabled={locked}
                               pendingLabel={role}
                               className={`rounded-full border px-2.5 py-0.5 text-xs ${
                                 on
@@ -217,11 +232,13 @@ export function TeamSection({ deal }: { deal: DealData }) {
                     </span>
                   </td>
                   <td className="py-2.5 text-right">
-                    <form action={removeTeamAction.bind(null, id, t.id)}>
-                      <PendingButton className={removeBtn} pendingLabel="Removing…">
-                        Remove
-                      </PendingButton>
-                    </form>
+                    {!locked && (
+                      <form action={removeTeamAction.bind(null, id, t.id)}>
+                        <PendingButton className={removeBtn} pendingLabel="Removing…">
+                          Remove
+                        </PendingButton>
+                      </form>
+                    )}
                   </td>
                 </tr>
               ))}
