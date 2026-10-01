@@ -33,7 +33,7 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 - Sessions are stored in the database so deactivation can end them immediately.
 - The emailed link opens a confirm page with a "Sign in" button. Microsoft Safe Links pre-opens links in email and would otherwise consume the single-use token.
 - **Isolated layer:** all auth code lives in `src/auth/`. The rest of the app uses only its exported helpers (`getCurrentUser`, `requireUser`, `requireAdmin`, `signIn`, `signOut`), so Entra ID can be swapped in later by changing that folder alone.
-- **Admins** (user administration, delete, closed-deal unlock): haili.rumsey@streamrealty.com, skoschak@streamrealty.com, mhamilton@streamrealty.com. Seeded in the database, not editable in the UI.
+- **Admins** (user administration, Manage teams, Geography, delete, editing closed deals): haili.rumsey@streamrealty.com, skoschak@streamrealty.com, mhamilton@streamrealty.com. Seeded in the database, not editable in the UI.
 - User admin screen: add a user, list everyone with access, deactivate (immediately blocks new links **and** kills active sessions), reactivate.
 - Stream people (users, referrers, former brokers) are **Contacts** at the "Stream Realty Partners" company. A user is linked to their contact **by matching email**; adding a user creates the contact if missing.
 
@@ -80,6 +80,29 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 - Address entry: suggestions as you type (Places API New, Texas-biased), resolved through the Geocoding API; "Look up" stays as a fallback for intersections. All Google calls are server-side; the key is restricted to those two APIs. No match → "Save without Google match", flagged unverified for cleanup.
 - Records are archived by anyone, deleted only by the three admins.
 - Sale deal value follows the stage (BOV mid → guidance → sale price). There is **one sale price** (`closed_price`) from award through close — no separate contract price; retrades go in price notes. Missing stage price shows as missing, not borrowed. Logic in `src/domain/stages.ts`.
+
+### Stages and money (milestone 1.4)
+
+- **Stage bar** across the deal (full-width chevrons; current stage Stream Blue, completed gray, upcoming light gray; Track and Dead/Lost as buttons at the right) **plus** a Stage field on the Summary. Click any stage — forward, back or skipping.
+- Moving into BOV 2 / Engaged / Marketing / Awarded / Closed **asks for that stage's date**, pre-filled with today and skippable — except Closed (close date required). Engaged from BOV 1–2 sets pitch Won; Dead/Lost from BOV 1–2 sets pitch Lost and optionally asks lost-to company + note.
+- New deals default to BOV 1 and **can't be created at Closed** (properties/parties come after the first save). IOS deals: save at Under Contract, add property and buyer, then close.
+- BOV block hidden for equity/debt/lease; each type shows its headline field. Fields that don't apply are **hidden, not removed**, so switching type never wipes data.
+- **Fee section** shows from Engaged on (or whenever fee figures exist). In-house gross = total − outside unless typed over (`in_house_gross_manual`). Fee % plus optional fee notes.
+- Sidebar **Pipeline** group: **Active** (BOV 1 → Under Contract), **Closed**, **Archive** (views: Track, Dead/Lost, archived records).
+- The deal form is keyed by `last_modified_at`, so it reloads after any server change (stage bar, save) and a later Save can't write stale values back.
+- **Unsaved-changes warnings:** stage-bar moves and in-app link clicks use the branded dialog; closing/reloading the tab uses the browser's own box (can't be styled).
+- **Branded confirm dialog** (`useConfirm` in `src/components/confirm-dialog.tsx`) replaces the browser's confirm(): larger text, Cancel is the dark default; red confirm only for permanent actions. Used for unsaved changes, deactivate user, delete, and "Can't close yet".
+- Money and SF inputs add thousands separators when you leave the box; the server strips `$ , %` on save.
+
+## Status and agreed-for-later
+
+- **Done and tested by Haili:** milestones 1.1–1.4. **Next: 1.5 historical import** — questions not yet asked. Source: `Context/ICM Deal Activity.xlsx` (119 rows). Things to raise: seller/buyer columns hold LP/LLC names (naming standard says institutional owner); deal types include Equity Raise / Debt Placement / Consulting / Referral fees; brokers include non-ICM and "(former employee)" names plus a "Stream ICM Broker" placeholder; a "Deal %" column not in the PRD mapping; dates are Excel serial numbers; 2 rows with no address and 2 with no SF/acres; several repeat addresses (repeat trades); how IOS-desk deals are identified.
+- **1.6 Pipeline report** (Haili's spec): group active deals by stage with separators; per stage show # deals, total value, total SF, and total fee (fee only from Engaged on). Track separate, lead analyst the only team field.
+- **2.1 Bids:** awarding a bid may offer to fill the sale price from the bid amount — confirm with Haili then.
+- **Active-deals spreadsheet:** Haili will provide an updated version; discuss before importing anything (PRD planned manual entry at launch).
+- **Testing practice:** non-admin QA account `qa.tester@streamrealty.com` (normally deactivated) gets a short session for browser tests; all test data is prefixed `TEST` and deleted afterward. Never create sessions for real/admin accounts.
+- **Removing a column:** commit code that stops using it → Haili pushes → then drop the column, so the live site never breaks.
+- Haili prefers instructions **one step at a time**.
 
 ## Look and feel
 
