@@ -4,6 +4,8 @@
  * hard requirement — the system prompts for missing data, it never blocks.
  */
 
+import { NumberInput } from "./number-input";
+
 export const inputCls =
   "w-full rounded-sm border border-[#c8c8c4] bg-white px-2.5 py-1.5 text-sm outline-none focus:border-navy focus:ring-1 focus:ring-navy disabled:bg-background disabled:text-muted";
 
@@ -191,7 +193,7 @@ export function MoneyInput({ label, name, defaultValue, hint }: { label: string;
     <FieldRow label={label} hint={hint} htmlFor={name}>
       <div className="relative">
         <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-sm text-muted">$</span>
-        <input id={name} name={name} inputMode="decimal" defaultValue={formatAmount(defaultValue)} className={`${inputCls} pl-6`} />
+        <NumberInput id={name} name={name} defaultValue={formatAmount(defaultValue)} className={`${inputCls} pl-6`} />
       </div>
     </FieldRow>
   );
@@ -205,6 +207,15 @@ export function PctInput({ label, name, defaultValue }: { label: string; name: s
         <input id={name} name={name} inputMode="decimal" defaultValue={formatPct(defaultValue)} className={`${inputCls} pr-7`} />
         <span className="pointer-events-none absolute inset-y-0 right-2.5 flex items-center text-sm text-muted">%</span>
       </div>
+    </FieldRow>
+  );
+}
+
+/** Whole numbers such as square footage; commas appear when you leave the box. */
+export function NumberField({ label, name, defaultValue, hint }: { label: string; name: string; defaultValue?: string | number | null; hint?: string }) {
+  return (
+    <FieldRow label={label} hint={hint} htmlFor={name}>
+      <NumberInput id={name} name={name} defaultValue={defaultValue === null || defaultValue === undefined ? "" : String(defaultValue)} className={inputCls} />
     </FieldRow>
   );
 }

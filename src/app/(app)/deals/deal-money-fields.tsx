@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { FieldRow, formatAmount, Grid, inputCls, MoneyInput, PctInput, TextArea, TextInput } from "@/components/fields";
+import { withCommas } from "@/components/number-input";
 import type { Deal } from "@/server/deals";
 
 type Block = "bov" | "om" | "closed";
@@ -95,7 +96,15 @@ export function DealFeeFields({ deal }: { deal?: Deal }) {
   const money = (name: string, value: string, set: (v: string) => void) => (
     <div className="relative">
       <span className="pointer-events-none absolute inset-y-0 left-2.5 flex items-center text-sm text-muted">$</span>
-      <input id={name} name={name} inputMode="decimal" value={value} onChange={(e) => set(e.target.value)} className={`${inputCls} pl-6`} />
+      <input
+        id={name}
+        name={name}
+        inputMode="decimal"
+        value={value}
+        onChange={(e) => set(e.target.value)}
+        onBlur={(e) => set(withCommas(e.target.value))}
+        className={`${inputCls} pl-6`}
+      />
     </div>
   );
 

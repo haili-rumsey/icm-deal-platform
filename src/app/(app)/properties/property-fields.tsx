@@ -1,4 +1,4 @@
-import { Grid, Select, TextInput } from "@/components/fields";
+import { Grid, NumberField, Select, TextInput } from "@/components/fields";
 import { MultiSelect } from "@/components/multi-select";
 import type { Option } from "@/components/search-select";
 import { BUILDING_CLASSES, CONFIGURATIONS, SPRINKLER_TYPES, TENANCY } from "@/domain/options";
@@ -48,7 +48,7 @@ export function PropertyFields({
           placeholder="Building A, Bldg 2"
           hint="Tells apart buildings that share one address."
         />
-        <TextInput label="Building SF" name="buildingSf" defaultValue={p?.buildingSf} />
+        <NumberField label="Building SF" name="buildingSf" defaultValue={p?.buildingSf} />
         <TextInput label="Acreage" name="acreage" defaultValue={p?.acreage} />
         <TextInput label="Occupancy %" name="occupancyPct" defaultValue={p?.occupancyPct} />
         <Select label="Tenancy" name="tenancy" options={TENANCY} defaultValue={p?.tenancy} />
@@ -57,7 +57,7 @@ export function PropertyFields({
         <TextInput label="Clear height (ft)" name="clearHeightFt" defaultValue={p?.clearHeightFt} />
         <Select label="Configuration" name="configuration" options={CONFIGURATIONS} defaultValue={p?.configuration} />
         <TextInput label="Dock doors" name="dockDoors" defaultValue={p?.dockDoors} />
-        <TextInput label="Office finish SF" name="officeFinishSf" defaultValue={p?.officeFinishSf} />
+        <NumberField label="Office finish SF" name="officeFinishSf" defaultValue={p?.officeFinishSf} />
         <Select label="Sprinkler" name="sprinklerType" options={SPRINKLER_TYPES} defaultValue={p?.sprinklerType} />
       </Grid>
       <MultiSelect name="ownerIds" label="Current owner(s)" options={companies} defaultIds={ownerIds} />
