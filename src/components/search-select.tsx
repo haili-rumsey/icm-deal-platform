@@ -17,6 +17,8 @@ export function SearchSelect({
   placeholder = "Search…",
   onChange,
   layout = "row",
+  createLabel,
+  onCreate,
 }: {
   name: string;
   label: string;
@@ -25,6 +27,9 @@ export function SearchSelect({
   placeholder?: string;
   onChange?: (id: string | null) => void;
   layout?: "row" | "stacked";
+  /** Offer "Create “…”" at the bottom of the list, for records that don't exist yet. */
+  createLabel?: (query: string) => string;
+  onCreate?: (query: string) => void;
 }) {
   const listId = useId();
   const [selected, setSelected] = useState<Option | null>(() => options.find((o) => o.id === defaultId) ?? null);
@@ -81,7 +86,7 @@ export function SearchSelect({
           role="listbox"
           className="absolute top-full z-30 mt-1 max-h-64 w-full overflow-auto rounded-md border border-border bg-card shadow-lg"
         >
-          {matches.length === 0 && <li className="px-3 py-2 text-muted">No matches</li>}
+          {matches.length === 0 && !(onCreate && query.trim()) && <li className="px-3 py-2 text-muted">No matches</li>}
           {matches.map((o) => (
             <li key={o.id} role="option" aria-selected={false}>
               <button
@@ -95,6 +100,22 @@ export function SearchSelect({
               </button>
             </li>
           ))}
+          {onCreate && query.trim() && (
+            <li className="border-t border-border">
+              <button
+                type="button"
+                onMouseDown={(e) => e.preventDefault()}
+                onClick={() => {
+                  onCreate(query.trim());
+                  setQuery("");
+                  setOpen(false);
+                }}
+                className="flex w-full items-center gap-2 px-3 py-2 text-left font-semibold text-link hover:bg-hover"
+              >
+                + {createLabel ? createLabel(query.trim()) : `Create “${query.trim()}”`}
+              </button>
+            </li>
+          )}
         </ul>
       )}
     </div>

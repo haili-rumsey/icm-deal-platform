@@ -13,7 +13,8 @@ import {
   SIDES,
   TEAM_ROLES,
 } from "@/domain/options";
-import { bool, dec, manyOf, oneOf, str } from "@/lib/form";
+import { bool, dec, ids, oneOf, str } from "@/lib/form";
+import { createCompany } from "@/server/companies";
 import {
   addDealParty,
   addDealProperty,
@@ -21,7 +22,8 @@ import {
   removeDealParty,
   removeDealProperty,
   removeTeamMember,
-  saveTeamMember,
+  syncTeam,
+  toggleRole,
   updateDeal,
   type DealInput,
 } from "@/server/deals";
@@ -39,8 +41,6 @@ function parse(fd: FormData): DealInput | string {
     represented: oneOf(fd, "represented", REPRESENTED),
     isIos: bool(fd, "isIos"),
     directAward: bool(fd, "directAward"),
-    waltYears: dec(fd, "waltYears"),
-    waltAsOf: str(fd, "waltAsOf"),
     referralContactId: str(fd, "referralContactId"),
     closingNotes: str(fd, "closingNotes"),
   };
@@ -50,12 +50,15 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
   const user = await requireUser();
   const input = parse(fd);
   if (typeof input === "string") return { ok: false, message: input };
+  const team = { teamIds: ids(fd, "teamIds"), leadBrokerIds: ids(fd, "leadBrokerIds"), leadAnalystId: str(fd, "leadAnalystId") };
   if (!id) {
     const newId = await createDeal(input, user.id);
+    await syncTeam(newId, team);
     revalidatePath("/deals");
     redirect(`/deals/${newId}`);
   }
   await updateDeal(id, input, user.id);
+  await syncTeam(id, team);
   revalidatePath("/deals", "layout");
   return { ok: true, message: "Saved." };
 }
@@ -90,26 +93,43 @@ export async function addPartyAction(dealId: string, fd: FormData) {
   refresh(dealId);
 }
 
+export type QuickCompanyState = { message: string } | null;
+
+/** Parties tab: the company isn't in the system yet — create it and add it to the side in one step. */
+export async function createPartyCompanyAction(
+  dealId: string,
+  _prev: QuickCompanyState,
+  fd: FormData,
+): Promise<QuickCompanyState> {
+  const user = await requireUser();
+  const side = oneOf(fd, "side", SIDES);
+  const name = str(fd, "name");
+  const website = str(fd, "website");
+  const noWebsite = bool(fd, "noWebsite");
+  if (!side) return { message: "Something went wrong — pick a side again." };
+  if (!name) return { message: "Enter the company name." };
+  if (!website && !noWebsite) return { message: "Enter a website, or tick “No website”." };
+  const companyId = await createCompany(
+    { name, website, noWebsite, types: [], investmentStrategies: [], notes: null },
+    user.id,
+  );
+  await addDealParty(dealId, side, companyId, null, user.id);
+  refresh(dealId);
+  revalidatePath("/companies");
+  return null;
+}
+
 export async function removePartyAction(dealId: string, partyId: string) {
   const user = await requireUser();
   await removeDealParty(dealId, partyId, user.id);
   refresh(dealId);
 }
 
-export async function saveTeamAction(dealId: string, fd: FormData) {
+export async function toggleRoleAction(dealId: string, teamId: string, role: string) {
   const user = await requireUser();
-  const contactId = str(fd, "contactId");
-  if (!contactId) return;
-  await saveTeamMember(
-    dealId,
-    {
-      contactId,
-      roles: manyOf(fd, "roles", TEAM_ROLES),
-      isLeadBroker: bool(fd, "isLeadBroker"),
-      isLeadAnalyst: bool(fd, "isLeadAnalyst"),
-    },
-    user.id,
-  );
+  const valid = TEAM_ROLES.find((r) => r === role);
+  if (!valid) return;
+  await toggleRole(dealId, teamId, valid, user.id);
   refresh(dealId);
 }
 

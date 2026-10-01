@@ -29,6 +29,9 @@ export const COMPANY_TYPES = ["Investor", "Developer", "Owner-user", "Lender", "
 // Investment strategy uses the same list as opportunity type.
 export const INVESTMENT_STRATEGIES = OPPORTUNITY_TYPES;
 
+/** Office of an ICM team member. */
+export const LOCATIONS = ["Dallas", "Houston"] as const;
+
 export const TEAM_ROLES = ["Producer", "Analyst", "Operations", "Designer", "Leasing"] as const;
 
 export const SIDES = ["A", "B"] as const;

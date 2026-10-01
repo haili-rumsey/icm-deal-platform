@@ -39,10 +39,14 @@ export function AddUserForm() {
           className="rounded-sm border border-[#c8c8c4] bg-white px-2.5 py-1.5 outline-none focus:border-navy focus:ring-1 focus:ring-navy"
         />
       </label>
+      <label className="flex items-center gap-2 pb-2 text-sm">
+        <input type="checkbox" name="addToTeam" defaultChecked className="h-4 w-4 accent-navy" />
+        Also add to ICM team
+      </label>
       <button
         type="submit"
         disabled={pending}
-        className="rounded-md bg-accent px-4 py-2 text-sm font-medium text-accent-foreground hover:opacity-90 disabled:opacity-60"
+        className="rounded-sm bg-navy px-4 py-1.5 text-sm font-semibold text-white hover:opacity-90 disabled:opacity-60"
       >
         {pending ? "Adding…" : "Add user"}
       </button>

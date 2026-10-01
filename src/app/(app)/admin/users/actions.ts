@@ -2,7 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { addUser, requireAdmin, setUserActive } from "@/auth";
-import { ensureStreamContact } from "@/server/contacts";
+import { addToIcmTeam, ensureStreamContact } from "@/server/contacts";
 
 export type FormState = { message: string; ok: boolean } | null;
 
@@ -16,6 +16,7 @@ export async function addUserAction(_prev: FormState, formData: FormData): Promi
   if (!result.ok) return { ok: false, message: result.message };
   // The user and their Stream contact are the same person, matched by email.
   await ensureStreamContact(firstName, lastName, email, admin.id);
+  if (formData.get("addToTeam") === "on") await addToIcmTeam(firstName, lastName, email, admin.id);
   revalidatePath("/admin/users");
   return { ok: true, message: "User added. They can now request a sign-in link." };
 }

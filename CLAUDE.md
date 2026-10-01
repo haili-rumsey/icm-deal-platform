@@ -73,6 +73,8 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 
 - Contacts have first + last name. Every contact has a company; individuals without one go under the general "Private Investors" company.
 - Deal Team: one row per person per deal, multiple roles allowed, lead flags on the row. One lead analyst per deal (setting a new one clears the old).
+- Deal team is picked on the deal's Summary from the **ICM team roster** (admin "Manage teams" screen, `contacts.is_icm_team`), not from app users — some members never sign in. Leads are chosen from the deal's team. Members have a location (Dallas/Houston).
+- WALT and occupancy as-of date were removed from the PRD.
 - Google Geocoding lookup is in 1.2, *type then Look up* (no Places autocomplete). No match → "Save without Google match", flagged unverified for cleanup.
 - Records are archived by anyone, deleted only by the three admins.
 

@@ -29,7 +29,6 @@ Six entities plus join tables: Deal, Property, Company, Contact, Bid, Note. Join
 | `direct_award` | bool | Awarded without a competitive process; marketing and bid rounds skipped. |
 | `stage` | enum | See §3 |
 | `submarket` | lookup | Filtered by city. See §4. |
-| `walt_years` + `walt_as_of` | decimal + date | Point-in-time pair |
 | `referral` | user | Stream employee who sent the business |
 | `closing_notes` | text | Extensions, delays, anything abnormal |
 | `last_modified_at` / `_by` | auto | On every entity |
@@ -86,7 +85,7 @@ Standalone and persistent; accumulates transaction history across repeat trades.
 | `google_place_id` / `lat` / `long` | Place ID is the duplicate key |
 | `submarket` | Filtered by city |
 | `building_sf` / `acreage` | Roll up to deal totals |
-| `occupancy_pct` + `occupancy_as_of` | Point-in-time pair |
+| `occupancy_pct` | |
 | `tenancy` | Single · Multi |
 | `building_class` | A · B · C |
 | `year_built` | |
@@ -152,6 +151,11 @@ Resolved with Haili Rumsey at the start of milestone 1.2.
 - **Deal Team roles:** a person appears once per deal but may hold several roles (e.g. producer + leasing). Lead broker / lead analyst flags sit on that row.
 - **Google address lookup moves into 1.2** (from 1.3). Entry style is *type, then Look up* — Geocoding API only, no Places autocomplete.
 - **No Google match** (e.g. new construction without an address): try an intersection first; otherwise *Save without Google match* — address typed, property flagged unverified for cleanup, re-looked-up later. Duplicate checks cannot run on it until verified.
+
+- **Removed (Rev. 4.2):** WALT (`walt_years`, `walt_as_of`) on deals and `occupancy_as_of` on properties — not realistic to track.
+- **ICM team roster:** an admin-only **Manage teams** screen holds the "ICM team", the only source of the deal team dropdown. It is separate from app access (Users): some team members never sign in. Each member carries a **location** (Dallas / Houston). Built as "teams" so more teams can be added later; today there is one. Adding a user offers "Also add to ICM team".
+- **Deal team on the deal's Summary:** a dropdown checklist of the ICM team (select several at once), with **Lead broker(s)** and **Lead analyst** dropdowns filled from whoever is on the deal, and **Referred by** as a dropdown of all Stream people. Roles are toggled per person on the Team tab.
+- **New companies from the Parties tab:** if a search finds nothing, the company can be created inline (name + website or "no website") and added to that side in one step.
 
 ### Change log
 

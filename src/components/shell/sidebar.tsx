@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Contact, Handshake, MapPin, UserCog, type LucideIcon } from "lucide-react";
+import { Building2, Contact, Handshake, MapPin, UserCog, UsersRound, type LucideIcon } from "lucide-react";
 
 type Item = { href: string; label: string; icon: LucideIcon };
 type Group = { heading: string; items: Item[] };
@@ -19,7 +19,13 @@ const GROUPS: Group[] = [
   },
 ];
 
-const ADMIN: Group = { heading: "Admin", items: [{ href: "/admin/users", label: "Users", icon: UserCog }] };
+const ADMIN: Group = {
+  heading: "Admin",
+  items: [
+    { href: "/admin/users", label: "Users", icon: UserCog },
+    { href: "/admin/teams", label: "Manage teams", icon: UsersRound },
+  ],
+};
 
 export function Sidebar({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate?: () => void }) {
   const pathname = usePathname();

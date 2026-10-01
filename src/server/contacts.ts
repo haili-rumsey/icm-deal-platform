@@ -1,7 +1,7 @@
 import "server-only";
-import { and, asc, eq, ilike, isNull, or, sql } from "drizzle-orm";
+import { and, asc, eq, ilike, inArray, isNull, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { companies, contacts } from "@/db/schema";
+import { companies, contacts, dealTeam } from "@/db/schema";
 import { streamCompanyId } from "./companies";
 
 export type Contact = typeof contacts.$inferSelect;
@@ -125,4 +125,68 @@ export async function contactIdForEmail(email: string) {
     .from(contacts)
     .where(eq(contacts.email, normalizeContactEmail(email)!));
   return row?.id ?? null;
+}
+
+// ---- ICM team roster (admin "ICM team" screen) ----
+
+/** Everyone on the roster, for the admin screen. */
+export async function listIcmTeam() {
+  return db
+    .select({
+      id: contacts.id,
+      firstName: contacts.firstName,
+      lastName: contacts.lastName,
+      title: contacts.title,
+      email: contacts.email,
+      location: contacts.location,
+    })
+    .from(contacts)
+    .where(and(eq(contacts.isIcmTeam, true), isNull(contacts.archivedAt)))
+    .orderBy(asc(contacts.lastName), asc(contacts.firstName));
+}
+
+/**
+ * Deal team dropdown: the roster, plus anyone already on this deal who has since
+ * left the roster (so saving a deal never silently drops them).
+ */
+export async function icmTeamOptions(dealId?: string) {
+  const onRoster = and(eq(contacts.isIcmTeam, true), isNull(contacts.archivedAt));
+  const onThisDeal = dealId
+    ? inArray(contacts.id, db.select({ id: dealTeam.contactId }).from(dealTeam).where(eq(dealTeam.dealId, dealId)))
+    : undefined;
+  return db
+    .select({ id: contacts.id, name: fullName })
+    .from(contacts)
+    .where(onThisDeal ? or(onRoster, onThisDeal) : onRoster)
+    .orderBy(asc(contacts.lastName), asc(contacts.firstName));
+}
+
+/** Adds someone to the roster, creating their Stream contact if the email is new. */
+export async function addToIcmTeam(
+  firstName: string,
+  lastName: string,
+  email: string,
+  byId: string,
+  location: Contact["location"] = null,
+) {
+  const id = await ensureStreamContact(firstName, lastName, email, byId);
+  await db
+    .update(contacts)
+    .set({ isIcmTeam: true, ...(location ? { location } : {}), lastModifiedAt: new Date(), lastModifiedById: byId })
+    .where(eq(contacts.id, id));
+}
+
+/** Off the roster: gone from the dropdown for new deals, still on past deals. */
+export async function removeFromIcmTeam(contactId: string, byId: string) {
+  await db
+    .update(contacts)
+    .set({ isIcmTeam: false, lastModifiedAt: new Date(), lastModifiedById: byId })
+    .where(eq(contacts.id, contactId));
+}
+
+export async function setLocation(contactId: string, location: Contact["location"], byId: string) {
+  await db
+    .update(contacts)
+    .set({ location, lastModifiedAt: new Date(), lastModifiedById: byId })
+    .where(eq(contacts.id, contactId));
 }

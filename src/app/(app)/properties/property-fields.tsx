@@ -47,7 +47,6 @@ export function PropertyFields({
         <TextInput label="Building SF" name="buildingSf" defaultValue={p?.buildingSf} />
         <TextInput label="Acreage" name="acreage" defaultValue={p?.acreage} />
         <TextInput label="Occupancy %" name="occupancyPct" defaultValue={p?.occupancyPct} />
-        <TextInput label="Occupancy as of" name="occupancyAsOf" type="date" defaultValue={p?.occupancyAsOf} />
         <Select label="Tenancy" name="tenancy" options={TENANCY} defaultValue={p?.tenancy} />
         <Select label="Class" name="buildingClass" options={BUILDING_CLASSES} defaultValue={p?.buildingClass} />
         <TextInput label="Year built" name="yearBuilt" defaultValue={p?.yearBuilt} />

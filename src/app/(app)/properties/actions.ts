@@ -24,7 +24,6 @@ function parse(fd: FormData): PropertyInput {
     buildingSf: int(fd, "buildingSf"),
     acreage: dec(fd, "acreage"),
     occupancyPct: dec(fd, "occupancyPct"),
-    occupancyAsOf: str(fd, "occupancyAsOf"),
     tenancy: oneOf(fd, "tenancy", TENANCY),
     buildingClass: oneOf(fd, "buildingClass", BUILDING_CLASSES),
     yearBuilt: int(fd, "yearBuilt"),

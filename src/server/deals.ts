@@ -1,5 +1,5 @@
 import "server-only";
-import { and, asc, desc, eq, ilike, isNull, sql } from "drizzle-orm";
+import { and, asc, desc, eq, ilike, inArray, isNull, notInArray, sql } from "drizzle-orm";
 import { alias } from "drizzle-orm/pg-core";
 import { db } from "@/db";
 import { companies, contacts, dealParties, dealProperties, deals, dealTeam, properties, users } from "@/db/schema";
@@ -157,28 +157,57 @@ export async function removeDealParty(dealId: string, partyId: string, byId: str
 
 // ---- Team ----
 
-export type TeamInput = { contactId: string; roles: TeamRole[]; isLeadBroker: boolean; isLeadAnalyst: boolean };
-
-/** Adds or updates a person. Making someone lead analyst clears it from anyone else on the deal. */
-export async function saveTeamMember(dealId: string, input: TeamInput, byId: string) {
-  const clearAnalyst = db
-    .update(dealTeam)
-    .set({ isLeadAnalyst: false })
-    .where(and(eq(dealTeam.dealId, dealId), eq(dealTeam.isLeadAnalyst, true)));
-  const upsert = db
-    .insert(dealTeam)
-    .values({ dealId, ...input })
-    .onConflictDoUpdate({
-      target: [dealTeam.dealId, dealTeam.contactId],
-      set: { roles: input.roles, isLeadBroker: input.isLeadBroker, isLeadAnalyst: input.isLeadAnalyst },
-    });
-  if (input.isLeadAnalyst) await db.batch([clearAnalyst, upsert, touch(dealId, byId)]);
-  else await db.batch([upsert, touch(dealId, byId)]);
-}
-
 export async function removeTeamMember(dealId: string, teamId: string, byId: string) {
   await db.batch([
     db.delete(dealTeam).where(and(eq(dealTeam.id, teamId), eq(dealTeam.dealId, dealId))),
+    touch(dealId, byId),
+  ]);
+}
+
+export type TeamSelection = { teamIds: string[]; leadBrokerIds: string[]; leadAnalystId: string | null };
+
+/**
+ * Saves who is on the deal and who leads it, from the deal's Summary.
+ * Keeps each existing member's roles; leads must be on the team.
+ */
+export async function syncTeam(dealId: string, sel: TeamSelection) {
+  const team = [...new Set(sel.teamIds)];
+  const brokers = sel.leadBrokerIds.filter((id) => team.includes(id));
+  const analyst = sel.leadAnalystId && team.includes(sel.leadAnalystId) ? sel.leadAnalystId : null;
+
+  const removeOthers = team.length
+    ? db.delete(dealTeam).where(and(eq(dealTeam.dealId, dealId), notInArray(dealTeam.contactId, team)))
+    : db.delete(dealTeam).where(eq(dealTeam.dealId, dealId));
+  if (!team.length) {
+    await removeOthers;
+    return;
+  }
+  await db.batch([
+    removeOthers,
+    db
+      .insert(dealTeam)
+      .values(team.map((contactId) => ({ dealId, contactId })))
+      .onConflictDoNothing({ target: [dealTeam.dealId, dealTeam.contactId] }),
+    // Clear first so the one-lead-analyst rule is never briefly broken.
+    db.update(dealTeam).set({ isLeadBroker: false, isLeadAnalyst: false }).where(eq(dealTeam.dealId, dealId)),
+    ...(brokers.length
+      ? [db.update(dealTeam).set({ isLeadBroker: true }).where(and(eq(dealTeam.dealId, dealId), inArray(dealTeam.contactId, brokers)))]
+      : []),
+    ...(analyst
+      ? [db.update(dealTeam).set({ isLeadAnalyst: true }).where(and(eq(dealTeam.dealId, dealId), eq(dealTeam.contactId, analyst)))]
+      : []),
+  ]);
+}
+
+/** Turns one role on or off for one team member (Team tab). */
+export async function toggleRole(dealId: string, teamId: string, role: TeamRole, byId: string) {
+  await db.batch([
+    db
+      .update(dealTeam)
+      .set({
+        roles: sql`case when ${role}::team_role = any(${dealTeam.roles}) then array_remove(${dealTeam.roles}, ${role}::team_role) else array_append(${dealTeam.roles}, ${role}::team_role) end`,
+      })
+      .where(and(eq(dealTeam.id, teamId), eq(dealTeam.dealId, dealId))),
     touch(dealId, byId),
   ]);
 }

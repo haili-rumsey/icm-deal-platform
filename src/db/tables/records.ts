@@ -1,6 +1,5 @@
 import {
   boolean,
-  date,
   index,
   integer,
   numeric,
@@ -20,6 +19,7 @@ import {
   CONFIGURATIONS,
   DEAL_SUBTYPES,
   DEAL_TYPES,
+  LOCATIONS,
   OPPORTUNITY_TYPES,
   REPRESENTED,
   SIDES,
@@ -42,6 +42,7 @@ export const sprinklerTypeEnum = pgEnum("sprinkler_type", SPRINKLER_TYPES);
 export const companyTypeEnum = pgEnum("company_type", COMPANY_TYPES);
 export const teamRoleEnum = pgEnum("team_role", TEAM_ROLES);
 export const sideEnum = pgEnum("side", SIDES);
+export const locationEnum = pgEnum("location", LOCATIONS);
 
 const stamp = (name: string) => timestamp(name, { mode: "date", withTimezone: true });
 
@@ -92,6 +93,11 @@ export const contacts = pgTable(
     email: text("email"),
     noEmail: boolean("no_email").notNull().default(false),
     phone: text("phone"),
+    // On the ICM team roster (admin "ICM team" screen) — the deal team dropdown's source.
+    // Independent of app access: some team members never sign in.
+    isIcmTeam: boolean("is_icm_team").notNull().default(false),
+    // Office (Dallas / Houston) for ICM team members.
+    location: locationEnum("location"),
     notes: text("notes"),
     ...tracking(),
   },
@@ -122,7 +128,6 @@ export const properties = pgTable(
     buildingSf: integer("building_sf"),
     acreage: numeric("acreage", { precision: 12, scale: 3 }),
     occupancyPct: numeric("occupancy_pct", { precision: 5, scale: 2 }),
-    occupancyAsOf: date("occupancy_as_of"),
     tenancy: tenancyEnum("tenancy"),
     buildingClass: buildingClassEnum("building_class"),
     yearBuilt: integer("year_built"),
@@ -166,8 +171,6 @@ export const deals = pgTable(
     // IOS desk (sales and leases). Marks the desk, not the asset type.
     isIos: boolean("is_ios").notNull().default(false),
     directAward: boolean("direct_award").notNull().default(false),
-    waltYears: numeric("walt_years", { precision: 5, scale: 2 }),
-    waltAsOf: date("walt_as_of"),
     // Stream employee who sent the business — a contact at Stream Realty Partners.
     referralContactId: uuid("referral_contact_id").references(() => contacts.id),
     closingNotes: text("closing_notes"),

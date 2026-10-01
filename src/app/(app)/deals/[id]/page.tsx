@@ -15,20 +15,22 @@ import {
 import { partyLabel, type DealType } from "@/domain/options";
 import { searchParam } from "@/lib/params";
 import { companyOptions } from "@/server/companies";
-import { contactOptions, streamPeopleOptions } from "@/server/contacts";
+import { contactOptions, icmTeamOptions, streamPeopleOptions } from "@/server/contacts";
 import { getDeal } from "@/server/deals";
 import { propertyOptions } from "@/server/properties";
 import { saveDeal } from "../actions";
 import { DealFields } from "../deal-fields";
+import { DealTeamFields } from "../deal-team-fields";
 import { PartiesSection, PropertiesSection, TeamSection } from "./sections";
 
 export default async function DealPage({ params, searchParams }: PageProps<"/deals/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   // Everything the page needs, fetched at once rather than one after another.
-  const [user, data, streamPeople, companies, contacts, properties] = await Promise.all([
+  const [user, data, streamPeople, icmTeam, companies, contacts, properties] = await Promise.all([
     requireUser(),
     getDeal(id),
     streamPeopleOptions(),
+    icmTeamOptions(id),
     companyOptions(),
     contactOptions(),
     propertyOptions(),
@@ -42,7 +44,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
     !deal.dealType && "deal type",
     !deal.category && "category",
     data.properties.length === 0 && "properties",
-    !data.parties.some((p) => p.side === "A") && partyLabel(type, "A").toLowerCase(),
+    !data.parties.some((p) => p.side === "A") && (type ? partyLabel(type, "A").toLowerCase() : "side A party"),
     !data.team.some((t) => t.isLeadBroker) && "lead broker",
     !data.team.some((t) => t.isLeadAnalyst) && "lead analyst",
   ].filter((m): m is string => !!m);
@@ -82,11 +84,23 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
             content: (
               <>
                 <Incomplete missing={missing} />
-                <Section title="Deal">
-                  <MainForm>
-                    <DealFields deal={deal} streamPeople={streamPeople} />
-                  </MainForm>
-                </Section>
+                <MainForm>
+                  <Section title="Deal">
+                    <DealFields deal={deal} />
+                  </Section>
+                  <Section title="Team">
+                    <DealTeamFields
+                      icmTeam={icmTeam}
+                      streamPeople={streamPeople}
+                      initial={{
+                        teamIds: data.team.map((t) => t.contactId),
+                        leadBrokerIds: data.team.filter((t) => t.isLeadBroker).map((t) => t.contactId),
+                        leadAnalystId: data.team.find((t) => t.isLeadAnalyst)?.contactId ?? null,
+                        referralId: deal.referralContactId,
+                      }}
+                    />
+                  </Section>
+                </MainForm>
                 <ModifiedStamp at={deal.lastModifiedAt} by={data.modifiedByName} />
               </>
             ),
@@ -110,7 +124,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
           {
             id: "team",
             label: `Team (${data.team.length})`,
-            content: <TeamSection deal={data} streamPeople={streamPeople} />,
+            content: <TeamSection deal={data} />,
           },
         ]}
       />

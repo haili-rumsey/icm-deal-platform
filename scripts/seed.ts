@@ -48,7 +48,10 @@ async function main() {
     if (existing) continue;
     const parts = (u.name ?? u.email.split("@")[0]).trim().split(/\s+/);
     const lastName = parts.length > 1 ? parts.pop()! : "";
-    await db.insert(contacts).values({ companyId: stream.id, firstName: parts.join(" "), lastName, email: u.email });
+    // Admins start on the ICM team roster; everyone else is added on Manage teams.
+    await db
+      .insert(contacts)
+      .values({ companyId: stream.id, firstName: parts.join(" "), lastName, email: u.email, isIcmTeam: u.isAdmin });
     console.log(`contact created: ${u.name ?? u.email}`);
   }
 }

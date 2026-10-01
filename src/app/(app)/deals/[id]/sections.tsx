@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Checkbox, CheckboxGroup, inputCls, Section } from "@/components/fields";
+import { inputCls, Section } from "@/components/fields";
 import { FlagMark } from "@/components/data-grid";
 import { PendingButton } from "@/components/pending-button";
 import { SearchSelect, type Option } from "@/components/search-select";
@@ -8,10 +8,11 @@ import type { getDeal } from "@/server/deals";
 import {
   addPartyAction,
   addPropertyAction,
+  createPartyCompanyAction,
   removePartyAction,
   removePropertyAction,
   removeTeamAction,
-  saveTeamAction,
+  toggleRoleAction,
 } from "../actions";
 import { PartyAdder } from "./party-adder";
 
@@ -157,6 +158,7 @@ export function PartiesSection({
                 companies={companies}
                 contacts={contacts}
                 action={addPartyAction.bind(null, id)}
+                createAction={createPartyCompanyAction.bind(null, id)}
               />
             </div>
           );
@@ -166,59 +168,75 @@ export function PartiesSection({
   );
 }
 
-export function TeamSection({ deal, streamPeople }: { deal: DealData; streamPeople: Option[] }) {
+export function TeamSection({ deal }: { deal: DealData }) {
   const id = deal.deal.id;
-  const onTeam = new Set(deal.team.map((t) => t.contactId));
 
   return (
     <Section title={`Deal team (${deal.team.length})`}>
-      {deal.team.length > 0 && (
-        <ul className="mb-4 divide-y divide-border">
-          {deal.team.map((t) => (
-            <li key={t.id} className="py-3">
-              <form action={saveTeamAction.bind(null, id)} className="flex flex-col gap-2">
-                <input type="hidden" name="contactId" value={t.contactId} />
-                <div className="flex flex-wrap items-baseline justify-between gap-2">
-                  <span className="text-sm font-semibold">
-                    {t.name}
-                    {t.isLeadBroker && <span className="ml-2 rounded-sm bg-navy px-1.5 py-0.5 text-xs font-semibold text-white">Lead broker</span>}
-                    {t.isLeadAnalyst && <span className="ml-2 rounded-sm bg-gray-dark px-1.5 py-0.5 text-xs font-semibold text-white">Lead analyst</span>}
-                  </span>
-                  <span className="flex items-center gap-4">
-                    <PendingButton className="text-xs text-link hover:underline">Save changes</PendingButton>
-                    <PendingButton formAction={removeTeamAction.bind(null, id, t.id)} className={removeBtn} pendingLabel="…">
-                      Remove
-                    </PendingButton>
-                  </span>
-                </div>
-                <CheckboxGroup label="" name="roles" options={TEAM_ROLES} defaultValues={t.roles} />
-                <div className="flex flex-wrap gap-x-6 gap-y-1">
-                  <Checkbox label="Lead broker" name="isLeadBroker" defaultChecked={t.isLeadBroker} />
-                  <Checkbox label="Lead analyst" name="isLeadAnalyst" defaultChecked={t.isLeadAnalyst} />
-                </div>
-              </form>
-            </li>
-          ))}
-        </ul>
-      )}
-      <form action={saveTeamAction.bind(null, id)} className="flex flex-col gap-3 rounded-sm border border-dashed border-gray p-3">
-        <SearchSelect
-          key={deal.team.length}
-          name="contactId"
-          label="Add a team member"
-          layout="stacked"
-          options={streamPeople.filter((p) => !onTeam.has(p.id))}
-          placeholder="Search Stream people…"
-        />
-        <CheckboxGroup label="Roles" name="roles" options={TEAM_ROLES} />
-        <div className="flex flex-wrap gap-x-6 gap-y-1">
-          <Checkbox label="Lead broker" name="isLeadBroker" />
-          <Checkbox label="Lead analyst (replaces the current one)" name="isLeadAnalyst" />
+      <p className="mb-3 text-sm text-muted">
+        Add or remove people, and pick the leads, on the Summary tab. Click a role here to turn it on or off.
+      </p>
+      {deal.team.length === 0 ? (
+        <p className="text-sm text-muted">No one on the team yet.</p>
+      ) : (
+        <div className="overflow-x-auto">
+          <table className="w-full text-left text-sm">
+            <thead>
+              <tr className="border-b border-border">
+                <th className="py-2 pr-4 font-semibold">Name</th>
+                <th className="py-2 pr-4 font-semibold">Lead</th>
+                <th className="py-2 pr-4 font-semibold">Roles</th>
+                <th className="py-2" />
+              </tr>
+            </thead>
+            <tbody>
+              {deal.team.map((t) => (
+                <tr key={t.id} className="border-b border-border last:border-0">
+                  <td className="whitespace-nowrap py-2.5 pr-4 font-semibold">{t.name}</td>
+                  <td className="whitespace-nowrap py-2.5 pr-4">
+                    <span className="flex gap-1.5">
+                      {t.isLeadBroker && (
+                        <span className="rounded-sm bg-navy px-1.5 py-0.5 text-xs font-semibold text-white">Lead broker</span>
+                      )}
+                      {t.isLeadAnalyst && (
+                        <span className="rounded-sm bg-gray-dark px-1.5 py-0.5 text-xs font-semibold text-white">Lead analyst</span>
+                      )}
+                    </span>
+                  </td>
+                  <td className="py-2.5 pr-4">
+                    <span className="flex flex-wrap gap-1.5">
+                      {TEAM_ROLES.map((role) => {
+                        const on = t.roles.includes(role);
+                        return (
+                          <form key={role} action={toggleRoleAction.bind(null, id, t.id, role)}>
+                            <PendingButton
+                              pendingLabel={role}
+                              className={`rounded-full border px-2.5 py-0.5 text-xs ${
+                                on
+                                  ? "border-navy bg-navy font-semibold text-white"
+                                  : "border-gray-light text-muted hover:border-navy hover:text-navy"
+                              }`}
+                            >
+                              {role}
+                            </PendingButton>
+                          </form>
+                        );
+                      })}
+                    </span>
+                  </td>
+                  <td className="py-2.5 text-right">
+                    <form action={removeTeamAction.bind(null, id, t.id)}>
+                      <PendingButton className={removeBtn} pendingLabel="Removing…">
+                        Remove
+                      </PendingButton>
+                    </form>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
-        <PendingButton className={`${smallBtn} self-start`} pendingLabel="Adding…">
-          Add to team
-        </PendingButton>
-      </form>
+      )}
     </Section>
   );
 }
