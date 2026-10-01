@@ -135,7 +135,9 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
             content: (
               <>
                 <Incomplete missing={missing} />
-                <MainForm readOnly={locked}>
+                {/* Re-created whenever the deal changes on the server (stage bar, save), so the
+                    form never holds stale values that a later Save would write back. */}
+                <MainForm key={deal.lastModifiedAt.toISOString()} readOnly={locked}>
                   <Section title="Deal">
                     <DealFields deal={deal} />
                   </Section>
