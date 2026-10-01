@@ -79,7 +79,7 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 - The IOS flag is labelled "IOS Deal" in the UI.
 - Address entry: suggestions as you type (Places API New, Texas-biased), resolved through the Geocoding API; "Look up" stays as a fallback for intersections. All Google calls are server-side; the key is restricted to those two APIs. No match → "Save without Google match", flagged unverified for cleanup.
 - Records are archived by anyone, deleted only by the three admins.
-- Sale deal value follows the stage (BOV mid → guidance → contract → closed); missing stage price shows as missing, not borrowed. Logic in `src/domain/stages.ts`.
+- Sale deal value follows the stage (BOV mid → guidance → sale price). There is **one sale price** (`closed_price`) from award through close — no separate contract price; retrades go in price notes. Missing stage price shows as missing, not borrowed. Logic in `src/domain/stages.ts`.
 
 ## Look and feel
 

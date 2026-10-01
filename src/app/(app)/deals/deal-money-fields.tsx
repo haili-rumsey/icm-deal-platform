@@ -72,12 +72,12 @@ export function DealMoneyFields({ deal }: { deal?: Deal }) {
       <Underwriting block="om" d={d} />
 
       <BlockTitle>Closed</BlockTitle>
-      <MoneyInput label="Contract price" name="contractPrice" defaultValue={d?.contractPrice} />
-      <MoneyInput label="Closed price" name="closedPrice" defaultValue={d?.closedPrice} />
+      <MoneyInput label="Sale price" name="closedPrice" defaultValue={d?.closedPrice} hint="One price from award through close. Note any retrade or credit in Price notes." />
       <Underwriting block="closed" d={d} />
 
       <div className="xl:col-span-2">
         <TextArea label="Price notes" name="priceNotes" defaultValue={d?.priceNotes} />
+        <p className="mt-1 text-xs text-muted sm:ml-[10.25rem]">Retrades, credits, and anything else about how the price moved.</p>
       </div>
     </Grid>
   );

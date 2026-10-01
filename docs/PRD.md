@@ -55,7 +55,7 @@ Dates overwrite; there is no date history. `closing_notes` explains anomalies.
 |---|---|---|
 | BOV | low / mid / high | Year 1 cap, ULIRR, LIRR, exit cap, hold period. Overwritten on repricing. |
 | OM / Guidance | `guidance_price` (**internal only**) | Same metrics, as marketed |
-| Closed | `contract_price` → `closed_price` | Same metrics, as transacted |
+| Closed | `closed_price` — one **sale price** from award through close (Rev. 4.2: contract price merged in; retrades and credits go in `price_notes`) | Same metrics, as transacted |
 
 The three blocks **never overwrite each other**. `guidance_price` is given out on request but never published — it must not appear in client-facing output.
 
@@ -210,10 +210,10 @@ Required for the initial pipeline load, for IOS deals entering as Closed, for de
 **Rev. 4.2 — stage moves and value:**
 - Stages are changed from a stage bar across the top of the deal (click any stage — forward, back or skipping) or the Stage field on the deal. New deals default to BOV 1.
 - Moving into a stage with a date (BOV 2 → pitch date, Engaged → won date, Marketing → launch date, Awarded → awarded date, Closed → close date) asks for it, pre-filled with today; it can be skipped. Moving to Engaged from BOV 1–2 marks the pitch Won; moving to Dead/Lost from BOV 1–2 marks it Lost and asks (optionally) who won it and why.
-- For a sale, deal value **follows the stage**: BOV mid (BOV 1–2), guidance (Engaged, Marketing), contract price (Awarded, Under Contract), closed price (Closed). If that stage's price isn't entered, the value shows as missing rather than borrowing another. Track and Dead/Lost use the latest price entered. Equity, debt and lease use their headline figure. Price/SF = value ÷ total SF.
+- For a sale, deal value **follows the stage**: BOV mid (BOV 1–2), guidance (Engaged, Marketing), sale price (Awarded, Under Contract, Closed). If that stage's price isn't entered, the value shows as missing rather than borrowing another. Track and Dead/Lost use the latest price entered. Equity, debt and lease use their headline figure. Price/SF = value ÷ total SF.
 - In-house gross fills itself as total − outside commission and can be typed over when accounting's figure differs.
 
-**Rev. 4.2 — the one blocked move: into Closed.** Because closed deals lock, a deal can't move into Closed until it has: REApps ID, deal type, subtype (not for leases), opportunity type, side represented, close date, closed value (closed price / total capitalization / loan amount / total lease consideration by type), total commission, at least one property with an address, total SF **or** total acreage, a buyer-side (side B) party and a deal team. Checked only on the move into Closed — an admin editing an already-closed deal (including imported ones) isn't held to it, and the historical import (1.5) loads closed deals directly. A new deal can't be created at Closed (properties and parties are added after the first save).
+**Rev. 4.2 — the one blocked move: into Closed.** Because closed deals lock, a deal can't move into Closed until it has: REApps ID, deal type, subtype (not for leases), opportunity type, side represented, close date, closed value (sale price / total capitalization / loan amount / total lease consideration by type), total commission, at least one property with an address, total SF **or** total acreage, a buyer-side (side B) party and a deal team. Checked only on the move into Closed — an admin editing an already-closed deal (including imported ones) isn't held to it, and the historical import (1.5) loads closed deals directly. A new deal can't be created at Closed (properties and parties are added after the first save).
 
 **Missing data is prompted for, never enforced** (except the move into Closed, above). Show what's incomplete; let the user proceed. Earlier-stage fields stay editable up until the deal closes — a BOV entered six months late is still worth having.
 

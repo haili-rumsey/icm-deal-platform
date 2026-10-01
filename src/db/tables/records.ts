@@ -217,7 +217,6 @@ export const deals = pgTable(
     omExitCap: pct("om_exit_cap"),
     omHoldYears: numeric("om_hold_years", { precision: 5, scale: 2 }),
     // Closed — as transacted.
-    contractPrice: money("contract_price"),
     closedPrice: money("closed_price"),
     closedYear1Cap: pct("closed_year1_cap"),
     closedUlirr: pct("closed_ulirr"),

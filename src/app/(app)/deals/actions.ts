@@ -78,7 +78,6 @@ function parse(fd: FormData): DealInput | string {
     omLirr: dec(fd, "omLirr"),
     omExitCap: dec(fd, "omExitCap"),
     omHoldYears: dec(fd, "omHoldYears"),
-    contractPrice: dec(fd, "contractPrice"),
     closedPrice: dec(fd, "closedPrice"),
     closedYear1Cap: dec(fd, "closedYear1Cap"),
     closedUlirr: dec(fd, "closedUlirr"),

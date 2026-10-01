@@ -75,7 +75,6 @@ export async function listDeals(opts: { q?: string; archived?: boolean; view?: D
       stage: deals.stage,
       bovPriceMid: deals.bovPriceMid,
       guidancePrice: deals.guidancePrice,
-      contractPrice: deals.contractPrice,
       closedPrice: deals.closedPrice,
       totalCapitalization: deals.totalCapitalization,
       loanAmount: deals.loanAmount,

@@ -41,7 +41,7 @@ export function closeBlockers(d: CloseCheckInput): string[] {
         ? [d.loanAmount, "loan amount"]
         : d.dealType === "Lease"
           ? [d.totalLeaseConsideration, "total lease consideration"]
-          : [d.closedPrice, "closed price"];
+          : [d.closedPrice, "sale price"];
   if (blank(value[0])) missing.push(value[1] as string);
 
   if (blank(d.totalCommission)) missing.push("total commission");

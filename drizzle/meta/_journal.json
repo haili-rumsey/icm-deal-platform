@@ -57,6 +57,13 @@
       "when": 1790884951705,
       "tag": "0007_fee_notes",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1790888100455,
+      "tag": "0008_drop_contract_price",
+      "breakpoints": true
     }
   ]
 }

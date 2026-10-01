@@ -34,7 +34,6 @@ type Prices = {
   stage: Stage;
   bovPriceMid: string | null;
   guidancePrice: string | null;
-  contractPrice: string | null;
   closedPrice: string | null;
   totalCapitalization: string | null;
   loanAmount: string | null;
@@ -66,17 +65,17 @@ export function dealValue(d: Prices): DealValue {
     "BOV 2": [d.bovPriceMid, "BOV mid"],
     Engaged: [d.guidancePrice, "Guidance"],
     Marketing: [d.guidancePrice, "Guidance"],
-    Awarded: [d.contractPrice, "Contract price"],
-    "Under Contract": [d.contractPrice, "Contract price"],
-    Closed: [d.closedPrice, "Closed price"],
+    // One sale price from award through close; retrades go in price notes.
+    Awarded: [d.closedPrice, "Sale price"],
+    "Under Contract": [d.closedPrice, "Sale price"],
+    Closed: [d.closedPrice, "Sale price"],
   };
   const forStage = byStage[d.stage];
   if (forStage) return headline(num(forStage[0]), forStage[1]);
 
   // Track / Dead-Lost: whatever was entered last along the way.
   const latest: [string | null, string][] = [
-    [d.closedPrice, "Closed price"],
-    [d.contractPrice, "Contract price"],
+    [d.closedPrice, "Sale price"],
     [d.guidancePrice, "Guidance"],
     [d.bovPriceMid, "BOV mid"],
   ];
