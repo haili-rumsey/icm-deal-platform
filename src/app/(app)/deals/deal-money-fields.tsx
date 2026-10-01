@@ -124,7 +124,10 @@ export function DealFeeFields({ deal }: { deal?: Deal }) {
           </button>
         )}
       </FieldRow>
-      <PctInput label="Fee rate" name="feeRate" defaultValue={d?.feeRate} />
+      <PctInput label="Fee %" name="feeRate" defaultValue={d?.feeRate} />
+      <div className="xl:col-span-2">
+        <TextArea label="Fee notes" name="feeNotes" defaultValue={d?.feeNotes} />
+      </div>
     </Grid>
   );
 }

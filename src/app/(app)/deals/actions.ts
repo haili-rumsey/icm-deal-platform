@@ -97,6 +97,7 @@ function parse(fd: FormData): DealInput | string {
     inHouseGross: dec(fd, "inHouseGross"),
     inHouseGrossManual: bool(fd, "inHouseGrossManual"),
     feeRate: dec(fd, "feeRate"),
+    feeNotes: str(fd, "feeNotes"),
   };
 }
 

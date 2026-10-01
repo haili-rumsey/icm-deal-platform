@@ -69,7 +69,8 @@ The three blocks **never overwrite each other**. `guidance_price` is given out o
 | `outside_commission` | Paid outside ICM — external co-brokers and other Stream entities |
 | `outside_commission_note` | Who it went to |
 | `in_house_gross` | Net to the team |
-| `fee_rate` | Flat %, optional |
+| `fee_rate` | Flat %, optional. Shown as "Fee %". |
+| `fee_notes` | Optional (Rev. 4.2). Why the fee % is what it is, so fee history can be tracked across deals. |
 
 No per-person splits — those live in accounting software.
 

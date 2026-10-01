@@ -242,6 +242,8 @@ export const deals = pgTable(
     inHouseGross: money("in_house_gross"),
     inHouseGrossManual: boolean("in_house_gross_manual").notNull().default(false),
     feeRate: pct("fee_rate"),
+    // Why the fee % is what it is (e.g. reduced at award) — builds a fee history across deals.
+    feeNotes: text("fee_notes"),
 
     ...tracking(),
   },
