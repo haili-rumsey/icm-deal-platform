@@ -2,13 +2,23 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, Contact, Handshake, Map as MapIcon, MapPin, UserCog, UsersRound, type LucideIcon } from "lucide-react";
+import { Archive, Building2, CircleCheck, Contact, Handshake, Map as MapIcon, MapPin, UserCog, UsersRound, type LucideIcon } from "lucide-react";
 
-type Item = { href: string; label: string; icon: LucideIcon };
+type Item = { href: string; label: string; icon: LucideIcon; match?: (path: string) => boolean };
+
+/** Active owns the deal pages themselves (/deals, /deals/new, /deals/<id>). */
+const isActiveDeals = (p: string) => p.startsWith("/deals") && !p.startsWith("/deals/closed") && !p.startsWith("/deals/archive");
 type Group = { heading: string; items: Item[] };
 
 const GROUPS: Group[] = [
-  { heading: "Pipeline", items: [{ href: "/deals", label: "Deals", icon: Handshake }] },
+  {
+    heading: "Pipeline",
+    items: [
+      { href: "/deals", label: "Active", icon: Handshake, match: isActiveDeals },
+      { href: "/deals/closed", label: "Closed", icon: CircleCheck },
+      { href: "/deals/archive", label: "Archive", icon: Archive },
+    ],
+  },
   {
     heading: "Records",
     items: [
@@ -38,8 +48,8 @@ export function Sidebar({ isAdmin, onNavigate }: { isAdmin: boolean; onNavigate?
         <div key={g.heading}>
           <p className="px-4 pb-1 text-xs font-bold text-muted">{g.heading}</p>
           <ul>
-            {g.items.map(({ href, label, icon: Icon }) => {
-              const active = pathname === href || pathname.startsWith(`${href}/`);
+            {g.items.map(({ href, label, icon: Icon, match }) => {
+              const active = match ? match(pathname) : pathname === href || pathname.startsWith(`${href}/`);
               return (
                 <li key={href}>
                   <Link
