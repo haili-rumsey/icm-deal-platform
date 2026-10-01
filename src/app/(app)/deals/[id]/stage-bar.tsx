@@ -10,6 +10,14 @@ import type { StageState } from "../actions";
 
 type Dates = Partial<Record<"pitchDate" | "wonDate" | "launchDate" | "awardedDate" | "closeDate", string | null>>;
 
+/** Arrow shape: notched on the left (except the first), pointed on the right (except the last). */
+function chevron(first: boolean, last: boolean) {
+  const t = "14px";
+  if (first) return `polygon(0 0, calc(100% - ${t}) 0, 100% 50%, calc(100% - ${t}) 100%, 0 100%)`;
+  if (last) return `polygon(0 0, 100% 0, 100% 100%, 0 100%, ${t} 50%)`;
+  return `polygon(0 0, calc(100% - ${t}) 0, 100% 50%, calc(100% - ${t}) 100%, 0 100%, ${t} 50%)`;
+}
+
 function today() {
   // Local date, not UTC — late-evening moves shouldn't land on tomorrow.
   const d = new Date();
@@ -65,29 +73,35 @@ export function StageBar({
 
   return (
     <div className="border-b border-border bg-card px-3 py-3 sm:px-5">
-      <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
-        <ol className="flex min-w-0 overflow-x-auto" aria-label="Stage">
+      <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
+        {/* Chevrons stretch across the row; on narrow screens they keep a readable width and scroll. */}
+        <ol className="flex min-w-0 flex-1 overflow-x-auto pb-0.5" aria-label="Stage">
           {PIPELINE.map((s, i) => {
             const isCurrent = s === stage;
             const done = currentIndex >= 0 && i < currentIndex;
+            const first = i === 0;
+            const last = i === PIPELINE.length - 1;
             return (
-              <li key={s} className="shrink-0">
+              <li key={s} className={`min-w-[7.5rem] flex-auto ${first ? "" : "-ml-2.5"}`}>
                 <button
                   type="button"
                   onClick={() => click(s)}
                   disabled={locked || pending}
                   title={STAGE_HINTS[s]}
                   aria-current={isCurrent ? "step" : undefined}
-                  className={`relative -ml-px flex h-9 items-center gap-1.5 border px-3 text-xs font-semibold transition-colors first:ml-0 first:rounded-l-sm last:rounded-r-sm ${
+                  style={{ clipPath: chevron(first, last) }}
+                  className={`flex h-11 w-full items-center justify-center gap-1.5 text-xs font-semibold transition-colors sm:text-sm ${
+                    first ? "pl-3 pr-5" : last ? "pl-6 pr-3" : "pl-6 pr-5"
+                  } ${
                     isCurrent
-                      ? "z-10 border-navy bg-navy text-white"
+                      ? "bg-blue text-white"
                       : done
-                        ? "border-border bg-sidebar text-navy hover:bg-hover"
-                        : "border-border bg-card text-muted hover:bg-hover hover:text-foreground"
-                  } disabled:cursor-default`}
+                        ? "bg-gray text-foreground hover:brightness-95"
+                        : "bg-gray-light text-gray-dark hover:brightness-95"
+                  } disabled:cursor-default disabled:hover:brightness-100`}
                 >
-                  {done && <Check size={13} strokeWidth={2.5} />}
-                  {s}
+                  {done && <Check size={14} strokeWidth={2.75} className="shrink-0" />}
+                  <span className="truncate">{s}</span>
                 </button>
               </li>
             );
@@ -101,8 +115,8 @@ export function StageBar({
               onClick={() => click(s)}
               disabled={locked || pending}
               title={STAGE_HINTS[s]}
-              className={`h-9 rounded-sm border px-3 text-xs font-semibold ${
-                s === stage ? "border-gray-dark bg-gray-dark text-white" : "border-border text-muted hover:bg-hover hover:text-foreground"
+              className={`h-11 flex-1 rounded-sm border px-4 text-xs font-semibold sm:text-sm lg:flex-none ${
+                s === stage ? "border-gray-dark bg-gray-dark text-white" : "border-border bg-card text-gray-dark hover:bg-hover"
               } disabled:cursor-default`}
             >
               {s}
