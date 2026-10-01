@@ -23,6 +23,7 @@ import { moveStageAction, saveDeal } from "../actions";
 import { DealDatesFields } from "../deal-dates-fields";
 import { DealFields } from "../deal-fields";
 import { DealFeeFields, DealMoneyFields } from "../deal-money-fields";
+import { FeeVisibility } from "../fee-visibility";
 import { DealTeamFields } from "../deal-team-fields";
 import { PartiesSection, PropertiesSection, TeamSection } from "./sections";
 import { StageBar } from "./stage-bar";
@@ -144,9 +145,14 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
                   <Section title="Pricing and underwriting">
                     <DealMoneyFields deal={deal} />
                   </Section>
-                  <Section title="Fee">
-                    <DealFeeFields deal={deal} />
-                  </Section>
+                  <FeeVisibility
+                    initialStage={deal.stage}
+                    hasFeeData={[deal.totalCommission, deal.outsideCommission, deal.inHouseGross, deal.feeRate, deal.feeNotes].some((v) => v !== null && v !== "")}
+                  >
+                    <Section title="Fee">
+                      <DealFeeFields deal={deal} />
+                    </Section>
+                  </FeeVisibility>
                   <Section title="Team">
                     <DealTeamFields
                       icmTeam={icmTeam}

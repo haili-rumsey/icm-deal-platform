@@ -1,17 +1,15 @@
 import { Grid, Select, TextArea, TextInput } from "@/components/fields";
 import { SearchSelect, type Option } from "@/components/search-select";
-import { PITCH_STATUSES, STAGES } from "@/domain/options";
+import { PITCH_STATUSES } from "@/domain/options";
 import type { Deal } from "@/server/deals";
+import { StageSelect } from "./stage-select";
 
 /** Stage plus every key date. Dates overwrite; there's no date history. */
 export function DealDatesFields({ deal, companies }: { deal?: Deal; companies: Option[] }) {
   const d = deal;
   return (
     <Grid>
-      <Select
-        label="Stage"
-        name="stage"
-        options={STAGES}
+      <StageSelect
         defaultValue={d?.stage ?? "BOV 1"}
         hint={d ? undefined : "A deal can start at any stage. IOS deals are entered as Closed."}
       />

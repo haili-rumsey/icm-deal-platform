@@ -8,6 +8,7 @@ import { saveDeal } from "../actions";
 import { DealDatesFields } from "../deal-dates-fields";
 import { DealFields } from "../deal-fields";
 import { DealFeeFields, DealMoneyFields } from "../deal-money-fields";
+import { FeeVisibility } from "../fee-visibility";
 import { DealTeamFields } from "../deal-team-fields";
 
 export default async function NewDealPage() {
@@ -43,9 +44,11 @@ export default async function NewDealPage() {
           <Section title="Pricing and underwriting">
             <DealMoneyFields />
           </Section>
-          <Section title="Fee">
-            <DealFeeFields />
-          </Section>
+          <FeeVisibility initialStage="BOV 1" hasFeeData={false}>
+            <Section title="Fee">
+              <DealFeeFields />
+            </Section>
+          </FeeVisibility>
         </MainForm>
       </div>
     </RecordFormProvider>
