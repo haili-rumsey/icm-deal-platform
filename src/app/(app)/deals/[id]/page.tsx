@@ -65,7 +65,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
       <RecordHeader
         kindLabel="Deal"
         title={deal.dealName}
-        subtitle={[deal.dealType, deal.dealSubtype, deal.category, deal.isIos && "IOS desk"].filter(Boolean).join(" · ") || undefined}
+        subtitle={[deal.dealType, deal.dealSubtype, deal.category, deal.isIos && "IOS Deal"].filter(Boolean).join(" · ") || undefined}
         facts={[
           { label: partyLabel(type, "A"), value: names("A") },
           { label: partyLabel(type, "B"), value: names("B") },

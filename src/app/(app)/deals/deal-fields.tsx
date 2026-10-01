@@ -22,7 +22,7 @@ export function DealFields({ deal }: { deal?: Deal }) {
         <Select label="Represented" name="represented" options={REPRESENTED} defaultValue={d?.represented} />
       </Grid>
       <div className="flex flex-wrap gap-x-6 gap-y-2">
-        <Checkbox label="IOS desk deal" name="isIos" defaultChecked={d?.isIos} />
+        <Checkbox label="IOS Deal" name="isIos" defaultChecked={d?.isIos} />
         <Checkbox label="Direct award (no competitive process)" name="directAward" defaultChecked={d?.directAward} />
       </div>
       <TextArea label="Closing notes" name="closingNotes" defaultValue={d?.closingNotes} />
