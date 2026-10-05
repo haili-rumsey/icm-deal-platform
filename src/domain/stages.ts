@@ -1,4 +1,4 @@
-import type { DealType, Stage } from "./options";
+import { FEE_ONLY_TYPES, type DealType, type Stage } from "./options";
 
 /** The main pipeline, in order. Track and Dead/Lost sit beside it. */
 export const PIPELINE: Stage[] = ["BOV 1", "BOV 2", "Engaged", "Marketing", "Awarded", "Under Contract", "Closed"];
@@ -38,6 +38,7 @@ type Prices = {
   totalCapitalization: string | null;
   loanAmount: string | null;
   totalLeaseConsideration: string | null;
+  totalCommission: string | null;
 };
 
 export type DealValue = {
@@ -53,12 +54,14 @@ const num = (v: string | null) => (v === null || v === "" ? null : Number(v));
 /**
  * The deal's current value. For a sale the price follows the stage (BOV mid →
  * guidance → contract → closed); Track and Dead/Lost use the latest price entered.
- * Other deal types use their headline figure. Totals straight across all types.
+ * Other deal types use their headline figure (consulting and referral: the fee).
+ * Totals straight across all types.
  */
 export function dealValue(d: Prices): DealValue {
   if (d.dealType === "Equity") return headline(num(d.totalCapitalization), "Total capitalization");
   if (d.dealType === "Debt") return headline(num(d.loanAmount), "Loan amount");
   if (d.dealType === "Lease") return headline(num(d.totalLeaseConsideration), "Total lease consideration");
+  if (d.dealType && FEE_ONLY_TYPES.includes(d.dealType)) return headline(num(d.totalCommission), "Fee");
 
   const byStage: Partial<Record<Stage, [string | null, string]>> = {
     "BOV 1": [d.bovPriceMid, "BOV mid"],

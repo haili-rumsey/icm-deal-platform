@@ -16,7 +16,7 @@ import {
 import { companyOptions } from "@/server/companies";
 import { geoLookup, submarketName } from "@/server/geography";
 import { userName } from "@/server/people";
-import { getProperty } from "@/server/properties";
+import { addressLine, getProperty } from "@/server/properties";
 import { saveProperty } from "../actions";
 import { PropertyFields } from "../property-fields";
 
@@ -27,7 +27,7 @@ export default async function PropertyPage({ params }: PageProps<"/properties/[i
   const { property: p, owners, deals } = data;
   const [geo, submarket] = await Promise.all([geoLookup(p.submarketId), submarketName(p.submarketId)]);
   const modifiedBy = await userName(p.lastModifiedById);
-  const title = [p.address, p.buildingDesignation].filter(Boolean).join(", ") || "(no address)";
+  const title = p.name ?? addressLine(p);
 
   return (
     <RecordFormProvider action={saveProperty.bind(null, id)}>
@@ -40,7 +40,7 @@ export default async function PropertyPage({ params }: PageProps<"/properties/[i
       <RecordHeader
         kindLabel="Property"
         title={title}
-        subtitle={[p.city, p.state].filter(Boolean).join(", ") || undefined}
+        subtitle={[p.name && addressLine(p), [p.city, p.state].filter(Boolean).join(", ")].filter(Boolean).join(" · ") || undefined}
         facts={[
           { label: "Submarket", value: submarket?.name },
           { label: "Building SF", value: p.buildingSf?.toLocaleString("en-US") },

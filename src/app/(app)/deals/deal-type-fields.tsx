@@ -4,7 +4,7 @@ import { useState } from "react";
 import { FieldRow, inputCls } from "@/components/fields";
 import { DEAL_TYPES, SUBTYPES_BY_TYPE, type DealType } from "@/domain/options";
 
-/** Subtype options depend on deal type; Lease has none. */
+/** Subtype options depend on deal type; Lease, Consulting and Referral have none. */
 export function DealTypeFields({ dealType, dealSubtype }: { dealType?: string | null; dealSubtype?: string | null }) {
   const [type, setType] = useState<DealType | "">((dealType as DealType) ?? "");
   const subtypes = type ? SUBTYPES_BY_TYPE[type] : [];
@@ -30,7 +30,7 @@ export function DealTypeFields({ dealType, dealSubtype }: { dealType?: string | 
           ))}
         </select>
       </FieldRow>
-      <FieldRow label="Subtype" htmlFor="dealSubtype" hint={type === "Lease" ? "Not used for leases." : undefined}>
+      <FieldRow label="Subtype" htmlFor="dealSubtype" hint={type && subtypes.length === 0 ? `Not used for ${type.toLowerCase()} deals.` : undefined}>
         <select
           key={type}
           id="dealSubtype"

@@ -51,7 +51,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
   const missing = [
     !deal.dealType && "deal type",
     !deal.category && "category",
-    data.properties.length === 0 && "properties",
+    data.properties.length === 0 && type !== "Consulting" && "properties",
     !data.parties.some((p) => p.side === "A") && (type ? partyLabel(type, "A").toLowerCase() : "side A party"),
     !data.team.some((t) => t.isLeadBroker) && "lead broker",
     !data.team.some((t) => t.isLeadAnalyst) && "lead analyst",

@@ -52,7 +52,9 @@ export function PropertiesSection({
             <li key={p.id} className="flex flex-wrap items-baseline justify-between gap-2 py-2">
               <span>
                 <Link href={`/properties/${p.id}`} className="font-semibold text-link hover:underline">
-                  {[p.address, p.buildingDesignation].filter(Boolean).join(", ") || "(no address)"}
+                  {[p.name, [p.address, p.buildingDesignation].filter(Boolean).join(", ") || "(no address)"]
+                    .filter(Boolean)
+                    .join(" · ")}
                 </Link>
                 <span className="text-muted"> · {[p.city, p.state].filter(Boolean).join(", ")}</span>
                 {p.submarket && <span className="text-muted"> · {p.submarket}</span>}

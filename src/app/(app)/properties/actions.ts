@@ -11,6 +11,7 @@ import { createProperty, updateProperty, type PropertyInput } from "@/server/pro
 function parse(fd: FormData): PropertyInput {
   const verified = fd.get("addressVerified") === "true";
   return {
+    name: str(fd, "name"),
     address: str(fd, "address"),
     city: str(fd, "city"),
     state: str(fd, "state"),

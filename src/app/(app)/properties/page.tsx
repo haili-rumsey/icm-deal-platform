@@ -24,6 +24,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
         columns={[
           { key: "address", label: "Address", kind: "link", hrefKey: "href", flagKey: "unverified", flagLabel: "No Google match" },
           { key: "building", label: "Building" },
+          { key: "name", label: "Name" },
           { key: "city", label: "City" },
           { key: "state", label: "State" },
           { key: "submarket", label: "Submarket" },
@@ -35,6 +36,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
           href: `/properties/${p.id}`,
           address: p.address ?? "(no address)",
           building: p.buildingDesignation,
+          name: p.name,
           city: p.city,
           state: p.state,
           submarket: p.submarket,

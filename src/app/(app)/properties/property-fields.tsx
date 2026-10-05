@@ -42,6 +42,13 @@ export function PropertyFields({
       />
       <Grid>
         <TextInput
+          label="Property name"
+          name="name"
+          defaultValue={p?.name}
+          placeholder="Semicon Business Park I"
+          hint="Optional. The park or building name people know it by."
+        />
+        <TextInput
           label="Building designation"
           name="buildingDesignation"
           defaultValue={p?.buildingDesignation}

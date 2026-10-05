@@ -64,6 +64,7 @@ export async function propertiesAtPlace(
   const rows = await db
     .select({
       id: properties.id,
+      name: properties.name,
       address: properties.address,
       buildingDesignation: properties.buildingDesignation,
       city: properties.city,

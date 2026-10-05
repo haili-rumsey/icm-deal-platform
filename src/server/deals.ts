@@ -79,6 +79,7 @@ export async function listDeals(opts: { q?: string; archived?: boolean; view?: D
       totalCapitalization: deals.totalCapitalization,
       loanAmount: deals.loanAmount,
       totalLeaseConsideration: deals.totalLeaseConsideration,
+      totalCommission: deals.totalCommission,
       lastModifiedAt: deals.lastModifiedAt,
       propertyCount: sql<number>`(select count(*)::int from deal_properties dp where dp.deal_id = "deals"."id")`,
       totalSf: sql<number>`(select coalesce(sum(p.building_sf), 0)::int from deal_properties dp join properties p on p.id = dp.property_id where dp.deal_id = "deals"."id")`,
@@ -107,6 +108,7 @@ export async function getDeal(id: string) {
     db
       .select({
         id: properties.id,
+        name: properties.name,
         address: properties.address,
         buildingDesignation: properties.buildingDesignation,
         city: properties.city,

@@ -5,7 +5,8 @@
 
 export const CATEGORIES = ["Industrial", "Office", "Retail", "IOS", "Land", "Mixed"] as const;
 
-export const DEAL_TYPES = ["Sale", "Equity", "Debt", "Lease"] as const;
+// Consulting and Referral (Rev. 4.2, from the historical import): the fee is the headline figure.
+export const DEAL_TYPES = ["Sale", "Equity", "Debt", "Lease", "Consulting", "Referral"] as const;
 export type DealType = (typeof DEAL_TYPES)[number];
 
 export const DEAL_SUBTYPES = ["Investment Sale", "Forward Sale", "NNN", "Portfolio", "JV", "Senior Financing"] as const;
@@ -14,6 +15,8 @@ export const SUBTYPES_BY_TYPE: Record<DealType, readonly (typeof DEAL_SUBTYPES)[
   Equity: ["JV"],
   Debt: ["Senior Financing"],
   Lease: [],
+  Consulting: [],
+  Referral: [],
 };
 
 export const OPPORTUNITY_TYPES = ["Core", "Core Plus", "Value Add", "Opportunistic", "Development"] as const;
@@ -59,7 +62,12 @@ export const PARTY_LABELS: Record<DealType, Record<Side, string>> = {
   Equity: { A: "Sponsor", B: "Capital Partner" },
   Debt: { A: "Borrower", B: "Lender" },
   Lease: { A: "Landlord", B: "Tenant" },
+  Consulting: { A: "Seller", B: "Buyer" },
+  Referral: { A: "Seller", B: "Buyer" },
 };
+
+/** Deal types whose value is the fee itself — no price block of their own. */
+export const FEE_ONLY_TYPES: readonly DealType[] = ["Consulting", "Referral"];
 
 export function partyLabel(dealType: DealType | null | undefined, side: Side): string {
   return dealType ? PARTY_LABELS[dealType][side] : `Side ${side}`;

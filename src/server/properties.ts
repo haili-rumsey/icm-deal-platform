@@ -9,11 +9,15 @@ export type PropertyInput = Omit<
   "id" | "createdAt" | "createdById" | "lastModifiedAt" | "lastModifiedById" | "archivedAt"
 >;
 
-/** "4500 Mountain Creek Pkwy, Bldg 2 · Dallas, TX" */
-export function propertyLabel(p: Pick<Property, "address" | "buildingDesignation" | "city" | "state">) {
-  const line = [p.address, p.buildingDesignation].filter(Boolean).join(", ");
+/** "4500 Mountain Creek Pkwy, Bldg 2" — the address line, without city. */
+export function addressLine(p: Pick<Property, "address" | "buildingDesignation">) {
+  return [p.address, p.buildingDesignation].filter(Boolean).join(", ") || "(no address)";
+}
+
+/** "Mountain Creek 2 · 4500 Mountain Creek Pkwy, Bldg 2 · Dallas, TX" */
+export function propertyLabel(p: Pick<Property, "name" | "address" | "buildingDesignation" | "city" | "state">) {
   const place = [p.city, p.state].filter(Boolean).join(", ");
-  return [line || "(no address)", place].filter(Boolean).join(" · ");
+  return [p.name, addressLine(p), place].filter(Boolean).join(" · ");
 }
 
 export async function listProperties(opts: { q?: string; archived?: boolean } = {}) {
@@ -22,6 +26,7 @@ export async function listProperties(opts: { q?: string; archived?: boolean } = 
     const like = `%${opts.q.trim()}%`;
     where.push(
       or(
+        ilike(properties.name, like),
         ilike(properties.address, like),
         ilike(properties.city, like),
         ilike(properties.zip, like),
@@ -32,6 +37,7 @@ export async function listProperties(opts: { q?: string; archived?: boolean } = 
   return db
     .select({
       id: properties.id,
+      name: properties.name,
       address: properties.address,
       buildingDesignation: properties.buildingDesignation,
       city: properties.city,
@@ -51,6 +57,7 @@ export async function propertyOptions() {
   const rows = await db
     .select({
       id: properties.id,
+      name: properties.name,
       address: properties.address,
       buildingDesignation: properties.buildingDesignation,
       city: properties.city,

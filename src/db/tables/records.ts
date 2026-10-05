@@ -122,6 +122,8 @@ export const properties = pgTable(
   "properties",
   {
     id: uuid("id").primaryKey().defaultRandom(),
+    // Optional name, e.g. "Semicon Business Park I" or "NW 1". Not part of duplicate matching.
+    name: text("name"),
     address: text("address"),
     city: text("city"),
     state: text("state"),

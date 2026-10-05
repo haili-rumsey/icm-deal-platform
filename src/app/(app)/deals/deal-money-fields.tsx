@@ -31,7 +31,8 @@ function BlockTitle({ children, note }: { children: React.ReactNode; note?: stri
 
 /**
  * The three independent financial blocks plus each deal type's headline figure.
- * BOV doesn't apply to equity, debt or lease deals.
+ * BOV doesn't apply to equity, debt, lease, consulting or referral deals. Consulting and
+ * referral are valued by their fee; a referral's sale price is the referred sale's.
  */
 export function DealMoneyFields({ deal }: { deal?: Deal }) {
   const d = deal;
