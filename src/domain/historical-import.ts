@@ -240,9 +240,13 @@ export function toImportDeal(row: SourceRow, answers: ReviewedAnswers): ImportDe
   }
 
   const mapped = dealType && sourceType.toLowerCase() !== dealType.toLowerCase();
+  // Accounting's office code ("SNS - ", "SICM - ") is dropped; the original name goes in the notes.
+  // Other-office references at the end, e.g. "(SDFW 55725)", stay in the name.
+  const sourceName = text(get("Deal Name"));
+  const dealName = sourceName.replace(/^(SNS|SICM) - /, "").trim();
   return {
     reappsId,
-    dealName: text(get("Deal Name")) || `Deal ${reappsId}`,
+    dealName: dealName || `Deal ${reappsId}`,
     closeDate: excelDate(get("Closed Date")),
     dealType,
     sourceType,
@@ -255,7 +259,9 @@ export function toImportDeal(row: SourceRow, answers: ReviewedAnswers): ImportDe
     inHouseGross: money(inHouse ?? calculated),
     // Accounting's figure is kept; it only counts as "typed over" when it differs from total − outside.
     inHouseGrossManual: inHouse !== null && calculated !== null && Math.abs(inHouse - calculated) > 0.005,
-    closingNotes: `Imported from accounting's Deal Activity export.${mapped ? ` Accounting deal type: ${sourceType}.` : ""}`,
+    closingNotes: `Imported from accounting's Deal Activity export.${mapped ? ` Accounting deal type: ${sourceType}.` : ""}${
+      dealName !== sourceName ? ` Accounting deal name: ${sourceName}.` : ""
+    }`,
     parties,
     brokers: parseBrokers(text(get("Brokers"))),
     properties,
