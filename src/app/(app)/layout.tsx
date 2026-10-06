@@ -1,6 +1,8 @@
+import { cookies } from "next/headers";
 import { LogOut } from "lucide-react";
 import { requireUser, signOut } from "@/auth";
 import { AppShell } from "@/components/shell/app-shell";
+import { SIDEBAR_COOKIE } from "@/components/shell/sidebar-cookie";
 
 async function doSignOut() {
   "use server";
@@ -9,10 +11,12 @@ async function doSignOut() {
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const user = await requireUser();
+  const sidebarPinned = (await cookies()).get(SIDEBAR_COOKIE)?.value !== "collapsed";
 
   return (
     <AppShell
       isAdmin={user.isAdmin}
+      sidebarPinned={sidebarPinned}
       userLabel={user.name ?? user.email}
       signOut={
         <form action={doSignOut}>
