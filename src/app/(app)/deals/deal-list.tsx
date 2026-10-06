@@ -23,6 +23,7 @@ function shortDate(iso: string | null) {
  */
 export async function DealList({ views, current }: { views: ListView[]; current: ListView["key"] }) {
   const archived = current === "archived";
+  const archiveView = current !== "active" && current !== "closed";
   // Each list remembers its own columns; the Archive views share one layout.
   const listKey = current === "active" ? "deals-active" : current === "closed" ? "deals-closed" : "deals-archive";
   const [rows, saved] = await Promise.all([listDeals({ archived, view: archived ? "all" : current }), myListLayout(listKey)]);
@@ -44,6 +45,8 @@ export async function DealList({ views, current }: { views: ListView[]; current:
       columns={[
         { key: "name", label: "Deal", kind: "link", hrefKey: "href" },
         { key: "stage", label: "Stage", sortKey: "stageOrder" },
+        // How far a parked deal got — shown on the Archive views, offered on the others.
+        { key: "furthest", label: "Furthest stage", sortKey: "furthestOrder", defaultHidden: !archiveView },
         { key: "type", label: "Type" },
         { key: "valueLabel", label: "Value", sortKey: "value", type: "money" },
         { key: "properties", label: "Props", kind: "number" },
@@ -76,6 +79,8 @@ export async function DealList({ views, current }: { views: ListView[]; current:
           name: d.dealName,
           stage: d.stage,
           stageOrder: STAGE_ORDER.indexOf(d.stage),
+          furthest: d.furthestStage,
+          furthestOrder: d.furthestStage ? STAGE_ORDER.indexOf(d.furthestStage) : null,
           // IOS has its own column ("IOS Deal"); Type is the deal type only.
           type: d.dealType,
           value: v.value,

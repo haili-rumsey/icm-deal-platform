@@ -209,6 +209,7 @@ export async function importDeals(
         represented: d.represented,
         isIos: d.isIos,
         stage: "Closed",
+        furthestStage: "Closed",
         closeDate: d.closeDate,
         closedPrice: d.closedPrice,
         totalCapitalization: d.totalCapitalization,

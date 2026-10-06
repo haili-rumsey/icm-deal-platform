@@ -14,7 +14,7 @@ import {
   Tabs,
 } from "@/components/record-page";
 import { partyLabel, type DealType } from "@/domain/options";
-import { dealValue, formatMoney, pricePerSf } from "@/domain/stages";
+import { dealValue, formatMoney, furthestStageLocked, OFF_PIPELINE, pricePerSf } from "@/domain/stages";
 import { searchParam } from "@/lib/params";
 import { companyOptions } from "@/server/companies";
 import { contactOptions, icmTeamOptions, streamPeopleOptions } from "@/server/contacts";
@@ -89,6 +89,8 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
         subtitle={[deal.dealType, deal.dealSubtype, deal.category, deal.isIos && "IOS Deal"].filter(Boolean).join(" · ") || undefined}
         facts={[
           { label: "Stage", value: deal.stage },
+          // Parked deals show how far they got.
+          ...(OFF_PIPELINE.includes(deal.stage) ? [{ label: "Furthest stage", value: deal.furthestStage }] : []),
           { label: value.source, value: formatMoney(value.value, true) },
           { label: "Price / SF", value: psf ? `$${psf.toLocaleString("en-US", { maximumFractionDigits: 2 })}` : null },
           { label: partyLabel(type, "A"), value: names("A") },
@@ -148,7 +150,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
                     <DealFields deal={deal} />
                   </Section>
                   <Section title="Stage and dates">
-                    <DealDatesFields deal={deal} companies={companyOpts} />
+                    <DealDatesFields deal={deal} companies={companyOpts} furthestLocked={furthestStageLocked(deal.stage, user)} />
                   </Section>
                   <Section title="Pricing and underwriting">
                     <DealMoneyFields deal={deal} />

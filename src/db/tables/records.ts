@@ -190,6 +190,8 @@ export const deals = pgTable(
 
     // ---- Stage and dates (PRD §1, §3). Dates overwrite; there is no date history. ----
     stage: stageEnum("stage").notNull().default("BOV 1"),
+    // Furthest point reached on BOV 1 → Closed, kept when a deal goes to Track or Dead/Lost.
+    furthestStage: stageEnum("furthest_stage"),
     // When the proposal is due (BOV 1); pitch_date is when it was delivered.
     pitchDueDate: date("pitch_due_date"),
     pitchDate: date("pitch_date"),

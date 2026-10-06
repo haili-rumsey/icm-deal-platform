@@ -6,7 +6,7 @@ import { companies, contacts, dealParties, dealProperties, deals, dealTeam, prop
 import type { Side } from "@/domain/options";
 import { SUBTYPES_BY_TYPE, type Stage } from "@/domain/options";
 import { closeBlockers, type CloseCheckInput } from "@/domain/close-check";
-import { ACTIVE_STAGES, STAGE_DATE } from "@/domain/stages";
+import { ACTIVE_STAGES, furthestOf, furthestStageLocked, STAGE_DATE } from "@/domain/stages";
 
 export type Deal = typeof deals.$inferSelect;
 export type DealInput = Omit<
@@ -85,6 +85,7 @@ export async function listDeals(opts: { q?: string; archived?: boolean; view?: D
       lastModifiedAt: deals.lastModifiedAt,
       propertyCount: sql<number>`(select count(*)::int from deal_properties dp where dp.deal_id = "deals"."id")`,
       totalSf: sql<number>`(select coalesce(sum(p.building_sf), 0)::int from deal_properties dp join properties p on p.id = dp.property_id where dp.deal_id = "deals"."id")`,
+      furthestStage: deals.furthestStage,
       leadAnalyst: sql<string | null>`(select c.first_name || ' ' || c.last_name from deal_team t join contacts c on c.id = t.contact_id where t.deal_id = "deals"."id" and t.is_lead_analyst limit 1)`,
       // "Haili R." — the Pipeline report's short form.
       leadAnalystShort: sql<string | null>`(select c.first_name || ' ' || left(c.last_name, 1) || '.' from deal_team t join contacts c on c.id = t.contact_id where t.deal_id = "deals"."id" and t.is_lead_analyst limit 1)`,
@@ -181,18 +182,34 @@ export async function getDeal(id: string) {
   return { ...row, properties: propertyRows, parties: partyRows, team: teamRows };
 }
 
-export async function createDeal(input: DealInput, byId: string) {
+type Editor = { id: string; isAdmin: boolean };
+
+export async function createDeal(input: DealInput, by: Editor) {
   const [row] = await db
     .insert(deals)
-    .values({ ...prepare(input), createdById: byId, lastModifiedById: byId })
+    .values({
+      ...prepare(input),
+      furthestStage: furthestOf(input.furthestStage, input.stage),
+      createdById: by.id,
+      lastModifiedById: by.id,
+    })
     .returning({ id: deals.id });
   return row.id;
 }
 
-export async function updateDeal(id: string, input: DealInput, byId: string) {
+export async function updateDeal(id: string, input: DealInput, by: Editor) {
+  const [current] = await db.select({ stage: deals.stage, furthestStage: deals.furthestStage }).from(deals).where(eq(deals.id, id));
+  // A typed correction counts unless the field is read-only (deal parked in Track or Dead/Lost);
+  // either way it's never behind the stage being saved.
+  const base = current && furthestStageLocked(current.stage, by) ? current.furthestStage : input.furthestStage;
   await db
     .update(deals)
-    .set({ ...prepare(input), lastModifiedAt: new Date(), lastModifiedById: byId })
+    .set({
+      ...prepare(input),
+      furthestStage: furthestOf(base, input.stage),
+      lastModifiedAt: new Date(),
+      lastModifiedById: by.id,
+    })
     .where(eq(deals.id, id));
 }
 
@@ -306,9 +323,14 @@ export type StageMove = {
  * Won, and a pitch that goes Dead/Lost from BOV 1–2 is marked Lost.
  */
 export async function moveStage(dealId: string, move: StageMove, byId: string) {
-  const [current] = await db.select({ stage: deals.stage }).from(deals).where(eq(deals.id, dealId));
+  const [current] = await db.select({ stage: deals.stage, furthestStage: deals.furthestStage }).from(deals).where(eq(deals.id, dealId));
   if (!current) return;
-  const set: Partial<typeof deals.$inferInsert> = { stage: move.stage, lastModifiedAt: new Date(), lastModifiedById: byId };
+  const set: Partial<typeof deals.$inferInsert> = {
+    stage: move.stage,
+    furthestStage: furthestOf(current.furthestStage, move.stage),
+    lastModifiedAt: new Date(),
+    lastModifiedById: byId,
+  };
   const dateField = STAGE_DATE[move.stage]?.field;
   if (dateField && move.date) set[dateField] = move.date;
   const fromPitch = current.stage === "BOV 1" || current.stage === "BOV 2";

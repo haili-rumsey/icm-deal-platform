@@ -6,6 +6,24 @@ export const OFF_PIPELINE: Stage[] = ["Track", "Dead/Lost"];
 /** Counted in active pipeline totals. Track is reported separately, never blended in. */
 export const ACTIVE_STAGES: Stage[] = ["BOV 1", "BOV 2", "Engaged", "Marketing", "Awarded", "Under Contract"];
 
+/**
+ * The further along BOV 1 → Closed of two stages; Track and Dead/Lost don't count.
+ * A deal's furthest stage only ever moves forward on its own (corrections are by hand).
+ */
+export function furthestOf(a: Stage | null, b: Stage | null): Stage | null {
+  const rank = (s: Stage | null) => (s ? PIPELINE.indexOf(s) : -1);
+  const best = rank(a) >= rank(b) ? a : b;
+  return best && PIPELINE.includes(best) ? best : null;
+}
+
+/**
+ * Furthest stage is correctable while a deal is in play, and read-only once it's
+ * parked in Track or Dead/Lost (Haili, 1.6) — except for the three admins.
+ */
+export function furthestStageLocked(stage: Stage, user: { isAdmin: boolean }) {
+  return OFF_PIPELINE.includes(stage) && !user.isAdmin;
+}
+
 export const STAGE_HINTS: Record<Stage, string> = {
   "BOV 1": "Proposal in preparation",
   "BOV 2": "Proposal delivered",

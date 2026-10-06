@@ -49,6 +49,7 @@ export default async function PipelineReportPage() {
         { key: "feeLabel", label: "Fee", sortKey: "fee", type: "money", total: true },
         // Off until switched on under "Edit columns".
         { key: "stage", label: "Stage", defaultHidden: true },
+        { key: "furthest", label: "Furthest stage", defaultHidden: true },
         { key: "type", label: "Type", defaultHidden: true },
         { key: "subtype", label: "Subtype", defaultHidden: true },
         { key: "opportunityType", label: "Opportunity type", defaultHidden: true },
@@ -78,6 +79,7 @@ export default async function PipelineReportPage() {
           id: d.id,
           href: `/deals/${d.id}`,
           stage: d.stage,
+          furthest: d.furthestStage,
           keyDate,
           keyDateLabel: day(keyDate),
           leadAnalyst: d.leadAnalystShort,

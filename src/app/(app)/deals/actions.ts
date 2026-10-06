@@ -55,6 +55,7 @@ function parse(fd: FormData): DealInput | string {
     closingNotes: str(fd, "closingNotes"),
 
     stage: oneOf(fd, "stage", STAGES) ?? "BOV 1",
+    furthestStage: oneOf(fd, "furthestStage", STAGES),
     pitchDueDate: str(fd, "pitchDueDate"),
     pitchDate: str(fd, "pitchDate"),
     pitchStatus: oneOf(fd, "pitchStatus", PITCH_STATUSES),
@@ -134,7 +135,7 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
     if (missing.length) return { ok: false, message: closeBlockedMessage(missing) };
   }
   if (!id) {
-    const newId = await createDeal(input, user.id);
+    const newId = await createDeal(input, user);
     await syncTeam(newId, team);
     revalidatePath("/deals");
     redirect(`/deals/${newId}`, RedirectType.replace);
@@ -145,7 +146,7 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
     if (e instanceof DealLockedError) return { ok: false, message: e.message };
     throw e;
   }
-  await updateDeal(id, input, user.id);
+  await updateDeal(id, input, user);
   await syncTeam(id, team);
   // A closed sale makes its buyer the properties' current owner.
   if (closing) await setOwnersForDeal(db, id);

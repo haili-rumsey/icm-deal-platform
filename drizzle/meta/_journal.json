@@ -85,6 +85,13 @@
       "when": 1791315139158,
       "tag": "0011_pitch_due_follow_up",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1791318267372,
+      "tag": "0012_furthest_stage",
+      "breakpoints": true
     }
   ]
 }
