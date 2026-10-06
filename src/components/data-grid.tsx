@@ -1,13 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, Columns3, FileSpreadsheet, ListFilter, Search, X } from "lucide-react";
 import { saveListLayoutAction } from "@/app/(app)/list-layout-actions";
 import { CommandBar, CommandButton, CommandDivider } from "./command-bar";
 import { exportToExcel } from "./data-grid-export";
 import { FilterMenu } from "./data-grid-filter-menu";
 import { applyFilters, describe, displayText, type Filter, type ValueType } from "./data-grid-filters";
+import { buildBlocks, countLabel, formatTotal, type Grouping } from "./data-grid-groups";
 
 export type Cell = string | number | boolean | null;
 export type Row = Record<string, Cell>;
@@ -33,6 +34,10 @@ export type Column = {
   multi?: boolean;
   /** Offered under "Edit columns" but not shown until someone switches it on. */
   defaultHidden?: boolean;
+  /** Summed on subtotal rows when the list is grouped. */
+  total?: boolean;
+  /** Hover text for the cell, from row[titleKey] (e.g. a full name behind "Haili R."). */
+  titleKey?: string;
 };
 
 export type View = { label: string; href: string; active: boolean };
@@ -62,6 +67,7 @@ export function DataGrid({
   listKey,
   savedColumns,
   commands,
+  grouping,
   emptyText = "We didn't find anything to show here.",
 }: {
   views: View[];
@@ -73,6 +79,8 @@ export function DataGrid({
   savedColumns?: string[] | null;
   /** The page's commands (New, Refresh…); Export to Excel is added after them. */
   commands?: React.ReactNode;
+  /** Show rows in fixed sections with subtotals (the Pipeline report's stages). */
+  grouping?: Grouping;
   emptyText?: string;
 }) {
   const [visible, setVisible] = useState(() => visibleKeys(allColumns, savedColumns));
@@ -146,7 +154,7 @@ export function DataGrid({
   async function onExport() {
     setExporting(true);
     try {
-      await exportToExcel({ title: active.label, shown: columns, all: allColumns, rows: shown });
+      await exportToExcel({ title: active.label, shown: columns, all: allColumns, rows: shown, grouping, keepEmpty: !narrowed });
     } finally {
       setExporting(false);
     }
@@ -154,6 +162,54 @@ export function DataGrid({
 
   const filtered = allColumns.filter((c) => filters[c.key]);
   const narrowed = shown.length !== rows.length;
+  const blocks = grouping ? buildBlocks(shown, allColumns, grouping, !narrowed) : null;
+
+  function renderRow(r: Row, i: number) {
+    return (
+      <tr key={String(r.id ?? i)} className="border-b border-border last:border-0 hover:bg-background">
+        {columns.map((c) => {
+          const text = displayText(r[c.key], c.kind);
+          const flagged = c.flagKey && r[c.flagKey] === true;
+          const title = c.titleKey ? displayText(r[c.titleKey], "text") || undefined : undefined;
+          return (
+            <td
+              key={c.key}
+              title={title}
+              className={`px-4 py-2.5 first:pl-5 ${c.kind === "number" || c.total ? "whitespace-nowrap text-right tabular-nums" : ""} ${c.kind === "link" ? "min-w-48" : ""}`}
+            >
+              {c.kind === "link" && c.hrefKey ? (
+                <Link href={String(r[c.hrefKey])} className="font-semibold text-link hover:underline">
+                  {text || "(untitled)"}
+                </Link>
+              ) : (
+                text
+              )}
+              {flagged && <FlagMark label={c.flagLabel ?? "Needs cleanup"} />}
+            </td>
+          );
+        })}
+      </tr>
+    );
+  }
+
+  /** A subtotal or grand-total row: the count in the first cell, sums under their columns. */
+  function totalsRow(key: string, label: string, t: { count: number; sums: Record<string, number | null> }, grand: boolean) {
+    return (
+      <tr key={key} className={grand ? "border-y-2 border-navy bg-navy/5 font-bold" : "border-b border-border bg-background font-semibold"}>
+        {columns.map((c, i) => (
+          <td key={c.key} className={`px-4 py-2 first:pl-5 ${c.total || c.kind === "number" ? "whitespace-nowrap text-right tabular-nums" : ""}`}>
+            {i === 0 ? (
+              <span className="whitespace-nowrap">
+                {label} · {countLabel(t.count, grouping!.unit)}
+              </span>
+            ) : c.total ? (
+              formatTotal(c, t.sums[c.key] ?? null)
+            ) : null}
+          </td>
+        ))}
+      </tr>
+    );
+  }
   const openColumn = openFilter && allColumns.find((c) => c.key === openFilter.key);
 
   return (
@@ -268,19 +324,20 @@ export function DataGrid({
                 {columns.map((c) => {
                   const sk = c.sortKey ?? c.key;
                   const isSorted = sort.key === sk;
+                  const right = c.kind === "number" || c.total;
                   const Arrow = sort.dir === "asc" ? ArrowUp : ArrowDown;
                   const isFiltered = Boolean(filters[c.key]);
                   return (
                     <th
                       key={c.key}
                       aria-sort={isSorted ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
-                      className={`whitespace-nowrap px-4 py-2 font-semibold first:pl-5 ${c.kind === "number" ? "text-right" : ""}`}
+                      className={`whitespace-nowrap px-4 py-2 font-semibold first:pl-5 ${right ? "text-right" : ""}`}
                     >
-                      <span className={`inline-flex items-center gap-1.5 ${c.kind === "number" ? "flex-row-reverse" : ""}`}>
+                      <span className={`inline-flex items-center gap-1.5 ${right ? "flex-row-reverse" : ""}`}>
                         <button
                           type="button"
                           onClick={() => toggle(sk)}
-                          className={`inline-flex items-center gap-1 hover:text-navy ${c.kind === "number" ? "flex-row-reverse" : ""}`}
+                          className={`inline-flex items-center gap-1 hover:text-navy ${right ? "flex-row-reverse" : ""}`}
                         >
                           {c.label}
                           {isSorted ? <Arrow size={14} /> : <ChevronDown size={14} className="text-muted" />}
@@ -306,29 +363,24 @@ export function DataGrid({
               </tr>
             </thead>
             <tbody>
-              {shown.map((r, i) => (
-                <tr key={String(r.id ?? i)} className="border-b border-border last:border-0 hover:bg-background">
-                  {columns.map((c) => {
-                    const text = displayText(r[c.key], c.kind);
-                    const flagged = c.flagKey && r[c.flagKey] === true;
-                    return (
-                      <td
-                        key={c.key}
-                        className={`px-4 py-2.5 first:pl-5 ${c.kind === "number" ? "whitespace-nowrap text-right tabular-nums" : ""}`}
-                      >
-                        {c.kind === "link" && c.hrefKey ? (
-                          <Link href={String(r[c.hrefKey])} className="font-semibold text-link hover:underline">
-                            {text || "(untitled)"}
-                          </Link>
-                        ) : (
-                          text
-                        )}
-                        {flagged && <FlagMark label={c.flagLabel ?? "Needs cleanup"} />}
-                      </td>
-                    );
-                  })}
-                </tr>
-              ))}
+              {blocks
+                ? blocks.map((b) =>
+                    b.kind === "total" ? (
+                      totalsRow("grand-total", b.title, b.totals, true)
+                    ) : (
+                      <Fragment key={b.id}>
+                        <tr className="border-b border-border">
+                          <th colSpan={columns.length} scope="colgroup" className="bg-gray-light px-5 pt-4 pb-1.5 text-left">
+                            <span className="font-serif text-base text-navy">{b.title}</span>
+                            {b.note && <span className="ml-3 text-xs font-normal text-muted">Date shown: {b.note}</span>}
+                          </th>
+                        </tr>
+                        {b.rows.map(renderRow)}
+                        {totalsRow(`${b.id}-total`, "Subtotal", b.totals, false)}
+                      </Fragment>
+                    ),
+                  )
+                : shown.map(renderRow)}
             </tbody>
           </table>
           {shown.length === 0 && (

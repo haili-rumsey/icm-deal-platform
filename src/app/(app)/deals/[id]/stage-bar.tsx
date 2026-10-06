@@ -7,10 +7,10 @@ import { useConfirm } from "@/components/confirm-dialog";
 import { useUnsavedChanges } from "@/components/record-page";
 import { SearchSelect, type Option } from "@/components/search-select";
 import type { Stage } from "@/domain/options";
-import { OFF_PIPELINE, PIPELINE, STAGE_DATE, STAGE_HINTS } from "@/domain/stages";
+import { OFF_PIPELINE, PIPELINE, STAGE_DATE, STAGE_HINTS, type DateField } from "@/domain/stages";
 import type { StageState } from "../actions";
 
-type Dates = Partial<Record<"pitchDate" | "wonDate" | "launchDate" | "awardedDate" | "closeDate", string | null>>;
+type Dates = Partial<Record<DateField, string | null>>;
 
 /** Arrow shape: notched on the left (except the first), pointed on the right (except the last). */
 function chevron(first: boolean, last: boolean) {
@@ -167,7 +167,7 @@ export function StageBar({
           {dateInfo && (
             <label className="flex flex-col gap-1 text-sm">
               <span className="text-muted">{dateInfo.label}</span>
-              <input type="date" name="date" defaultValue={today()} className={`${inputCls} w-48`} />
+              <input type="date" name="date" defaultValue={dateInfo.blank ? undefined : today()} className={`${inputCls} w-48`} />
             </label>
           )}
           {lostPitch && (
@@ -193,7 +193,8 @@ export function StageBar({
             >
               {pending ? "Moving…" : `Move to ${target}`}
             </button>
-            {dateInfo && target !== "Closed" && (
+            {/* An optional date (Track follow-up) can simply be left blank. */}
+            {dateInfo && target !== "Closed" && !dateInfo.blank && (
               <button
                 type="submit"
                 name="skipDate"

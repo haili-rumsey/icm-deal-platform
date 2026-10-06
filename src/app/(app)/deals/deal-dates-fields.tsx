@@ -17,6 +17,7 @@ export function DealDatesFields({ deal, companies }: { deal?: Deal; companies: O
             : "A deal can start at any stage except Closed. For an IOS deal, save it at Under Contract, add the property and buyer, then move it to Closed."
         }
       />
+      <TextInput label="Pitch due date" name="pitchDueDate" type="date" defaultValue={d?.pitchDueDate} hint="When the proposal is due." />
       <TextInput label="Pitch date" name="pitchDate" type="date" defaultValue={d?.pitchDate} hint="Proposal delivered (→ BOV 2)." />
       <Select label="Pitch status" name="pitchStatus" options={PITCH_STATUSES} defaultValue={d?.pitchStatus} />
       <SearchSelect
@@ -32,6 +33,7 @@ export function DealDatesFields({ deal, companies }: { deal?: Deal; companies: O
       <TextInput label="Awarded date" name="awardedDate" type="date" defaultValue={d?.awardedDate} hint="Buyer selected (→ Awarded)." />
       <TextInput label="DD expiration" name="ddExpirationDate" type="date" defaultValue={d?.ddExpirationDate} />
       <TextInput label="Close date" name="closeDate" type="date" defaultValue={d?.closeDate} />
+      <TextInput label="Follow-up date" name="followUpDate" type="date" defaultValue={d?.followUpDate} hint="When to revisit a Track deal." />
       <div className="xl:col-span-2">
         <TextArea label="Lost note" name="lostNote" defaultValue={d?.lostNote} />
       </div>

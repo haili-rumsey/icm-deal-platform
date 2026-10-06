@@ -120,6 +120,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
           launchDate: deal.launchDate,
           awardedDate: deal.awardedDate,
           closeDate: deal.closeDate,
+          followUpDate: deal.followUpDate,
         }}
         companies={companyOpts}
         locked={locked}

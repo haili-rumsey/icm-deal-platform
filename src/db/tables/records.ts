@@ -190,6 +190,8 @@ export const deals = pgTable(
 
     // ---- Stage and dates (PRD §1, §3). Dates overwrite; there is no date history. ----
     stage: stageEnum("stage").notNull().default("BOV 1"),
+    // When the proposal is due (BOV 1); pitch_date is when it was delivered.
+    pitchDueDate: date("pitch_due_date"),
     pitchDate: date("pitch_date"),
     pitchStatus: pitchStatusEnum("pitch_status"),
     lostToCompanyId: uuid("lost_to_company_id").references(() => companies.id),
@@ -200,6 +202,8 @@ export const deals = pgTable(
     awardedDate: date("awarded_date"),
     ddExpirationDate: date("dd_expiration_date"),
     closeDate: date("close_date"),
+    // When to revisit a Track deal (asked on the move into Track).
+    followUpDate: date("follow_up_date"),
 
     // ---- Three independent financial blocks. They never overwrite each other. ----
     // BOV — overwritten in place on repricing.

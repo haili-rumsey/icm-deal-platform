@@ -52,13 +52,15 @@ export async function assertCanEdit(dealId: string, user: { isAdmin: boolean }) 
   if (row && isLockedFor(row.stage, user)) throw new DealLockedError();
 }
 
-export type DealView = "active" | "track" | "closed" | "dead" | "all";
+export type DealView = "active" | "track" | "closed" | "dead" | "pipeline" | "all";
 
 const VIEW_STAGES: Record<Exclude<DealView, "all">, Stage[]> = {
   active: ACTIVE_STAGES,
   track: ["Track"],
   closed: ["Closed"],
   dead: ["Dead/Lost"],
+  // The Pipeline report: active stages plus Track, which it shows separately.
+  pipeline: [...ACTIVE_STAGES, "Track"],
 };
 
 export async function listDeals(opts: { q?: string; archived?: boolean; view?: DealView } = {}) {
@@ -84,11 +86,21 @@ export async function listDeals(opts: { q?: string; archived?: boolean; view?: D
       propertyCount: sql<number>`(select count(*)::int from deal_properties dp where dp.deal_id = "deals"."id")`,
       totalSf: sql<number>`(select coalesce(sum(p.building_sf), 0)::int from deal_properties dp join properties p on p.id = dp.property_id where dp.deal_id = "deals"."id")`,
       leadAnalyst: sql<string | null>`(select c.first_name || ' ' || c.last_name from deal_team t join contacts c on c.id = t.contact_id where t.deal_id = "deals"."id" and t.is_lead_analyst limit 1)`,
+      // "Haili R." — the Pipeline report's short form.
+      leadAnalystShort: sql<string | null>`(select c.first_name || ' ' || left(c.last_name, 1) || '.' from deal_team t join contacts c on c.id = t.contact_id where t.deal_id = "deals"."id" and t.is_lead_analyst limit 1)`,
       // Extra columns offered under "Edit columns".
       reappsId: deals.reappsId,
       closeDate: deals.closeDate,
       wonDate: deals.wonDate,
       launchDate: deals.launchDate,
+      pitchDueDate: deals.pitchDueDate,
+      pitchDate: deals.pitchDate,
+      callForOffersDate: deals.callForOffersDate,
+      awardedDate: deals.awardedDate,
+      ddExpirationDate: deals.ddExpirationDate,
+      followUpDate: deals.followUpDate,
+      dealSubtype: deals.dealSubtype,
+      opportunityType: deals.opportunityType,
       inHouseGross: deals.inHouseGross,
       sideA: sql<string | null>`(select string_agg(distinct co.name, ', ') from deal_parties dp join companies co on co.id = dp.company_id where dp.deal_id = "deals"."id" and dp.side = 'A')`,
       sideB: sql<string | null>`(select string_agg(distinct co.name, ', ') from deal_parties dp join companies co on co.id = dp.company_id where dp.deal_id = "deals"."id" and dp.side = 'B')`,

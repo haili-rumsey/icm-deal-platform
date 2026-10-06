@@ -55,6 +55,7 @@ function parse(fd: FormData): DealInput | string {
     closingNotes: str(fd, "closingNotes"),
 
     stage: oneOf(fd, "stage", STAGES) ?? "BOV 1",
+    pitchDueDate: str(fd, "pitchDueDate"),
     pitchDate: str(fd, "pitchDate"),
     pitchStatus: oneOf(fd, "pitchStatus", PITCH_STATUSES),
     lostToCompanyId: str(fd, "lostToCompanyId"),
@@ -65,6 +66,7 @@ function parse(fd: FormData): DealInput | string {
     awardedDate: str(fd, "awardedDate"),
     ddExpirationDate: str(fd, "ddExpirationDate"),
     closeDate: str(fd, "closeDate"),
+    followUpDate: str(fd, "followUpDate"),
 
     bovPriceLow: dec(fd, "bovPriceLow"),
     bovPriceMid: dec(fd, "bovPriceMid"),

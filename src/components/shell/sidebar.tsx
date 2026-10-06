@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Archive, Building2, CircleCheck, Contact, Handshake, Map as MapIcon, MapPin, Pin, PinOff, UserCog, UsersRound, type LucideIcon } from "lucide-react";
+import { Archive, Building2, CircleCheck, Contact, Handshake, Map as MapIcon, MapPin, Pin, PinOff, Presentation, UserCog, UsersRound, type LucideIcon } from "lucide-react";
 
 type Item = { href: string; label: string; icon: LucideIcon; match?: (path: string) => boolean };
 
@@ -18,6 +18,10 @@ const GROUPS: Group[] = [
       { href: "/deals/closed", label: "Closed", icon: CircleCheck },
       { href: "/deals/archive", label: "Archive", icon: Archive },
     ],
+  },
+  {
+    heading: "Reports",
+    items: [{ href: "/reports/pipeline", label: "Pipeline", icon: Presentation }],
   },
   {
     heading: "Records",

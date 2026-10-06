@@ -18,15 +18,19 @@ export const STAGE_HINTS: Record<Stage, string> = {
   "Dead/Lost": "Dead or lost",
 };
 
-export type DateField = "pitchDate" | "wonDate" | "launchDate" | "awardedDate" | "closeDate";
+export type DateField = "pitchDate" | "wonDate" | "launchDate" | "awardedDate" | "closeDate" | "followUpDate";
 
-/** Moving into these stages records the matching date (asked, defaulting to today). */
-export const STAGE_DATE: Partial<Record<Stage, { field: DateField; label: string }>> = {
+/**
+ * Moving into these stages records the matching date (asked, defaulting to today —
+ * except a Track follow-up, which is in the future and starts blank).
+ */
+export const STAGE_DATE: Partial<Record<Stage, { field: DateField; label: string; blank?: boolean }>> = {
   "BOV 2": { field: "pitchDate", label: "Pitch date" },
   Engaged: { field: "wonDate", label: "Won date" },
   Marketing: { field: "launchDate", label: "Launch date" },
   Awarded: { field: "awardedDate", label: "Awarded date" },
   Closed: { field: "closeDate", label: "Close date" },
+  Track: { field: "followUpDate", label: "Follow-up date (optional)", blank: true },
 };
 
 type Prices = {
@@ -99,3 +103,25 @@ export function formatMoney(v: number | null, compact = false) {
   if (compact && Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toLocaleString("en-US", { maximumFractionDigits: 2 })}M`;
   return `$${v.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
+
+/** Deal dates the Pipeline report can show (stage-move dates plus the planning ones). */
+export type KeyDateField = DateField | "pitchDueDate" | "callForOffersDate" | "ddExpirationDate";
+
+/**
+ * The date that matters for a deal at each stage, shown first on the Pipeline report
+ * (Haili's mapping, 1.6). Under Contract's close date is the scheduled close.
+ */
+export const PIPELINE_KEY_DATE: Partial<Record<Stage, { field: KeyDateField; label: string }>> = {
+  "BOV 1": { field: "pitchDueDate", label: "Pitch due date" },
+  "BOV 2": { field: "pitchDate", label: "Pitch date" },
+  Engaged: { field: "launchDate", label: "Launch date" },
+  Marketing: { field: "callForOffersDate", label: "Call for offers" },
+  Awarded: { field: "ddExpirationDate", label: "DD expiration" },
+  "Under Contract": { field: "closeDate", label: "Close date" },
+  Track: { field: "followUpDate", label: "Follow-up date" },
+};
+
+/** The fee shows from Engaged on — before the listing is won there's no fee to speak of. */
+export const FEE_STAGES: Stage[] = ["Engaged", "Marketing", "Awarded", "Under Contract", "Closed"];
+/** The buyer side shows once a buyer has been selected. */
+export const BUYER_STAGES: Stage[] = ["Awarded", "Under Contract", "Closed"];
