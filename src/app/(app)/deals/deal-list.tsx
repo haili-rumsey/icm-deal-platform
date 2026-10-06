@@ -75,7 +75,8 @@ export async function DealList({ views, current }: { views: ListView[]; current:
             name: d.dealName,
             stage: d.stage,
             stageOrder: STAGE_ORDER.indexOf(d.stage),
-            type: [d.dealType, d.isIos ? "IOS" : null].filter(Boolean).join(" · "),
+            // IOS has its own column ("IOS Deal"); Type is the deal type only.
+            type: d.dealType,
             value: v.value,
             valueLabel: formatMoney(v.value, true),
             properties: d.propertyCount,
