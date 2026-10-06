@@ -1,5 +1,5 @@
 import { Plus } from "lucide-react";
-import { CommandBar, CommandLink, RefreshCommand } from "@/components/command-bar";
+import { CommandLink, RefreshCommand } from "@/components/command-bar";
 import { DataGrid } from "@/components/data-grid";
 import { searchParam } from "@/lib/params";
 import { listCompanies } from "@/server/companies";
@@ -10,40 +10,40 @@ export default async function CompaniesPage({ searchParams }: PageProps<"/compan
   const [rows, saved] = await Promise.all([listCompanies({ archived }), myListLayout("companies")]);
 
   return (
-    <>
-      <CommandBar>
-        <CommandLink href="/companies/new" icon={Plus}>
-          New
-        </CommandLink>
-        <RefreshCommand />
-      </CommandBar>
-      <DataGrid
-        listKey="companies"
-        savedColumns={saved}
-        views={[
-          { label: "Active companies", href: "/companies", active: !archived },
-          { label: "Archived companies", href: "/companies?archived=1", active: archived },
-        ]}
-        columns={[
-          { key: "name", label: "Name", kind: "link", hrefKey: "href" },
-          { key: "website", label: "Website", flagKey: "noWebsite", flagLabel: "No website" },
-          { key: "types", label: "Type" },
-          { key: "contacts", label: "Contacts", kind: "number" },
-          { key: "deals", label: "Deals", kind: "number", defaultHidden: true },
-          { key: "strategies", label: "Investment strategy", defaultHidden: true },
-        ]}
-        rows={rows.map((c) => ({
-          id: c.id,
-          href: `/companies/${c.id}`,
-          name: c.name,
-          website: c.websiteDomain,
-          noWebsite: c.noWebsite,
-          types: c.types.join(", "),
-          contacts: c.contactCount,
-          deals: c.dealCount,
-          strategies: c.investmentStrategies.join(", "),
-        }))}
-      />
-    </>
+    <DataGrid
+      commands={
+        <>
+          <CommandLink href="/companies/new" icon={Plus}>
+            New
+          </CommandLink>
+          <RefreshCommand />
+        </>
+      }
+      listKey="companies"
+      savedColumns={saved}
+      views={[
+        { label: "Active companies", href: "/companies", active: !archived },
+        { label: "Archived companies", href: "/companies?archived=1", active: archived },
+      ]}
+      columns={[
+        { key: "name", label: "Name", kind: "link", hrefKey: "href" },
+        { key: "website", label: "Website", flagKey: "noWebsite", flagLabel: "No website" },
+        { key: "types", label: "Type", multi: true },
+        { key: "contacts", label: "Contacts", kind: "number" },
+        { key: "deals", label: "Deals", kind: "number", defaultHidden: true },
+        { key: "strategies", label: "Investment strategy", multi: true, defaultHidden: true },
+      ]}
+      rows={rows.map((c) => ({
+        id: c.id,
+        href: `/companies/${c.id}`,
+        name: c.name,
+        website: c.websiteDomain,
+        noWebsite: c.noWebsite,
+        types: c.types.join(", "),
+        contacts: c.contactCount,
+        deals: c.dealCount,
+        strategies: c.investmentStrategies.join(", "),
+      }))}
+    />
   );
 }
