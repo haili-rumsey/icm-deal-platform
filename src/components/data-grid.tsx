@@ -5,6 +5,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "r
 import { ArrowDown, ArrowUp, ChevronDown, Columns3, FileSpreadsheet, ListFilter, Search, X } from "lucide-react";
 import { saveListLayoutAction } from "@/app/(app)/list-layout-actions";
 import { CommandBar, CommandButton, CommandDivider } from "./command-bar";
+import { BackCommand } from "./record-page";
 import { exportToExcel } from "./data-grid-export";
 import { FilterMenu } from "./data-grid-filter-menu";
 import { applyFilters, describe, displayText, type Filter, type ValueType } from "./data-grid-filters";
@@ -215,6 +216,7 @@ export function DataGrid({
   return (
     <>
       <CommandBar>
+        <BackCommand fallbackHref="/deals" />
         {commands}
         {commands && <CommandDivider />}
         <CommandButton icon={FileSpreadsheet} onClick={onExport} disabled={exporting || shown.length === 0}>

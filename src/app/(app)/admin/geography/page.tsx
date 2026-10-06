@@ -4,7 +4,7 @@ import { CommandBar, RefreshCommand } from "@/components/command-bar";
 import { FlagMark } from "@/components/data-grid";
 import { inputCls, Section } from "@/components/fields";
 import { PendingButton } from "@/components/pending-button";
-import { RecordHeader } from "@/components/record-page";
+import { BackCommand, RecordHeader } from "@/components/record-page";
 import { listGeography } from "@/server/geography";
 import { addCityAction, addSubmarketAction, mapCityAction, removeCityAction, setRetiredAction } from "./actions";
 import { InlineAdd } from "./inline-add";
@@ -20,6 +20,7 @@ export default async function GeographyPage() {
   return (
     <>
       <CommandBar>
+        <BackCommand fallbackHref="/deals" />
         <RefreshCommand />
       </CommandBar>
       <RecordHeader

@@ -2,7 +2,7 @@ import { requireAdmin } from "@/auth";
 import { CommandBar, RefreshCommand } from "@/components/command-bar";
 import { Section } from "@/components/fields";
 import { PendingButton } from "@/components/pending-button";
-import { RecordHeader } from "@/components/record-page";
+import { BackCommand, RecordHeader } from "@/components/record-page";
 import { LOCATIONS } from "@/domain/options";
 import { listIcmTeam } from "@/server/contacts";
 import { removeTeamMemberAction } from "./actions";
@@ -21,6 +21,7 @@ export default async function ManageTeamsPage() {
   return (
     <>
       <CommandBar>
+        <BackCommand fallbackHref="/deals" />
         <RefreshCommand />
       </CommandBar>
       <RecordHeader

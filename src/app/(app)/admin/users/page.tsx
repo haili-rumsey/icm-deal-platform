@@ -2,7 +2,7 @@ import { listUsers, requireAdmin } from "@/auth";
 import { CommandBar, RefreshCommand } from "@/components/command-bar";
 import { FlagMark } from "@/components/data-grid";
 import { Section } from "@/components/fields";
-import { RecordHeader } from "@/components/record-page";
+import { BackCommand, RecordHeader } from "@/components/record-page";
 import { ActiveToggle } from "./active-toggle";
 import { AddUserForm } from "./add-user-form";
 
@@ -14,6 +14,7 @@ export default async function UsersPage() {
   return (
     <>
       <CommandBar>
+        <BackCommand fallbackHref="/deals" />
         <RefreshCommand />
       </CommandBar>
       <RecordHeader

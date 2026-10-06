@@ -127,10 +127,12 @@ export function MainForm({ children, readOnly }: { children: React.ReactNode; re
 /**
  * Back arrow at the left of the command bar: returns to the previous page, or to
  * `fallbackHref` (the record's list) when this page was opened directly. Asks first
- * if there are unsaved changes, like any other in-app link.
+ * if there are unsaved changes, like any other in-app link. Also used on lists,
+ * reports and admin screens, which have no record form to protect.
  */
 export function BackCommand({ fallbackHref }: { fallbackHref: string }) {
-  const { dirty, setDirty } = useRecordForm();
+  const form = useContext(RecordFormContext);
+  const dirty = form?.dirty ?? false;
   const router = useRouter();
   const [confirmLeave, leaveDialog] = useConfirm();
   async function goBack() {
@@ -142,7 +144,7 @@ export function BackCommand({ fallbackHref }: { fallbackHref: string }) {
         cancelLabel: "Cancel",
       });
       if (!leave) return;
-      setDirty(false);
+      form?.setDirty(false);
     }
     if (window.history.length > 1) router.back();
     else router.push(fallbackHref);
