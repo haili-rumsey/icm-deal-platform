@@ -94,15 +94,34 @@ Entra ID SSO was dropped (PRD Rev. 4.1) to avoid a dependency on Stream IT.
 - **Branded confirm dialog** (`useConfirm` in `src/components/confirm-dialog.tsx`) replaces the browser's confirm(): larger text, Cancel is the dark default; red confirm only for permanent actions. Used for unsaved changes, deactivate user, delete, and "Can't close yet".
 - Money and SF inputs add thousands separators when you leave the box; the server strips `$ , %` on save.
 
+### Historical import, lists and naming (milestone 1.5)
+
+- **Import done 2026-10-06:** 119 closed deals from `Context/ICM Deal Activity.xlsx` (49 IOS: 15 sales, 34 leases), 147 properties, 150 companies, 18 new Stream people. Loaded on the free Neon tier at Haili's choice.
+- **How it works:** `npm run db:import-history -- --source <xlsx> --answers Import/reviewed-answers.json [--commit]` (`scripts/import-history.ts`). Without `--commit` it's a practice run inside a transaction that rolls back. Re-running skips deals whose REApps ID already exists. Row mapping is pure code in `src/domain/historical-import.ts` (reusable by a future upload screen); writing is `src/server/historical-import.ts`. Google results are cached in `Import/geocode-cache.json`. Haili's reviewed answers (company names, split properties) are in `Import/reviewed-answers.json`; the review sheet is `Import/Import Review v2.xlsx`.
+- **Mapping decisions:** an "IOS" column marked x sets `is_ios`. Equity Raise Fee → Equity, Debt Placement Fee → Debt. Brokers → deal team as Stream contacts (former employees noted, not on the roster), no lead flags, "Stream ICM Broker" placeholder dropped. Deal % not imported. One deal per accounting Deal ID (Buyer Paid / Seller Paid rows share the property). In-house gross taken from the file.
+- **Company names:** institutional owner from the review sheet; typos fixed, LLC/Inc/LP endings dropped, renamed firms under current names (Marq Logistics, Affinius Capital); individuals → Private Investors with the person as contact (Will Wilkerson, Curtis Overstreet only); "Brookfield" renamed "Brookfield Properties". Holding-entity names are kept in each new company's notes.
+- **Properties:** one per address (parks split per building); number ranges ("1700-1750 …") keep the typed address with Google's zip/county/location; no Google match → saved as typed, flagged unverified (6 of them). A shared property keeps the first SF/acres figure.
+- **Deal names:** accounting's "SNS - " / "SICM - " prefix dropped (original in closing notes as "Accounting deal name: …"); other-office references like "(SDFW 55725)" stay in the name. New deals don't use the prefix.
+- **New deal types (approved scope expansion):** Consulting and Referral — labelled Seller / Buyer, no subtype, valued by the fee (total commission); a referral's sale price is the referred sale's. A consulting deal can close without a property.
+- **Property name (approved scope expansion):** optional `properties.name` (e.g. "Semicon Business Park I"), shown as the property page title, in lists and on deals. Not part of duplicate matching.
+- **Current owner:** the buyer side of a property's most recent closed sale becomes its current owner — on every move into Closed (`src/server/property-owners.ts`) and in the import.
+- **Back arrow** left of Save on every record page (`BackCommand`); returns to the previous page or the list, asks first if there are unsaved changes. New-record saves replace the "New" form in history.
+- **"Edit columns" on every list and report (approved scope expansion):** built into `DataGrid`, saved per person in `list_layouts` (keys like `deals-closed`, `properties`). Every new list/report must pass a `listKey`; extra columns are marked `defaultHidden`. The deal Type column shows the deal type only — IOS has its own "IOS Deal" column.
+
 ## Status and agreed-for-later
 
-- **Done and tested by Haili:** milestones 1.1–1.4. **Next: 1.5 historical import** — questions not yet asked. Source: `Context/ICM Deal Activity.xlsx` (119 rows). Things to raise: seller/buyer columns hold LP/LLC names (naming standard says institutional owner); deal types include Equity Raise / Debt Placement / Consulting / Referral fees; brokers include non-ICM and "(former employee)" names plus a "Stream ICM Broker" placeholder; a "Deal %" column not in the PRD mapping; dates are Excel serial numbers; 2 rows with no address and 2 with no SF/acres; several repeat addresses (repeat trades); how IOS-desk deals are identified.
-- **1.6 Pipeline report** (Haili's spec): group active deals by stage with separators; per stage show # deals, total value, total SF, and total fee (fee only from Engaged on). Track separate, lead analyst the only team field.
+- **Done and tested by Haili:** milestones 1.1–1.5 (1.5 signed off 2026-10-06). **Next: 1.6 Core reports** — PRD: pipeline, opportunity and property reports, Excel export, search. Done when the weekly meeting is run off the system instead of the spreadsheet. Ask questions before writing code.
+  - **Pipeline report (Haili's spec):** group active deals by stage with separators; per stage show # deals, total value, total SF, and total fee (fee only from Engaged on). Track separate; lead analyst the only team field.
+  - **Excel export** on every list and report — exports what's on screen: chosen columns, filters, sort.
+  - **Filter on any column** (approved scope expansion) on every list and report. Build export and filters into `DataGrid`. Filter details still to be asked at kickoff.
+- **Hosting:** real client data is now loaded on free tiers. Before anyone else gets access: Neon paid with PITR, Vercel Pro, repo to a Stream-owned GitHub org, Resend domain verified.
+- **Admin upload screen (agreed for later):** reuse the import code to load newly closed and IOS deals; needs its own company-name/address review step.
 - **2.1 Bids:** awarding a bid may offer to fill the sale price from the bid amount — confirm with Haili then.
 - **Active-deals spreadsheet:** Haili will provide an updated version; discuss before importing anything (PRD planned manual entry at launch).
 - **Testing practice:** non-admin QA account `qa.tester@streamrealty.com` (normally deactivated) gets a short session for browser tests; all test data is prefixed `TEST` and deleted afterward. Never create sessions for real/admin accounts.
+- **Running scripts locally:** this Mac's network stalls Node's IPv6 attempts (~8 s per request); scripts calling Google set `setDefaultAutoSelectFamily(false)`.
 - **Removing a column:** commit code that stops using it → Haili pushes → then drop the column, so the live site never breaks.
-- Haili prefers instructions **one step at a time**.
+- Haili prefers instructions **one step at a time**. When she asks "which is best?", explain the tradeoff and recommend — don't just hand back options.
 
 ## Look and feel
 
@@ -115,7 +134,3 @@ Microsoft Dynamics layout, Stream brand (2023 Brand Guidelines, in `Context/`):
 ## Data sensitivity
 
 Holds client contacts, deal financials, bid terms and fee data. Do not log sensitive values, do not commit secrets, and keep environment variables documented so the project survives a change of maintainer.
-
-## Next.js version note
-
-@AGENTS.md

@@ -31,6 +31,10 @@ Documented in [.env.example](.env.example). In production they are set in Vercel
 
 Edit `src/db/schema.ts`, run `npm run db:generate` to write a migration into `drizzle/`, commit it, then `npm run db:migrate`.
 
+## Historical import
+
+`npm run db:import-history -- --source <export.xlsx> --answers <reviewed-answers.json>` loads accounting's closed-deal export. Without `--commit` it is a practice run that rolls back; add `--commit` to keep it. Deals already imported (same REApps ID) are skipped. The reviewed answers file and Google cache live in the OneDrive `Import` folder, not in this repo. Details in CLAUDE.md.
+
 ## Authentication
 
 All auth code lives in `src/auth/`; the rest of the app imports only from `@/auth`. To swap magic links for Entra ID later, change that folder only. Rules (15-minute single-use links, fixed 7-day sessions, `@streamrealty.com` only, immediate deactivation) are described in CLAUDE.md.
