@@ -92,6 +92,20 @@
       "when": 1791318267372,
       "tag": "0012_furthest_stage",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1791319230186,
+      "tag": "0013_split_dead_lost",
+      "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1791319245734,
+      "tag": "0014_dead_lost_rows",
+      "breakpoints": true
     }
   ]
 }

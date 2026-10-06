@@ -79,7 +79,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
         {!locked && (
           <>
             <CommandDivider />
-            <HousekeepingCommands kind="deal" id={id} archivedAt={deal.archivedAt} canDelete={user.isAdmin} />
+            <HousekeepingCommands kind="deal" id={id} archivedAt={deal.archivedAt} canDelete={user.isAdmin} canArchive={false} />
           </>
         )}
       </CommandBar>

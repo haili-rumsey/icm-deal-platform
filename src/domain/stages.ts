@@ -1,13 +1,13 @@
 import { FEE_ONLY_TYPES, type DealType, type Stage } from "./options";
 
-/** The main pipeline, in order. Track and Dead/Lost sit beside it. */
+/** The main pipeline, in order. Track, Dead and Lost sit beside it. */
 export const PIPELINE: Stage[] = ["BOV 1", "BOV 2", "Engaged", "Marketing", "Awarded", "Under Contract", "Closed"];
-export const OFF_PIPELINE: Stage[] = ["Track", "Dead/Lost"];
+export const OFF_PIPELINE: Stage[] = ["Track", "Dead", "Lost"];
 /** Counted in active pipeline totals. Track is reported separately, never blended in. */
 export const ACTIVE_STAGES: Stage[] = ["BOV 1", "BOV 2", "Engaged", "Marketing", "Awarded", "Under Contract"];
 
 /**
- * The further along BOV 1 → Closed of two stages; Track and Dead/Lost don't count.
+ * The further along BOV 1 → Closed of two stages; Track, Dead and Lost don't count.
  * A deal's furthest stage only ever moves forward on its own (corrections are by hand).
  */
 export function furthestOf(a: Stage | null, b: Stage | null): Stage | null {
@@ -18,7 +18,7 @@ export function furthestOf(a: Stage | null, b: Stage | null): Stage | null {
 
 /**
  * Furthest stage is correctable while a deal is in play, and read-only once it's
- * parked in Track or Dead/Lost (Haili, 1.6) — except for the three admins.
+ * parked in Track, Dead or Lost (Haili, 1.6) — except for the three admins.
  */
 export function furthestStageLocked(stage: Stage, user: { isAdmin: boolean }) {
   return OFF_PIPELINE.includes(stage) && !user.isAdmin;
@@ -33,7 +33,8 @@ export const STAGE_HINTS: Record<Stage, string> = {
   "Under Contract": "Closing period",
   Closed: "Closed",
   Track: "Dormant — seller elected to hold",
-  "Dead/Lost": "Dead or lost",
+  Dead: "Had the deal — it fell apart or the seller pulled it",
+  Lost: "Pitched and didn't win the listing",
 };
 
 export type DateField = "pitchDate" | "wonDate" | "launchDate" | "awardedDate" | "closeDate" | "followUpDate";
@@ -75,7 +76,7 @@ const num = (v: string | null) => (v === null || v === "" ? null : Number(v));
 
 /**
  * The deal's current value. For a sale the price follows the stage (BOV mid →
- * guidance → contract → closed); Track and Dead/Lost use the latest price entered.
+ * guidance → contract → closed); Track, Dead and Lost use the latest price entered.
  * Other deal types use their headline figure (consulting and referral: the fee).
  * Totals straight across all types.
  */
@@ -98,7 +99,7 @@ export function dealValue(d: Prices): DealValue {
   const forStage = byStage[d.stage];
   if (forStage) return headline(num(forStage[0]), forStage[1]);
 
-  // Track / Dead-Lost: whatever was entered last along the way.
+  // Track / Dead / Lost: whatever was entered last along the way.
   const latest: [string | null, string][] = [
     [d.closedPrice, "Sale price"],
     [d.guidancePrice, "Guidance"],

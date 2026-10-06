@@ -193,11 +193,14 @@ export function HousekeepingCommands({
   id,
   archivedAt,
   canDelete,
+  canArchive = true,
 }: {
   kind: EntityKind;
   id: string;
   archivedAt: Date | null;
   canDelete: boolean;
+  /** Off for deals, which go to Track, Dead or Lost instead (1.6). */
+  canArchive?: boolean;
 }) {
   const [delState, del, deleting] = useActionState<DeleteState, FormData>(deleteAction, null);
   const [confirm, confirmDialog] = useConfirm();
@@ -205,14 +208,16 @@ export function HousekeepingCommands({
   return (
     <>
       {confirmDialog}
-      <form action={archiveAction} className="contents">
-        <input type="hidden" name="kind" value={kind} />
-        <input type="hidden" name="id" value={id} />
-        <input type="hidden" name="archived" value={String(!archivedAt)} />
-        <CommandButton type="submit" icon={archivedAt ? ArchiveRestore : Archive}>
-          {archivedAt ? "Unarchive" : "Archive"}
-        </CommandButton>
-      </form>
+      {canArchive && (
+        <form action={archiveAction} className="contents">
+          <input type="hidden" name="kind" value={kind} />
+          <input type="hidden" name="id" value={id} />
+          <input type="hidden" name="archived" value={String(!archivedAt)} />
+          <CommandButton type="submit" icon={archivedAt ? ArchiveRestore : Archive}>
+            {archivedAt ? "Unarchive" : "Archive"}
+          </CommandButton>
+        </form>
+      )}
       {canDelete && (
         <form
           action={del}

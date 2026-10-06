@@ -1,15 +1,10 @@
-import { searchParam } from "@/lib/params";
-import { DealList, type ListView } from "../deal-list";
+import { DealList } from "../deal-list";
 
-/** Everything not in play: dormant (Track), dead or lost, and archived records. */
-const VIEWS: ListView[] = [
-  { key: "track", label: "Track (dormant)", href: "/deals/archive" },
-  { key: "dead", label: "Dead / Lost", href: "/deals/archive?view=dead" },
-  { key: "archived", label: "Archived records", href: "/deals/archive?view=archived" },
-];
-
-export default async function ArchiveDealsPage({ searchParams }: PageProps<"/deals/archive">) {
-  const v = searchParam((await searchParams).view);
-  const current = VIEWS.find((x) => x.key === v)?.key ?? "track";
-  return <DealList current={current} views={VIEWS} />;
+/**
+ * Everything parked — Track (dormant), Dead and Lost — in one list; filter the
+ * Stage column to see one kind. Deals have no Archive button (Haili, 1.6): a
+ * duplicate is deleted by an admin, anything else goes to Track, Dead or Lost.
+ */
+export default function ArchiveDealsPage() {
+  return <DealList current="inactive" views={[{ key: "inactive", label: "Track, Dead and Lost", href: "/deals/archive" }]} />;
 }

@@ -13,7 +13,7 @@ export function DealDatesFields({
 }: {
   deal?: Deal;
   companies: Option[];
-  /** Read-only once the deal is parked in Track or Dead/Lost (admins excepted). */
+  /** Read-only once the deal is parked in Track, Dead or Lost (admins excepted). */
   furthestLocked?: boolean;
 }) {
   const d = deal;
@@ -28,7 +28,7 @@ export function DealDatesFields({
         }
       />
       {furthestLocked ? (
-        <FieldRow label="Furthest stage" hint="Locked while the deal is in Track or Dead/Lost.">
+        <FieldRow label="Furthest stage" hint="Locked while the deal is in Track, Dead or Lost.">
           <p className="pt-1.5">{d?.furthestStage ?? "—"}</p>
         </FieldRow>
       ) : (
@@ -59,6 +59,9 @@ export function DealDatesFields({
       <TextInput label="Follow-up date" name="followUpDate" type="date" defaultValue={d?.followUpDate} hint="When to revisit a Track deal." />
       <div className="xl:col-span-2">
         <TextArea label="Lost note" name="lostNote" defaultValue={d?.lostNote} />
+      </div>
+      <div className="xl:col-span-2">
+        <TextArea label="Dead note" name="deadNote" defaultValue={d?.deadNote} />
       </div>
     </Grid>
   );

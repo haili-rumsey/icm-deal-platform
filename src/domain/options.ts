@@ -32,7 +32,11 @@ export const COMPANY_TYPES = ["Investor", "Developer", "Owner-user", "Lender", "
 // Investment strategy uses the same list as opportunity type.
 export const INVESTMENT_STRATEGIES = OPPORTUNITY_TYPES;
 
-/** Pipeline stages (PRD §3). Track and Dead/Lost sit outside the active pipeline. */
+/**
+ * Pipeline stages (PRD §3). Track, Dead and Lost sit outside the active pipeline.
+ * Dead and Lost were one stage until 1.6: Lost = pitched and didn't win the listing;
+ * Dead = had the deal and it fell apart or the seller pulled it.
+ */
 export const STAGES = [
   "BOV 1",
   "BOV 2",
@@ -42,7 +46,8 @@ export const STAGES = [
   "Under Contract",
   "Closed",
   "Track",
-  "Dead/Lost",
+  "Dead",
+  "Lost",
 ] as const;
 export type Stage = (typeof STAGES)[number];
 

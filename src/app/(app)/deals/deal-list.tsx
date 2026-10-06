@@ -6,9 +6,9 @@ import { listDeals, type DealView } from "@/server/deals";
 import { myListLayout } from "@/server/list-layouts";
 
 // Pipeline order, so sorting by stage reads BOV 1 → Under Contract rather than A–Z.
-const STAGE_ORDER = ["BOV 1", "BOV 2", "Engaged", "Marketing", "Awarded", "Under Contract", "Closed", "Track", "Dead/Lost"];
+const STAGE_ORDER = ["BOV 1", "BOV 2", "Engaged", "Marketing", "Awarded", "Under Contract", "Closed", "Track", "Dead", "Lost"];
 
-export type ListView = { key: DealView | "archived"; label: string; href: string };
+export type ListView = { key: Extract<DealView, "active" | "closed" | "inactive">; label: string; href: string };
 
 /** "2026-06-01" → "6/1/2026" */
 function shortDate(iso: string | null) {
@@ -18,15 +18,15 @@ function shortDate(iso: string | null) {
 }
 
 /**
- * Deal list shared by Active, Closed and Archive. `views` are the choices in the
- * title dropdown; `current` is the one showing.
+ * Deal list shared by Active, Closed and Archive (Track, Dead and Lost in one
+ * list, filtered by stage). `views` are the choices in the title dropdown;
+ * `current` is the one showing.
  */
 export async function DealList({ views, current }: { views: ListView[]; current: ListView["key"] }) {
-  const archived = current === "archived";
-  const archiveView = current !== "active" && current !== "closed";
-  // Each list remembers its own columns; the Archive views share one layout.
+  const archiveView = current === "inactive";
+  // Each list remembers its own columns.
   const listKey = current === "active" ? "deals-active" : current === "closed" ? "deals-closed" : "deals-archive";
-  const [rows, saved] = await Promise.all([listDeals({ archived, view: archived ? "all" : current }), myListLayout(listKey)]);
+  const [rows, saved] = await Promise.all([listDeals({ view: current }), myListLayout(listKey)]);
 
   return (
     <DataGrid
@@ -47,6 +47,9 @@ export async function DealList({ views, current }: { views: ListView[]; current:
         { key: "stage", label: "Stage", sortKey: "stageOrder" },
         // How far a parked deal got — shown on the Archive views, offered on the others.
         { key: "furthest", label: "Furthest stage", sortKey: "furthestOrder", defaultHidden: !archiveView },
+        // What happened to a dead or lost deal.
+        { key: "note", label: "Dead / lost note", defaultHidden: !archiveView },
+        { key: "lostTo", label: "Lost to", defaultHidden: true },
         { key: "type", label: "Type" },
         { key: "valueLabel", label: "Value", sortKey: "value", type: "money" },
         { key: "properties", label: "Props", kind: "number" },
@@ -81,6 +84,8 @@ export async function DealList({ views, current }: { views: ListView[]; current:
           stageOrder: STAGE_ORDER.indexOf(d.stage),
           furthest: d.furthestStage,
           furthestOrder: d.furthestStage ? STAGE_ORDER.indexOf(d.furthestStage) : null,
+          note: d.stage === "Lost" ? d.lostNote : d.stage === "Dead" ? d.deadNote : null,
+          lostTo: d.lostTo,
           // IOS has its own column ("IOS Deal"); Type is the deal type only.
           type: d.dealType,
           value: v.value,

@@ -29,6 +29,7 @@ import {
   STAGES,
   TEAM_ROLES,
   TENANCY,
+  type Stage,
 } from "@/domain/options";
 import { users } from "./auth";
 import { submarkets } from "./geography";
@@ -47,7 +48,9 @@ export const companyTypeEnum = pgEnum("company_type", COMPANY_TYPES);
 export const teamRoleEnum = pgEnum("team_role", TEAM_ROLES);
 export const sideEnum = pgEnum("side", SIDES);
 export const locationEnum = pgEnum("location", LOCATIONS);
-export const stageEnum = pgEnum("stage", STAGES);
+// "Dead/Lost" is the pre-1.6 combined stage, kept in the database type only until the
+// split has been deployed; no row uses it and the app never writes it.
+export const stageEnum = pgEnum("stage", [...STAGES, "Dead/Lost"]);
 export const pitchStatusEnum = pgEnum("pitch_status", PITCH_STATUSES);
 
 const stamp = (name: string) => timestamp(name, { mode: "date", withTimezone: true });
@@ -189,9 +192,11 @@ export const deals = pgTable(
     closingNotes: text("closing_notes"),
 
     // ---- Stage and dates (PRD §1, §3). Dates overwrite; there is no date history. ----
-    stage: stageEnum("stage").notNull().default("BOV 1"),
+    stage: stageEnum("stage").$type<Stage>().notNull().default("BOV 1"),
     // Furthest point reached on BOV 1 → Closed, kept when a deal goes to Track or Dead/Lost.
-    furthestStage: stageEnum("furthest_stage"),
+    furthestStage: stageEnum("furthest_stage").$type<Stage>(),
+    // Why a deal died (asked, optionally, on the move into Dead). Lost uses lost_note.
+    deadNote: text("dead_note"),
     // When the proposal is due (BOV 1); pitch_date is when it was delivered.
     pitchDueDate: date("pitch_due_date"),
     pitchDate: date("pitch_date"),

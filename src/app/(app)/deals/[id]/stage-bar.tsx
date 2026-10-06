@@ -28,8 +28,8 @@ function today() {
 
 /**
  * Dynamics-style stage bar. Click any stage to move there — forward, back or
- * skipping; nothing is required. Stages with a date ask for it (today by default),
- * and a pitch lost from BOV 1–2 asks who won it.
+ * skipping; nothing is required. Stages with a date ask for it (today by default);
+ * Dead and Lost offer a note on what happened, and Lost asks who won it.
  */
 export function StageBar({
   stage,
@@ -58,7 +58,8 @@ export function StageBar({
   function needsPrompt(s: Stage) {
     const df = STAGE_DATE[s];
     if (df && !dates[df.field]) return true;
-    if (s === "Dead/Lost" && (stage === "BOV 1" || stage === "BOV 2")) return true;
+    // Dead and Lost always offer a note on what happened.
+    if (s === "Dead" || s === "Lost") return true;
     return false;
   }
 
@@ -97,7 +98,8 @@ export function StageBar({
   }
 
   const dateInfo = target ? STAGE_DATE[target] : undefined;
-  const lostPitch = target === "Dead/Lost" && (stage === "BOV 1" || stage === "BOV 2");
+  const lost = target === "Lost";
+  const dead = target === "Dead";
 
   return (
     <div className="border-b border-border bg-card px-3 py-3 sm:px-5">
@@ -170,7 +172,13 @@ export function StageBar({
               <input type="date" name="date" defaultValue={dateInfo.blank ? undefined : today()} className={`${inputCls} w-48`} />
             </label>
           )}
-          {lostPitch && (
+          {dead && (
+            <label className="flex flex-col gap-1 text-sm">
+              <span className="text-muted">What happened? (optional)</span>
+              <textarea name="deadNote" rows={2} className={inputCls} />
+            </label>
+          )}
+          {lost && (
             <>
               <SearchSelect
                 label="Lost to (optional)"
@@ -180,7 +188,7 @@ export function StageBar({
                 placeholder="Competitor who won it…"
               />
               <label className="flex flex-col gap-1 text-sm">
-                <span className="text-muted">Note (optional)</span>
+                <span className="text-muted">What happened? (optional)</span>
                 <textarea name="lostNote" rows={2} className={inputCls} />
               </label>
             </>

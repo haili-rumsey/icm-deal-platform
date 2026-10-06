@@ -52,13 +52,13 @@ export async function assertCanEdit(dealId: string, user: { isAdmin: boolean }) 
   if (row && isLockedFor(row.stage, user)) throw new DealLockedError();
 }
 
-export type DealView = "active" | "track" | "closed" | "dead" | "pipeline" | "all";
+export type DealView = "active" | "closed" | "inactive" | "pipeline" | "all";
 
 const VIEW_STAGES: Record<Exclude<DealView, "all">, Stage[]> = {
   active: ACTIVE_STAGES,
-  track: ["Track"],
   closed: ["Closed"],
-  dead: ["Dead/Lost"],
+  // The Archive page: everything parked — Track, Dead and Lost in one list.
+  inactive: ["Track", "Dead", "Lost"],
   // The Pipeline report: active stages plus Track, which it shows separately.
   pipeline: [...ACTIVE_STAGES, "Track"],
 };
@@ -86,6 +86,9 @@ export async function listDeals(opts: { q?: string; archived?: boolean; view?: D
       propertyCount: sql<number>`(select count(*)::int from deal_properties dp where dp.deal_id = "deals"."id")`,
       totalSf: sql<number>`(select coalesce(sum(p.building_sf), 0)::int from deal_properties dp join properties p on p.id = dp.property_id where dp.deal_id = "deals"."id")`,
       furthestStage: deals.furthestStage,
+      lostNote: deals.lostNote,
+      deadNote: deals.deadNote,
+      lostTo: sql<string | null>`(select co.name from companies co where co.id = "deals"."lost_to_company_id")`,
       leadAnalyst: sql<string | null>`(select c.first_name || ' ' || c.last_name from deal_team t join contacts c on c.id = t.contact_id where t.deal_id = "deals"."id" and t.is_lead_analyst limit 1)`,
       // "Haili R." — the Pipeline report's short form.
       leadAnalystShort: sql<string | null>`(select c.first_name || ' ' || left(c.last_name, 1) || '.' from deal_team t join contacts c on c.id = t.contact_id where t.deal_id = "deals"."id" and t.is_lead_analyst limit 1)`,
@@ -199,7 +202,7 @@ export async function createDeal(input: DealInput, by: Editor) {
 
 export async function updateDeal(id: string, input: DealInput, by: Editor) {
   const [current] = await db.select({ stage: deals.stage, furthestStage: deals.furthestStage }).from(deals).where(eq(deals.id, id));
-  // A typed correction counts unless the field is read-only (deal parked in Track or Dead/Lost);
+  // A typed correction counts unless the field is read-only (deal parked in Track, Dead or Lost);
   // either way it's never behind the stage being saved.
   const base = current && furthestStageLocked(current.stage, by) ? current.furthestStage : input.furthestStage;
   await db
@@ -315,12 +318,13 @@ export type StageMove = {
   date?: string | null;
   lostToCompanyId?: string | null;
   lostNote?: string | null;
+  deadNote?: string | null;
 };
 
 /**
  * Moves a deal to any stage — forward, back or skipping. Never blocked by missing
  * data. Records the stage's date when given; winning the pitch (→ Engaged) marks it
- * Won, and a pitch that goes Dead/Lost from BOV 1–2 is marked Lost.
+ * Won, and a pitch that goes to Lost from BOV 1–2 is marked Lost.
  */
 export async function moveStage(dealId: string, move: StageMove, byId: string) {
   const [current] = await db.select({ stage: deals.stage, furthestStage: deals.furthestStage }).from(deals).where(eq(deals.id, dealId));
@@ -335,11 +339,12 @@ export async function moveStage(dealId: string, move: StageMove, byId: string) {
   if (dateField && move.date) set[dateField] = move.date;
   const fromPitch = current.stage === "BOV 1" || current.stage === "BOV 2";
   if (move.stage === "Engaged" && fromPitch) set.pitchStatus = "Won";
-  if (move.stage === "Dead/Lost" && fromPitch) {
-    set.pitchStatus = "Lost";
+  if (move.stage === "Lost") {
+    if (fromPitch) set.pitchStatus = "Lost";
     if (move.lostToCompanyId !== undefined) set.lostToCompanyId = move.lostToCompanyId;
     if (move.lostNote !== undefined) set.lostNote = move.lostNote;
   }
+  if (move.stage === "Dead" && move.deadNote !== undefined) set.deadNote = move.deadNote;
   await db.update(deals).set(set).where(eq(deals.id, dealId));
 }
 

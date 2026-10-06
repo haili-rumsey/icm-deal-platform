@@ -61,6 +61,7 @@ function parse(fd: FormData): DealInput | string {
     pitchStatus: oneOf(fd, "pitchStatus", PITCH_STATUSES),
     lostToCompanyId: str(fd, "lostToCompanyId"),
     lostNote: str(fd, "lostNote"),
+    deadNote: str(fd, "deadNote"),
     wonDate: str(fd, "wonDate"),
     launchDate: str(fd, "launchDate"),
     callForOffersDate: str(fd, "callForOffersDate"),
@@ -257,6 +258,7 @@ export async function moveStageAction(dealId: string, _prev: StageState, fd: For
       date,
       lostToCompanyId: fd.has("lostToCompanyId") ? str(fd, "lostToCompanyId") : undefined,
       lostNote: fd.has("lostNote") ? str(fd, "lostNote") : undefined,
+      deadNote: fd.has("deadNote") ? str(fd, "deadNote") : undefined,
     },
     user.id,
   );
