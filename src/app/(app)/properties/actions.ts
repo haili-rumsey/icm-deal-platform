@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { requireUser } from "@/auth";
 import type { SaveState } from "@/components/record-page";
 import { BUILDING_CLASSES, CONFIGURATIONS, SPRINKLER_TYPES, TENANCY } from "@/domain/options";
@@ -46,7 +46,7 @@ export async function saveProperty(id: string | null, _prev: SaveState, fd: Form
     revalidatePath("/properties");
     // Coming from a deal: attach the new property to it straight away.
     const dealId = str(fd, "returnToDeal");
-    redirect(dealId ? `/deals/${dealId}?addProperty=${newId}` : `/properties/${newId}`);
+    redirect(dealId ? `/deals/${dealId}?addProperty=${newId}` : `/properties/${newId}`, RedirectType.replace);
   }
   await updateProperty(id, input, owners, user.id);
   revalidatePath("/properties", "layout");

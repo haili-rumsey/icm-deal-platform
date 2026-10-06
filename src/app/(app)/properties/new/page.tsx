@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { CommandBar, CommandLink } from "@/components/command-bar";
 import { Section } from "@/components/fields";
-import { MainForm, RecordFormProvider, RecordHeader, SaveCommand } from "@/components/record-page";
+import { MainForm, RecordFormProvider, RecordHeader, BackCommand, SaveCommand } from "@/components/record-page";
 import { searchParam } from "@/lib/params";
 import { companyOptions } from "@/server/companies";
 import { geoLookup } from "@/server/geography";
@@ -17,6 +17,7 @@ export default async function NewPropertyPage({ searchParams }: PageProps<"/prop
   return (
     <RecordFormProvider action={saveProperty.bind(null, null)}>
       <CommandBar>
+        <BackCommand fallbackHref="/properties" />
         <SaveCommand label={dealId ? "Save and add to deal" : "Save"} />
         <CommandLink href={dealId ? `/deals/${dealId}` : "/properties"} icon={X}>
           Cancel

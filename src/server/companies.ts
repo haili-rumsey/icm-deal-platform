@@ -35,7 +35,9 @@ export async function listCompanies(opts: { q?: string; archived?: boolean } = {
       websiteDomain: companies.websiteDomain,
       noWebsite: companies.noWebsite,
       types: companies.types,
+      investmentStrategies: companies.investmentStrategies,
       archivedAt: companies.archivedAt,
+      dealCount: sql<number>`(select count(distinct dp.deal_id)::int from deal_parties dp where dp.company_id = "companies"."id")`,
       contactCount: sql<number>`(select count(*)::int from contacts ct where ct.company_id = "companies"."id" and ct.archived_at is null)`,
     })
     .from(companies)

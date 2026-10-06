@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { createContext, useActionState, useContext, useEffect, useRef, useState } from "react";
-import { Archive, ArchiveRestore, Save, Trash2 } from "lucide-react";
+import { Archive, ArchiveRestore, ArrowLeft, Save, Trash2 } from "lucide-react";
 import { archiveAction, deleteAction, type DeleteState } from "@/app/(app)/housekeeping-actions";
 import type { EntityKind } from "@/server/housekeeping";
 import { CommandButton } from "./command-buttons";
@@ -121,6 +121,45 @@ export function MainForm({ children, readOnly }: { children: React.ReactNode; re
       {/* Lets Enter-to-submit work from any field. */}
       <button type="submit" className="hidden" aria-hidden tabIndex={-1} />
     </form>
+  );
+}
+
+/**
+ * Back arrow at the left of the command bar: returns to the previous page, or to
+ * `fallbackHref` (the record's list) when this page was opened directly. Asks first
+ * if there are unsaved changes, like any other in-app link.
+ */
+export function BackCommand({ fallbackHref }: { fallbackHref: string }) {
+  const { dirty, setDirty } = useRecordForm();
+  const router = useRouter();
+  const [confirmLeave, leaveDialog] = useConfirm();
+  async function goBack() {
+    if (dirty) {
+      const leave = await confirmLeave({
+        title: "Unsaved changes",
+        message: "You've changed this record without saving. Leaving this page will discard those changes. To keep them, cancel and click Save first.",
+        confirmLabel: "Leave without saving",
+        cancelLabel: "Cancel",
+      });
+      if (!leave) return;
+      setDirty(false);
+    }
+    if (window.history.length > 1) router.back();
+    else router.push(fallbackHref);
+  }
+  return (
+    <>
+      {leaveDialog}
+      <button
+        type="button"
+        onClick={goBack}
+        aria-label="Back"
+        title="Back"
+        className="flex shrink-0 items-center rounded px-2 py-1.5 hover:bg-hover"
+      >
+        <ArrowLeft size={18} strokeWidth={1.75} className="text-navy" />
+      </button>
+    </>
   );
 }
 

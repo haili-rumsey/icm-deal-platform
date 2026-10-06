@@ -2,11 +2,12 @@ import { Plus } from "lucide-react";
 import { CommandBar, CommandLink, RefreshCommand } from "@/components/command-bar";
 import { DataGrid } from "@/components/data-grid";
 import { searchParam } from "@/lib/params";
+import { myListLayout } from "@/server/list-layouts";
 import { listProperties } from "@/server/properties";
 
 export default async function PropertiesPage({ searchParams }: PageProps<"/properties">) {
   const archived = searchParam((await searchParams).archived) === "1";
-  const rows = await listProperties({ archived });
+  const [rows, saved] = await Promise.all([listProperties({ archived }), myListLayout("properties")]);
 
   return (
     <>
@@ -17,6 +18,8 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
         <RefreshCommand />
       </CommandBar>
       <DataGrid
+        listKey="properties"
+        savedColumns={saved}
         views={[
           { label: "Active properties", href: "/properties", active: !archived },
           { label: "Archived properties", href: "/properties?archived=1", active: archived },
@@ -30,6 +33,15 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
           { key: "submarket", label: "Submarket" },
           { key: "sf", label: "SF", kind: "number" },
           { key: "deals", label: "Deals", kind: "number" },
+          { key: "owners", label: "Current owner", defaultHidden: true },
+          { key: "acreage", label: "Acres", kind: "number", defaultHidden: true },
+          { key: "zip", label: "Zip", defaultHidden: true },
+          { key: "county", label: "County", defaultHidden: true },
+          { key: "buildingClass", label: "Class", defaultHidden: true },
+          { key: "yearBuilt", label: "Year built", kind: "number", defaultHidden: true },
+          { key: "clearHeight", label: "Clear height (ft)", kind: "number", defaultHidden: true },
+          { key: "configuration", label: "Configuration", defaultHidden: true },
+          { key: "tenancy", label: "Tenancy", defaultHidden: true },
         ]}
         rows={rows.map((p) => ({
           id: p.id,
@@ -43,6 +55,15 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
           sf: p.buildingSf,
           deals: p.dealCount,
           unverified: !p.addressVerified,
+          owners: p.owners,
+          acreage: p.acreage === null ? null : Number(p.acreage),
+          zip: p.zip,
+          county: p.county,
+          buildingClass: p.buildingClass,
+          yearBuilt: p.yearBuilt,
+          clearHeight: p.clearHeightFt === null ? null : Number(p.clearHeightFt),
+          configuration: p.configuration,
+          tenancy: p.tenancy,
         }))}
       />
     </>

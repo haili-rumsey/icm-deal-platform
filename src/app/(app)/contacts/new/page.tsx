@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { CommandBar, CommandLink } from "@/components/command-bar";
 import { Section } from "@/components/fields";
-import { MainForm, RecordFormProvider, RecordHeader, SaveCommand } from "@/components/record-page";
+import { MainForm, RecordFormProvider, RecordHeader, BackCommand, SaveCommand } from "@/components/record-page";
 import { searchParam } from "@/lib/params";
 import { companyOptions } from "@/server/companies";
 import { saveContact } from "../actions";
@@ -15,6 +15,7 @@ export default async function NewContactPage({ searchParams }: PageProps<"/conta
   return (
     <RecordFormProvider action={saveContact.bind(null, null)}>
       <CommandBar>
+        <BackCommand fallbackHref="/contacts" />
         <SaveCommand />
         <CommandLink href={companyId ? `/companies/${companyId}` : "/contacts"} icon={X}>
           Cancel

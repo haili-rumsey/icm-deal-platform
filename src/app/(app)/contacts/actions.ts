@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { requireUser } from "@/auth";
 import type { SaveState } from "@/components/record-page";
 import { bool, str } from "@/lib/form";
@@ -35,7 +35,7 @@ export async function saveContact(id: string | null, _prev: SaveState, fd: FormD
   if (!id) {
     const newId = await createContact(input, user.id);
     revalidatePath("/contacts");
-    redirect(`/contacts/${newId}`);
+    redirect(`/contacts/${newId}`, RedirectType.replace);
   }
   await updateContact(id, input, user.id);
   revalidatePath("/contacts", "layout");

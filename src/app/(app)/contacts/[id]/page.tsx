@@ -10,6 +10,7 @@ import {
   ModifiedStamp,
   RecordFormProvider,
   RecordHeader,
+  BackCommand,
   SaveCommand,
 } from "@/components/record-page";
 import { companyOptions } from "@/server/companies";
@@ -28,6 +29,7 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
   return (
     <RecordFormProvider action={saveContact.bind(null, id)}>
       <CommandBar>
+        <BackCommand fallbackHref="/contacts" />
         <SaveCommand />
         <RefreshCommand />
         <CommandDivider />

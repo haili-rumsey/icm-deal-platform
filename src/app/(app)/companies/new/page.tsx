@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { CommandBar, CommandLink } from "@/components/command-bar";
 import { Section } from "@/components/fields";
-import { MainForm, RecordFormProvider, RecordHeader, SaveCommand } from "@/components/record-page";
+import { MainForm, RecordFormProvider, RecordHeader, BackCommand, SaveCommand } from "@/components/record-page";
 import { saveCompany } from "../actions";
 import { CompanyFields } from "../company-fields";
 
@@ -9,6 +9,7 @@ export default function NewCompanyPage() {
   return (
     <RecordFormProvider action={saveCompany.bind(null, null)}>
       <CommandBar>
+        <BackCommand fallbackHref="/companies" />
         <SaveCommand />
         <CommandLink href="/companies" icon={X}>
           Cancel

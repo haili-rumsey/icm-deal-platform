@@ -9,6 +9,7 @@ import {
   ModifiedStamp,
   RecordFormProvider,
   RecordHeader,
+  BackCommand,
   SaveCommand,
   Tabs,
 } from "@/components/record-page";
@@ -72,6 +73,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
   return (
     <RecordFormProvider action={saveDeal.bind(null, id)}>
       <CommandBar>
+        <BackCommand fallbackHref="/deals" />
         {!locked && <SaveCommand />}
         <RefreshCommand />
         {!locked && (

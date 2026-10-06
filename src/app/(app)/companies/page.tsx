@@ -3,10 +3,11 @@ import { CommandBar, CommandLink, RefreshCommand } from "@/components/command-ba
 import { DataGrid } from "@/components/data-grid";
 import { searchParam } from "@/lib/params";
 import { listCompanies } from "@/server/companies";
+import { myListLayout } from "@/server/list-layouts";
 
 export default async function CompaniesPage({ searchParams }: PageProps<"/companies">) {
   const archived = searchParam((await searchParams).archived) === "1";
-  const rows = await listCompanies({ archived });
+  const [rows, saved] = await Promise.all([listCompanies({ archived }), myListLayout("companies")]);
 
   return (
     <>
@@ -17,6 +18,8 @@ export default async function CompaniesPage({ searchParams }: PageProps<"/compan
         <RefreshCommand />
       </CommandBar>
       <DataGrid
+        listKey="companies"
+        savedColumns={saved}
         views={[
           { label: "Active companies", href: "/companies", active: !archived },
           { label: "Archived companies", href: "/companies?archived=1", active: archived },
@@ -26,6 +29,8 @@ export default async function CompaniesPage({ searchParams }: PageProps<"/compan
           { key: "website", label: "Website", flagKey: "noWebsite", flagLabel: "No website" },
           { key: "types", label: "Type" },
           { key: "contacts", label: "Contacts", kind: "number" },
+          { key: "deals", label: "Deals", kind: "number", defaultHidden: true },
+          { key: "strategies", label: "Investment strategy", defaultHidden: true },
         ]}
         rows={rows.map((c) => ({
           id: c.id,
@@ -35,6 +40,8 @@ export default async function CompaniesPage({ searchParams }: PageProps<"/compan
           noWebsite: c.noWebsite,
           types: c.types.join(", "),
           contacts: c.contactCount,
+          deals: c.dealCount,
+          strategies: c.investmentStrategies.join(", "),
         }))}
       />
     </>

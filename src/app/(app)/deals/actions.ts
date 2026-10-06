@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { requireUser } from "@/auth";
 import type { SaveState } from "@/components/record-page";
 import {
@@ -135,7 +135,7 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
     const newId = await createDeal(input, user.id);
     await syncTeam(newId, team);
     revalidatePath("/deals");
-    redirect(`/deals/${newId}`);
+    redirect(`/deals/${newId}`, RedirectType.replace);
   }
   try {
     await assertCanEdit(id, user);
@@ -164,7 +164,7 @@ export async function addPropertyAction(dealId: string, fd: FormData) {
   await addDealProperty(dealId, propertyId, user.id);
   refresh(dealId);
   // Drop the ?addProperty= hint once it's been used.
-  redirect(`/deals/${dealId}`);
+  redirect(`/deals/${dealId}`, RedirectType.replace);
 }
 
 export async function removePropertyAction(dealId: string, propertyId: string) {

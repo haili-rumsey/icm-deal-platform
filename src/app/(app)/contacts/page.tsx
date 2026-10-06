@@ -3,10 +3,11 @@ import { CommandBar, CommandLink, RefreshCommand } from "@/components/command-ba
 import { DataGrid } from "@/components/data-grid";
 import { searchParam } from "@/lib/params";
 import { listContacts } from "@/server/contacts";
+import { myListLayout } from "@/server/list-layouts";
 
 export default async function ContactsPage({ searchParams }: PageProps<"/contacts">) {
   const archived = searchParam((await searchParams).archived) === "1";
-  const rows = await listContacts({ archived });
+  const [rows, saved] = await Promise.all([listContacts({ archived }), myListLayout("contacts")]);
 
   return (
     <>
@@ -17,6 +18,8 @@ export default async function ContactsPage({ searchParams }: PageProps<"/contact
         <RefreshCommand />
       </CommandBar>
       <DataGrid
+        listKey="contacts"
+        savedColumns={saved}
         views={[
           { label: "Active contacts", href: "/contacts", active: !archived },
           { label: "Archived contacts", href: "/contacts?archived=1", active: archived },

@@ -84,6 +84,19 @@ export async function listDeals(opts: { q?: string; archived?: boolean; view?: D
       propertyCount: sql<number>`(select count(*)::int from deal_properties dp where dp.deal_id = "deals"."id")`,
       totalSf: sql<number>`(select coalesce(sum(p.building_sf), 0)::int from deal_properties dp join properties p on p.id = dp.property_id where dp.deal_id = "deals"."id")`,
       leadAnalyst: sql<string | null>`(select c.first_name || ' ' || c.last_name from deal_team t join contacts c on c.id = t.contact_id where t.deal_id = "deals"."id" and t.is_lead_analyst limit 1)`,
+      // Extra columns offered under "Edit columns".
+      reappsId: deals.reappsId,
+      closeDate: deals.closeDate,
+      wonDate: deals.wonDate,
+      launchDate: deals.launchDate,
+      inHouseGross: deals.inHouseGross,
+      sideA: sql<string | null>`(select string_agg(distinct co.name, ', ') from deal_parties dp join companies co on co.id = dp.company_id where dp.deal_id = "deals"."id" and dp.side = 'A')`,
+      sideB: sql<string | null>`(select string_agg(distinct co.name, ', ') from deal_parties dp join companies co on co.id = dp.company_id where dp.deal_id = "deals"."id" and dp.side = 'B')`,
+      cities: sql<string | null>`(select string_agg(distinct p.city, ', ') from deal_properties dp join properties p on p.id = dp.property_id where dp.deal_id = "deals"."id")`,
+      states: sql<string | null>`(select string_agg(distinct p.state, ', ') from deal_properties dp join properties p on p.id = dp.property_id where dp.deal_id = "deals"."id")`,
+      submarkets: sql<string | null>`(select string_agg(distinct s.name, ', ') from deal_properties dp join properties p on p.id = dp.property_id join submarkets s on s.id = p.submarket_id where dp.deal_id = "deals"."id")`,
+      leadBrokers: sql<string | null>`(select string_agg(c.first_name || ' ' || c.last_name, ', ' order by c.last_name) from deal_team t join contacts c on c.id = t.contact_id where t.deal_id = "deals"."id" and t.is_lead_broker)`,
+      team: sql<string | null>`(select string_agg(c.first_name || ' ' || c.last_name, ', ' order by c.last_name) from deal_team t join contacts c on c.id = t.contact_id where t.deal_id = "deals"."id")`,
     })
     .from(deals)
     .where(and(...where))

@@ -11,6 +11,7 @@ import {
   ModifiedStamp,
   RecordFormProvider,
   RecordHeader,
+  BackCommand,
   SaveCommand,
   Tabs,
 } from "@/components/record-page";
@@ -35,6 +36,7 @@ export default async function CompanyPage({ params }: PageProps<"/companies/[id]
   return (
     <RecordFormProvider action={saveCompany.bind(null, id)}>
       <CommandBar>
+        <BackCommand fallbackHref="/companies" />
         <SaveCommand />
         <CommandLink href={`/contacts/new?company=${id}`} icon={Plus}>
           New contact

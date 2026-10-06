@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
+import { redirect, RedirectType } from "next/navigation";
 import { requireUser } from "@/auth";
 import type { SaveState } from "@/components/record-page";
 import { COMPANY_TYPES, INVESTMENT_STRATEGIES } from "@/domain/options";
@@ -32,7 +32,7 @@ export async function saveCompany(id: string | null, _prev: SaveState, fd: FormD
   if (!id) {
     const newId = await createCompany(input, user.id);
     revalidatePath("/companies");
-    redirect(`/companies/${newId}`);
+    redirect(`/companies/${newId}`, RedirectType.replace);
   }
   await updateCompany(id, input, user.id);
   revalidatePath("/companies", "layout");

@@ -10,6 +10,7 @@ import {
   ModifiedStamp,
   RecordFormProvider,
   RecordHeader,
+  BackCommand,
   SaveCommand,
   Tabs,
 } from "@/components/record-page";
@@ -32,6 +33,7 @@ export default async function PropertyPage({ params }: PageProps<"/properties/[i
   return (
     <RecordFormProvider action={saveProperty.bind(null, id)}>
       <CommandBar>
+        <BackCommand fallbackHref="/properties" />
         <SaveCommand />
         <RefreshCommand />
         <CommandDivider />

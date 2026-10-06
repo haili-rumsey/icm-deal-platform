@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useState } from "react";
-import { ArrowDown, ArrowUp, ChevronDown, Search } from "lucide-react";
+import { useMemo, useRef, useState, useTransition } from "react";
+import { ArrowDown, ArrowUp, ChevronDown, Columns3, Search } from "lucide-react";
+import { saveListLayoutAction } from "@/app/(app)/list-layout-actions";
 
 export type Cell = string | number | boolean | null;
 export type Row = Record<string, Cell>;
@@ -18,6 +19,8 @@ export type Column = {
   flagLabel?: string;
   /** Sort on a different field than the one displayed (e.g. an ISO date behind a label). */
   sortKey?: string;
+  /** Offered under "Edit columns" but not shown until someone switches it on. */
+  defaultHidden?: boolean;
 };
 
 export type View = { label: string; href: string; active: boolean };
@@ -28,25 +31,50 @@ function display(v: Cell, kind: Column["kind"]) {
   return String(v);
 }
 
+/** Visible column keys: the saved choice (unknown keys dropped), else the defaults. The first column always shows. */
+function visibleKeys(columns: Column[], saved: string[] | null | undefined) {
+  const known = new Set(columns.map((c) => c.key));
+  const picked = saved?.filter((k) => known.has(k)) ?? [];
+  const keys = picked.length ? picked : columns.filter((c) => !c.defaultHidden).map((c) => c.key);
+  return new Set([columns[0].key, ...keys]);
+}
+
 /**
  * A Dynamics-style list: view switcher in the title, instant Quick find,
- * click a column header to sort (click again to reverse).
+ * click a column header to sort (click again to reverse), and "Edit columns"
+ * to choose what shows — remembered per person under `listKey`.
  */
 export function DataGrid({
   views,
-  columns,
+  columns: allColumns,
   rows,
   defaultSort,
+  listKey,
+  savedColumns,
   emptyText = "We didn't find anything to show here.",
 }: {
   views: View[];
   columns: Column[];
   rows: Row[];
   defaultSort?: { key: string; dir: "asc" | "desc" };
+  /** Where this person's column choice is saved, e.g. "deals-closed". */
+  listKey: string;
+  savedColumns?: string[] | null;
   emptyText?: string;
 }) {
+  const [visible, setVisible] = useState(() => visibleKeys(allColumns, savedColumns));
+  const columns = useMemo(() => allColumns.filter((c) => visible.has(c.key)), [allColumns, visible]);
+  const [, startSave] = useTransition();
+  const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  function choose(next: Set<string> | null) {
+    setVisible(next ?? visibleKeys(allColumns, null));
+    // Several quick clicks become one save of the final choice.
+    if (saveTimer.current) clearTimeout(saveTimer.current);
+    const columns = next ? allColumns.filter((c) => next.has(c.key)).map((c) => c.key) : null;
+    saveTimer.current = setTimeout(() => startSave(() => saveListLayoutAction(listKey, columns)), 400);
+  }
   const [query, setQuery] = useState("");
-  const [sort, setSort] = useState(defaultSort ?? { key: columns[0].key, dir: "asc" as const });
+  const [sort, setSort] = useState(defaultSort ?? { key: allColumns[0].key, dir: "asc" as const });
   const active = views.find((v) => v.active) ?? views[0];
 
   const shown = useMemo(() => {
@@ -92,7 +120,39 @@ export function DataGrid({
             ))}
           </ul>
         </details>
-        <label className="flex items-center gap-2 rounded border border-border px-2.5 py-1.5 sm:w-72 focus-within:border-navy">
+        <div className="flex items-center gap-2">
+        <details className="relative">
+          <summary className="flex cursor-pointer list-none items-center gap-1.5 whitespace-nowrap rounded border border-border px-2.5 py-1.5 text-sm hover:bg-hover">
+            <Columns3 size={16} strokeWidth={1.75} className="text-navy" />
+            Edit columns
+          </summary>
+          <div className="absolute right-0 z-20 mt-1 max-h-96 w-64 overflow-y-auto rounded-md border border-border bg-card py-1 shadow-lg">
+            {allColumns.map((c, i) => (
+              <label key={c.key} className={`flex items-center gap-2 px-3 py-1.5 text-sm ${i === 0 ? "text-muted" : "cursor-pointer hover:bg-hover"}`}>
+                <input
+                  type="checkbox"
+                  checked={visible.has(c.key)}
+                  disabled={i === 0}
+                  onChange={(e) => {
+                    const next = new Set(visible);
+                    if (e.target.checked) next.add(c.key);
+                    else next.delete(c.key);
+                    choose(next);
+                  }}
+                />
+                {c.label}
+              </label>
+            ))}
+            <button
+              type="button"
+              onClick={() => choose(null)}
+              className="mt-1 w-full border-t border-border px-3 pt-2 pb-1 text-left text-xs text-link hover:underline"
+            >
+              Reset to default columns
+            </button>
+          </div>
+        </details>
+        <label className="flex flex-1 items-center gap-2 rounded border border-border px-2.5 py-1.5 sm:w-72 sm:flex-none focus-within:border-navy">
           <Search size={16} className="text-muted" />
           <input
             value={query}
@@ -102,6 +162,7 @@ export function DataGrid({
             className="w-full bg-transparent text-sm outline-none"
           />
         </label>
+        </div>
       </div>
 
       <div className="mt-3 overflow-x-auto">

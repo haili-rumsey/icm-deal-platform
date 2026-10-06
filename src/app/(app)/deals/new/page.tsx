@@ -1,7 +1,7 @@
 import { X } from "lucide-react";
 import { CommandBar, CommandLink } from "@/components/command-bar";
 import { Section } from "@/components/fields";
-import { MainForm, RecordFormProvider, RecordHeader, SaveCommand } from "@/components/record-page";
+import { MainForm, RecordFormProvider, RecordHeader, BackCommand, SaveCommand } from "@/components/record-page";
 import { companyOptions } from "@/server/companies";
 import { icmTeamOptions, streamPeopleOptions } from "@/server/contacts";
 import { saveDeal } from "../actions";
@@ -16,6 +16,7 @@ export default async function NewDealPage() {
   return (
     <RecordFormProvider action={saveDeal.bind(null, null)}>
       <CommandBar>
+        <BackCommand fallbackHref="/deals" />
         <SaveCommand />
         <CommandLink href="/deals" icon={X}>
           Cancel
