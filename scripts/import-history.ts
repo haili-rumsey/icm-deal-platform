@@ -144,7 +144,7 @@ async function main() {
   console.log(`\n${commit ? "IMPORTED" : "PRACTICE RUN — nothing saved"}`);
   console.log(`Deals loaded: ${r.imported.length} (closed: ${c.closed}; IOS: ${c.ios} — ${c.iosSales} sales, ${c.iosLeases} leases)`);
   console.log(`Already in the system, skipped: ${r.skippedExisting.length}`);
-  console.log(`Properties: ${r.propertiesCreated} new, ${r.propertiesReused} links to an existing property`);
+  console.log(`Properties: ${r.propertiesCreated} new, ${r.propertiesReused} links to an existing property; ${r.propertiesWithOwner} now have a current owner`);
   console.log(`Companies: ${r.companiesCreated.length} new. People: ${r.contactsCreated.length} new.`);
   list("Renamed existing companies", r.companiesRenamed);
   list("New people", r.contactsCreated);

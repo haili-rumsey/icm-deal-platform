@@ -2,9 +2,10 @@ import "server-only";
 import { and, eq, inArray, isNotNull, sql } from "drizzle-orm";
 import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import * as schema from "@/db/schema";
-import { companies, contacts, dealParties, dealProperties, deals, dealTeam, properties } from "@/db/schema";
+import { companies, contacts, dealParties, dealProperties, deals, dealTeam, properties, propertyOwners } from "@/db/schema";
 import { personKey, type ImportDeal, type ImportProperty } from "@/domain/historical-import";
 import type { GeocodeMatch } from "./geocode";
+import { setOwnersFromLatestSale } from "./property-owners";
 
 /**
  * Writes prepared historical deals (see src/domain/historical-import.ts). Meant to
@@ -26,6 +27,7 @@ export type ImportReport = {
   contactsCreated: string[];
   propertiesCreated: number;
   propertiesReused: number;
+  propertiesWithOwner: number;
   unverified: string[];
   sizeConflicts: string[];
   warnings: { reappsId: string; message: string }[];
@@ -51,6 +53,7 @@ export async function importDeals(
     contactsCreated: [],
     propertiesCreated: 0,
     propertiesReused: 0,
+    propertiesWithOwner: 0,
     unverified: [],
     sizeConflicts: [],
     warnings: [],
@@ -188,6 +191,7 @@ export async function importDeals(
     return row.id;
   }
 
+  const touched = new Set<string>();
   for (const d of rows) {
     if (existingIds.has(d.reappsId)) {
       report.skippedExisting.push(d.reappsId);
@@ -244,7 +248,16 @@ export async function importDeals(
     if (team.size) await db.insert(dealTeam).values([...team].map((contactId) => ({ dealId: deal.id, contactId })));
 
     report.imported.push(d.reappsId);
+    for (const id of propertyIds) touched.add(id);
   }
+  // Current owner = buyer on each property's latest closed sale.
+  await setOwnersFromLatestSale(db, [...touched]);
+  report.propertiesWithOwner = (
+    await db
+      .selectDistinct({ id: propertyOwners.propertyId })
+      .from(propertyOwners)
+      .where(touched.size ? inArray(propertyOwners.propertyId, [...touched]) : sql`false`)
+  ).length;
   return report;
 }
 

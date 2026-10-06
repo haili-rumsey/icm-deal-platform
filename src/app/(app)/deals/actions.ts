@@ -17,6 +17,8 @@ import {
 } from "@/domain/options";
 import { closeBlockedMessage } from "@/domain/close-check";
 import { bool, dec, ids, oneOf, str } from "@/lib/form";
+import { db } from "@/db";
+import { setOwnersForDeal } from "@/server/property-owners";
 import { createCompany } from "@/server/companies";
 import {
   addDealParty,
@@ -123,7 +125,8 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
       message: "A new deal can't start at Closed. Save it at Under Contract, add its property and buyer side, then move it to Closed.",
     };
   }
-  if (id && input.stage === "Closed" && (await currentStage(id)) !== "Closed") {
+  const closing = !!id && input.stage === "Closed" && (await currentStage(id)) !== "Closed";
+  if (id && closing) {
     // Moving into Closed: check what's being saved now, plus the deal's properties and parties.
     const missing = await missingToClose(id, { ...input, teamCount: team.teamIds.length });
     if (missing.length) return { ok: false, message: closeBlockedMessage(missing) };
@@ -142,7 +145,10 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
   }
   await updateDeal(id, input, user.id);
   await syncTeam(id, team);
+  // A closed sale makes its buyer the properties' current owner.
+  if (closing) await setOwnersForDeal(db, id);
   revalidatePath("/deals", "layout");
+  if (closing) revalidatePath("/properties", "layout");
   return { ok: true, message: "Saved." };
 }
 
@@ -236,7 +242,8 @@ export async function moveStageAction(dealId: string, _prev: StageState, fd: For
   const stage = oneOf(fd, "stage", STAGES);
   if (!stage) return { message: "Pick a stage." };
   const date = fd.has("skipDate") ? null : str(fd, "date");
-  if (stage === "Closed" && (await currentStage(dealId)) !== "Closed") {
+  const closing = stage === "Closed" && (await currentStage(dealId)) !== "Closed";
+  if (closing) {
     const missing = await missingToClose(dealId, date ? { closeDate: date } : {});
     if (missing.length) return { message: closeBlockedMessage(missing) };
   }
@@ -250,6 +257,10 @@ export async function moveStageAction(dealId: string, _prev: StageState, fd: For
     },
     user.id,
   );
+  if (closing) {
+    await setOwnersForDeal(db, dealId);
+    revalidatePath("/properties", "layout");
+  }
   refresh(dealId);
   return null;
 }
