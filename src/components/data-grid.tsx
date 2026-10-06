@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, Columns3, FileSpreadsheet, ListFilter, Search, X } from "lucide-react";
 import { saveListLayoutAction } from "@/app/(app)/list-layout-actions";
 import { CommandBar, CommandButton, CommandDivider } from "./command-bar";
@@ -94,6 +94,25 @@ export function DataGrid({
   const [exporting, setExporting] = useState(false);
   const active = views.find((v) => v.active) ?? views[0];
 
+  // The view switcher and Edit columns are <details> drop-downs, which only close
+  // when their own button is clicked; also close them on a click elsewhere or Escape.
+  const toolbar = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    function closeOthers(keep: EventTarget | null) {
+      toolbar.current?.querySelectorAll("details[open]").forEach((d) => {
+        if (!(keep instanceof Node && d.contains(keep))) d.removeAttribute("open");
+      });
+    }
+    const onDown = (e: MouseEvent) => closeOthers(e.target);
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && closeOthers(null);
+    document.addEventListener("mousedown", onDown);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", onDown);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, []);
+
   function setFilter(key: string, f: Filter | null) {
     setFilters((prev) => {
       const next = { ...prev };
@@ -147,7 +166,7 @@ export function DataGrid({
         </CommandButton>
       </CommandBar>
       <div className="m-3 rounded-md border border-border bg-card shadow-sm sm:m-5">
-        <div className="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
+        <div ref={toolbar} className="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <details className="group relative">
             <summary className="flex cursor-pointer list-none items-center gap-2 font-serif text-lg text-foreground">
               {active.label}

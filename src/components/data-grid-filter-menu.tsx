@@ -7,6 +7,12 @@ import { BLANK, cellValues, parseAmount, quarterRange, valueType, yearRange, typ
 
 const WIDTH = 272;
 
+/** Just under the anchor, kept inside the window. */
+function place(anchor: HTMLElement) {
+  const r = anchor.getBoundingClientRect();
+  return { top: r.bottom + 4, left: Math.max(8, Math.min(r.left, window.innerWidth - WIDTH - 8)) };
+}
+
 /**
  * The drop-down under a column header's filter icon. Text columns get Excel's
  * checklist of values; numbers and money a min–max; dates a from–to with
@@ -29,12 +35,10 @@ export function FilterMenu({
   onClose: () => void;
 }) {
   const ref = useRef<HTMLDivElement>(null);
-  // Fixed to the viewport so the table's horizontal scroll box can't clip it. The menu is
-  // keyed per column and closes on scroll or resize, so measuring once is enough.
-  const [pos] = useState(() => {
-    const r = anchor.getBoundingClientRect();
-    return { top: r.bottom + 4, left: Math.max(8, Math.min(r.left, window.innerWidth - WIDTH - 8)) };
-  });
+  // Fixed to the viewport so the table's horizontal scroll box can't clip it. It follows its
+  // column as the page moves — scrolling, or the list shrinking as a filter applies — rather
+  // than closing, so you can fill in both boxes of a range.
+  const [pos, setPos] = useState(() => place(anchor));
   const close = useRef(onClose);
   useEffect(() => {
     close.current = onClose;
@@ -42,24 +46,24 @@ export function FilterMenu({
 
   useEffect(() => {
     const onClose = () => close.current();
+    let frame = requestAnimationFrame(function follow() {
+      if (!anchor.isConnected) return onClose(); // e.g. its chip was removed
+      const next = place(anchor);
+      setPos((p) => (p.top === next.top && p.left === next.left ? p : next));
+      frame = requestAnimationFrame(follow);
+    });
     function onDown(e: MouseEvent) {
       if (!ref.current?.contains(e.target as Node) && !anchor.contains(e.target as Node)) onClose();
     }
     function onKey(e: KeyboardEvent) {
       if (e.key === "Escape") onClose();
     }
-    function onScroll(e: Event) {
-      if (!ref.current?.contains(e.target as Node)) onClose();
-    }
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
-    window.addEventListener("scroll", onScroll, true);
-    window.addEventListener("resize", onClose);
     return () => {
+      cancelAnimationFrame(frame);
       document.removeEventListener("mousedown", onDown);
       document.removeEventListener("keydown", onKey);
-      window.removeEventListener("scroll", onScroll, true);
-      window.removeEventListener("resize", onClose);
     };
   }, [anchor]);
 
