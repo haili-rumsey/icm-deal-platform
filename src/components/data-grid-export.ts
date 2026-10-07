@@ -20,27 +20,32 @@ function today() {
  * real Excel values, not text. A grouped list (the Pipeline report) keeps its
  * sections, subtotals and grand total. ExcelJS loads only when someone exports.
  */
-export async function exportToExcel({
-  title,
-  shown,
-  all,
-  rows,
-  grouping,
-  keepEmpty = true,
-}: {
-  title: string;
-  shown: Column[];
-  all: Column[];
-  rows: Row[];
-  grouping?: Grouping;
-  keepEmpty?: boolean;
-}) {
+export async function exportToExcel(list: ListSheet & { title: string }) {
+  const wb = await newWorkbook();
+  addListSheet(wb, list.title, list);
+  await downloadWorkbook(wb, list.title);
+}
+
+type ListSheet = { shown: Column[]; all: Column[]; rows: Row[]; grouping?: Grouping; keepEmpty?: boolean };
+export type Workbook = InstanceType<(typeof import("exceljs"))["Workbook"]>;
+
+/** ExcelJS loads only when someone exports. */
+export async function newWorkbook(): Promise<Workbook> {
   const { default: ExcelJS } = await import("exceljs");
+  return new ExcelJS.Workbook();
+}
+
+/** Excel's rules for sheet names: 31 characters, none of \ / ? * [ ] : */
+export function sheetName(name: string) {
+  return name.slice(0, 31).replace(/[\\/?*[\]:]/g, " ");
+}
+
+/** Adds one list as a sheet (see exportToExcel). */
+export function addListSheet(wb: Workbook, name: string, { shown, all, rows, grouping, keepEmpty = true }: ListSheet) {
   const showing = new Set(shown.map((c) => c.key));
   const columns = [...shown, ...all.filter((c) => !showing.has(c.key))];
 
-  const wb = new ExcelJS.Workbook();
-  const ws = wb.addWorksheet(title.slice(0, 31).replace(/[\\/?*[\]:]/g, " "), { views: [{ state: "frozen", ySplit: 1 }] });
+  const ws = wb.addWorksheet(sheetName(name), { views: [{ state: "frozen", ySplit: 1 }] });
   ws.columns = columns.map((c) => {
     const t = valueType(c);
     if (t === "text") return { header: c.label, key: c.key, width: 24 };
@@ -103,7 +108,10 @@ export async function exportToExcel({
       ws.addRow([]);
     }
   }
+}
 
+/** Saves the workbook to the person's downloads as "<title> <today>.xlsx". */
+export async function downloadWorkbook(wb: Workbook, title: string) {
   const buf = await wb.xlsx.writeBuffer();
   const url = URL.createObjectURL(new Blob([buf], { type: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" }));
   const a = document.createElement("a");

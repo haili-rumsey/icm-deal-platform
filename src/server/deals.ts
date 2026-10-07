@@ -85,6 +85,7 @@ export async function listDeals(opts: { q?: string; archived?: boolean; view?: D
       lastModifiedAt: deals.lastModifiedAt,
       propertyCount: sql<number>`(select count(*)::int from deal_properties dp where dp.deal_id = "deals"."id")`,
       totalSf: sql<number>`(select coalesce(sum(p.building_sf), 0)::int from deal_properties dp join properties p on p.id = dp.property_id where dp.deal_id = "deals"."id")`,
+      totalAcres: sql<number | null>`(select sum(p.acreage)::float from deal_properties dp join properties p on p.id = dp.property_id where dp.deal_id = "deals"."id")`,
       furthestStage: deals.furthestStage,
       lostNote: deals.lostNote,
       deadNote: deals.deadNote,

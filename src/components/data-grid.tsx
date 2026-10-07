@@ -69,6 +69,7 @@ export function DataGrid({
   savedColumns,
   commands,
   grouping,
+  embedded = false,
   emptyText = "We didn't find anything to show here.",
 }: {
   views: View[];
@@ -82,6 +83,8 @@ export function DataGrid({
   commands?: React.ReactNode;
   /** Show rows in fixed sections with subtotals (the Pipeline report's stages). */
   grouping?: Grouping;
+  /** Part of a larger page (e.g. a report's drill-down): no command bar of its own; Export sits in the toolbar. */
+  embedded?: boolean;
   emptyText?: string;
 }) {
   const [visible, setVisible] = useState(() => visibleKeys(allColumns, savedColumns));
@@ -215,14 +218,16 @@ export function DataGrid({
 
   return (
     <>
-      <CommandBar>
-        <BackCommand fallbackHref="/deals" />
-        {commands}
-        {commands && <CommandDivider />}
-        <CommandButton icon={FileSpreadsheet} onClick={onExport} disabled={exporting || shown.length === 0}>
-          {exporting ? "Exporting…" : "Export to Excel"}
-        </CommandButton>
-      </CommandBar>
+      {!embedded && (
+        <CommandBar>
+          <BackCommand fallbackHref="/deals" />
+          {commands}
+          {commands && <CommandDivider />}
+          <CommandButton icon={FileSpreadsheet} onClick={onExport} disabled={exporting || shown.length === 0}>
+            {exporting ? "Exporting…" : "Export to Excel"}
+          </CommandButton>
+        </CommandBar>
+      )}
       <div className="m-3 rounded-md border border-border bg-card shadow-sm sm:m-5">
         <div ref={toolbar} className="flex flex-col gap-3 px-4 pt-4 sm:flex-row sm:items-center sm:justify-between sm:px-5">
           <details className="group relative">
@@ -247,6 +252,17 @@ export function DataGrid({
             </ul>
           </details>
           <div className="flex items-center gap-2">
+            {embedded && (
+              <button
+                type="button"
+                onClick={onExport}
+                disabled={exporting || shown.length === 0}
+                className="flex items-center gap-1.5 whitespace-nowrap rounded border border-border px-2.5 py-1.5 text-sm hover:bg-hover disabled:opacity-50"
+              >
+                <FileSpreadsheet size={16} strokeWidth={1.75} className="text-navy" />
+                {exporting ? "Exporting…" : "Export"}
+              </button>
+            )}
             <details className="relative">
               <summary className="flex cursor-pointer list-none items-center gap-1.5 whitespace-nowrap rounded border border-border px-2.5 py-1.5 text-sm hover:bg-hover">
                 <Columns3 size={16} strokeWidth={1.75} className="text-navy" />
