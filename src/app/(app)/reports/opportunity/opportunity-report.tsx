@@ -1,8 +1,8 @@
 "use client";
 
-import { Fragment, useState } from "react";
+import { Fragment, useEffect, useRef, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { ChevronDown, ChevronRight, FileSpreadsheet } from "lucide-react";
+import { ChevronDown, ChevronRight, FileSpreadsheet, List } from "lucide-react";
 import { CommandBar, CommandButton, CommandDivider, RefreshCommand } from "@/components/command-bar";
 import { DataGrid, type Column, type Row } from "@/components/data-grid";
 import { addListSheet, downloadWorkbook, newWorkbook } from "@/components/data-grid-export";
@@ -53,20 +53,30 @@ export function OpportunityReport({
   const router = useRouter();
   const pathname = usePathname();
   const [open, setOpen] = useState<Set<string>>(new Set());
-  const [selectedId, setSelectedId] = useState("total");
+  // Summary first; the deals behind it open on request (a row click or "Show deals").
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const drill = useRef<HTMLDivElement>(null);
+  const [scrollTo, setScrollTo] = useState(0);
+  useEffect(() => {
+    if (scrollTo) drill.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [scrollTo]);
+  function show(id: string) {
+    setSelectedId(id);
+    setScrollTo((n) => n + 1);
+  }
   const [exporting, setExporting] = useState(false);
   const isCustom = !choices.quarters.some((q) => q.key === period.key) && !choices.years.some((y) => y.key === period.key);
   const [custom, setCustom] = useState(isCustom ? { from: period.from, to: period.to } : null);
 
   function go(next: { period?: string; by?: GroupBy }) {
     const params = new URLSearchParams({ period: next.period ?? period.key, by: next.by ?? by });
-    setSelectedId("total");
+    setSelectedId(null);
     router.push(`${pathname}?${params}`);
   }
 
   const all = [summary.total, summary.core, summary.ios, ...summary.rows.flatMap((r) => [r, ...r.children])];
-  const selected = all.find((r) => r.id === selectedId) ?? summary.total;
-  const ids = new Set(selected.dealIds);
+  const selected = selectedId ? (all.find((r) => r.id === selectedId) ?? summary.total) : null;
+  const ids = new Set(selected?.dealIds ?? []);
   const groupWord = by === "type" ? "Deal type" : "Opportunity type";
 
   async function exportReport() {
@@ -115,7 +125,7 @@ export function OpportunityReport({
     return (
       <tr
         key={r.id}
-        onClick={() => setSelectedId(r.id)}
+        onClick={() => show(r.id)}
         aria-selected={isSelected}
         className={`cursor-pointer border-b border-border ${
           opts.total ? "border-t-2 border-t-navy bg-navy/5 font-bold" : opts.subtotal ? "bg-background font-semibold italic" : r.level === 0 ? "font-semibold" : ""
@@ -162,6 +172,14 @@ export function OpportunityReport({
         <BackCommand fallbackHref="/deals" />
         <RefreshCommand />
         <CommandDivider />
+        <CommandButton
+          icon={List}
+          onClick={() => (selected ? setSelectedId(null) : show("total"))}
+          disabled={summary.total.count === 0}
+          aria-pressed={!!selected}
+        >
+          {selected ? "Hide deals" : "Show deals"}
+        </CommandButton>
         <CommandButton icon={FileSpreadsheet} onClick={exportReport} disabled={exporting}>
           {exporting ? "Exporting…" : "Export to Excel"}
         </CommandButton>
@@ -171,7 +189,7 @@ export function OpportunityReport({
         <div className="flex flex-col gap-3 px-4 pt-4 sm:px-5 lg:flex-row lg:items-end lg:justify-between">
           <div>
             <h1 className="font-serif text-lg">Opportunity report</h1>
-            <p className="text-sm text-muted">Closed deals in {period.label}, by {groupWord.toLowerCase()}. Click a row to see its deals.</p>
+            <p className="text-sm text-muted">Closed deals in {period.label}, by {groupWord.toLowerCase()}. Click a row, or Show deals, to see the deals behind it.</p>
           </div>
           <div className="flex flex-wrap items-end gap-3 text-sm">
             <label className="flex flex-col gap-1">
@@ -276,7 +294,8 @@ export function OpportunityReport({
         )}
       </div>
 
-      {summary.total.count > 0 && (
+      <div ref={drill} className="scroll-mt-14" />
+      {selected && (
         <DataGrid
           key={`${period.key}-${by}-${selected.id}`}
           embedded
