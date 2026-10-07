@@ -33,16 +33,21 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
         { key: "state", label: "State" },
         { key: "submarket", label: "Submarket" },
         { key: "sf", label: "SF", kind: "number" },
+        // The Property report's search fields (PRD §6) show by default; filter any of them.
+        { key: "buildingClass", label: "Class" },
+        { key: "clearHeight", label: "Clear height (ft)", kind: "number" },
+        { key: "configuration", label: "Configuration" },
         { key: "deals", label: "Deals", kind: "number" },
-        { key: "owners", label: "Current owner", defaultHidden: true },
+        { key: "owners", label: "Current owner", multi: true, defaultHidden: true },
         { key: "acreage", label: "Acres", kind: "number", defaultHidden: true },
         { key: "zip", label: "Zip", defaultHidden: true },
         { key: "county", label: "County", defaultHidden: true },
-        { key: "buildingClass", label: "Class", defaultHidden: true },
         { key: "yearBuilt", label: "Year built", kind: "number", defaultHidden: true },
-        { key: "clearHeight", label: "Clear height (ft)", kind: "number", defaultHidden: true },
-        { key: "configuration", label: "Configuration", defaultHidden: true },
         { key: "tenancy", label: "Tenancy", defaultHidden: true },
+        { key: "occupancy", label: "Occupancy %", kind: "number", defaultHidden: true },
+        { key: "dockDoors", label: "Dock doors", kind: "number", defaultHidden: true },
+        { key: "officeFinishSf", label: "Office finish SF", kind: "number", defaultHidden: true },
+        { key: "sprinkler", label: "Sprinkler", defaultHidden: true },
       ]}
       rows={rows.map((p) => ({
         id: p.id,
@@ -65,6 +70,10 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
         clearHeight: p.clearHeightFt === null ? null : Number(p.clearHeightFt),
         configuration: p.configuration,
         tenancy: p.tenancy,
+        occupancy: p.occupancyPct === null ? null : Number(p.occupancyPct),
+        dockDoors: p.dockDoors,
+        officeFinishSf: p.officeFinishSf,
+        sprinkler: p.sprinklerType,
       }))}
     />
   );
