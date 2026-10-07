@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { Menu, X } from "lucide-react";
+import { SearchBox } from "./search-box";
 import { Sidebar } from "./sidebar";
 import { SIDEBAR_COOKIE } from "./sidebar-cookie";
 
@@ -63,8 +64,11 @@ export function AppShell({
         {/* eslint-disable-next-line @next/next/no-img-element -- static SVG logo */}
         <img src="/brand/stream-logo-white.svg" alt="Stream Realty Partners" className="h-5 w-auto" />
         <span className="hidden h-5 w-px bg-white/30 sm:block" />
-        <span className="hidden text-sm font-semibold tracking-wide sm:block">ICM Deal Platform</span>
-        <div className="ml-auto flex items-center gap-3 text-sm">
+        <span className="hidden text-sm font-semibold tracking-wide whitespace-nowrap sm:block">ICM Deal Platform</span>
+        <div className="mx-2 flex min-w-0 flex-1 justify-center sm:mx-6">
+          <SearchBox />
+        </div>
+        <div className="flex shrink-0 items-center gap-3 text-sm">
           <span className="hidden text-white/80 md:inline">{userLabel}</span>
           {signOut}
         </div>
