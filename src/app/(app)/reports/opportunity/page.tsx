@@ -32,6 +32,7 @@ export default async function OpportunityReportPage({ searchParams }: PageProps<
 
   const reportDeals: ReportDeal[] = inPeriod.map((d) => ({
     id: d.id,
+    isIos: d.isIos,
     dealType: d.dealType,
     dealSubtype: d.dealSubtype,
     opportunityType: d.opportunityType,

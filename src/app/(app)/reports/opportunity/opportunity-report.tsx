@@ -45,7 +45,7 @@ export function OpportunityReport({
   by: GroupBy;
   period: Period;
   choices: { current: Period; quarters: Period[]; years: Period[] };
-  summary: { rows: SummaryRow[]; total: SummaryRow };
+  summary: { rows: SummaryRow[]; core: SummaryRow; ios: SummaryRow; total: SummaryRow };
   noCloseDate: number;
   dealRows: Row[];
   savedColumns: string[] | null;
@@ -64,7 +64,7 @@ export function OpportunityReport({
     router.push(`${pathname}?${params}`);
   }
 
-  const all = [summary.total, ...summary.rows.flatMap((r) => [r, ...r.children])];
+  const all = [summary.total, summary.core, summary.ios, ...summary.rows.flatMap((r) => [r, ...r.children])];
   const selected = all.find((r) => r.id === selectedId) ?? summary.total;
   const ids = new Set(selected.dealIds);
   const groupWord = by === "type" ? "Deal type" : "Opportunity type";
@@ -90,6 +90,8 @@ export function OpportunityReport({
         line(r, r.label, true);
         for (const c of r.children) line(c, `    ${c.label}`);
       }
+      line(summary.core, summary.core.label, true);
+      line(summary.ios, summary.ios.label, true);
       line(summary.total, "Total", true);
       ws.getColumn(1).width = 28;
       ws.getColumn(2).numFmt = "#,##0";
@@ -106,7 +108,7 @@ export function OpportunityReport({
   }
 
   const cell = "px-4 py-2.5 text-right tabular-nums whitespace-nowrap";
-  function summaryRow(r: SummaryRow, opts: { total?: boolean } = {}) {
+  function summaryRow(r: SummaryRow, opts: { total?: boolean; subtotal?: boolean } = {}) {
     const expandable = r.children.length > 0;
     const isOpen = open.has(r.id);
     const isSelected = selectedId === r.id;
@@ -115,7 +117,9 @@ export function OpportunityReport({
         key={r.id}
         onClick={() => setSelectedId(r.id)}
         aria-selected={isSelected}
-        className={`cursor-pointer border-b border-border ${opts.total ? "border-t-2 border-t-navy bg-navy/5 font-bold" : r.level === 0 ? "font-semibold" : ""} ${
+        className={`cursor-pointer border-b border-border ${
+          opts.total ? "border-t-2 border-t-navy bg-navy/5 font-bold" : opts.subtotal ? "bg-background font-semibold italic" : r.level === 0 ? "font-semibold" : ""
+        } ${
           isSelected ? "bg-blue/10 outline outline-2 -outline-offset-2 outline-blue" : "hover:bg-background"
         }`}
       >
@@ -138,7 +142,7 @@ export function OpportunityReport({
                 {isOpen ? <ChevronDown size={16} /> : <ChevronRight size={16} />}
               </button>
             ) : (
-              r.level === 0 && !opts.total && <span className="inline-block w-5" />
+              r.level === 0 && !opts.total && !opts.subtotal && <span className="inline-block w-5" />
             )}
             <span className={r.label === "Not set" ? "italic text-muted" : ""}>{r.label}</span>
           </span>
@@ -258,6 +262,8 @@ export function OpportunityReport({
                   {open.has(r.id) && r.children.map((c) => summaryRow(c))}
                 </Fragment>
               ))}
+              {summaryRow(summary.core, { subtotal: true })}
+              {summary.ios.count > 0 && summaryRow(summary.ios)}
               {summaryRow(summary.total, { total: true })}
             </tbody>
           </table>

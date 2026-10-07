@@ -1,7 +1,8 @@
 /**
  * The Opportunity report (PRD §6): closed deals in a period, summed by deal type
  * (subtypes underneath) or by opportunity type. Reporting runs on calendar quarters.
- * Pure — the page loads deals, this shapes them.
+ * IOS-desk deals — sales and leases together — are one row after the core ICM
+ * groups, never mixed into them (Haili, 1.6). Pure — the page loads deals, this shapes them.
  */
 
 export type Period = { key: string; label: string; from: string; to: string };
@@ -51,6 +52,7 @@ export function periodChoices(earliest: string | null, today: Date) {
 
 export type ReportDeal = {
   id: string;
+  isIos: boolean;
   dealType: string | null;
   dealSubtype: string | null;
   opportunityType: string | null;
@@ -100,9 +102,13 @@ function row(id: string, label: string, level: 0 | 1, deals: ReportDeal[], child
   };
 }
 
-/** Groups in a fixed order (the controlled list's order), "Not set" last; empty groups dropped. */
-function groupIn<K extends string>(deals: ReportDeal[], key: (d: ReportDeal) => string | null, order: readonly K[]) {
-  const byKey = new Map<string, ReportDeal[]>();
+/**
+ * Groups in a fixed order (the controlled list's order) with every listed value
+ * shown even at zero, so a quiet period still reads Sale, Equity, Debt…; "Not set"
+ * (and anything off the list) only when present, last.
+ */
+function groupIn<K extends string>(deals: ReportDeal[], key: (d: ReportDeal) => string | null, order: readonly K[], keepEmpty = true) {
+  const byKey = new Map<string, ReportDeal[]>(keepEmpty ? order.map((k) => [k, []]) : []);
   for (const d of deals) {
     const k = key(d) ?? NOT_SET;
     byKey.set(k, [...(byKey.get(k) ?? []), d]);
@@ -115,15 +121,21 @@ export function summarize(
   deals: ReportDeal[],
   by: GroupBy,
   lists: { dealTypes: readonly string[]; subtypes: readonly string[]; opportunityTypes: readonly string[] },
-): { rows: SummaryRow[]; total: SummaryRow } {
+): { rows: SummaryRow[]; core: SummaryRow; ios: SummaryRow; total: SummaryRow } {
+  const coreDeals = deals.filter((d) => !d.isIos);
   const rows =
     by === "type"
-      ? groupIn(deals, (d) => d.dealType, lists.dealTypes).map(([type, ds]) => {
+      ? groupIn(coreDeals, (d) => d.dealType, lists.dealTypes).map(([type, ds]) => {
           // Subtypes only where the type has any recorded; one "Not set" child alone isn't worth showing.
-          const subs = groupIn(ds, (d) => d.dealSubtype, lists.subtypes);
+          const subs = groupIn(ds, (d) => d.dealSubtype, lists.subtypes, false);
           const children = subs.length === 1 && subs[0][0] === NOT_SET ? [] : subs.map(([s, sd]) => row(`${type}/${s}`, s, 1, sd));
           return row(type, type, 0, ds, children);
         })
-      : groupIn(deals, (d) => d.opportunityType, lists.opportunityTypes).map(([t, ds]) => row(t, t, 0, ds));
-  return { rows, total: row("total", "Total", 0, deals) };
+      : groupIn(coreDeals, (d) => d.opportunityType, lists.opportunityTypes).map(([t, ds]) => row(t, t, 0, ds));
+  return {
+    rows,
+    core: row("core", "Core ICM total", 0, coreDeals),
+    ios: row("ios", "IOS Deals", 0, deals.filter((d) => d.isIos)),
+    total: row("total", "Total", 0, deals),
+  };
 }
