@@ -59,8 +59,8 @@ const VIEW_STAGES: Record<Exclude<DealView, "all">, Stage[]> = {
   closed: ["Closed"],
   // The Archive page: everything parked — Track, Dead and Lost in one list.
   inactive: ["Track", "Dead", "Lost"],
-  // The Pipeline report: active stages plus Track, which it shows separately.
-  pipeline: [...ACTIVE_STAGES, "Track"],
+  // The Pipeline report: active stages only (Track lives on the Archive list — Haili, 1.6).
+  pipeline: ACTIVE_STAGES,
 };
 
 export async function listDeals(opts: { q?: string; archived?: boolean; view?: DealView } = {}) {

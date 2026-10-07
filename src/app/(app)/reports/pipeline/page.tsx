@@ -10,7 +10,8 @@ const money = (v: string | null) => (v === null ? null : Number(v));
 
 /**
  * The weekly meeting's report: every active deal, grouped by stage (BOV 1 →
- * Under Contract) with subtotals, then Track on its own — never in the totals.
+ * Under Contract) with subtotals and a grand total. Track deals aren't shown
+ * here (Haili, 1.6); they're on the Archive list with Dead and Lost.
  * Each deal leads with the date that matters at its stage. Lead analyst is the
  * only team field shown by default (PRD §6).
  */
@@ -28,12 +29,7 @@ export default async function PipelineReportPage() {
         by: "stage",
         unit: "deal",
         totalLabel: "Active pipeline",
-        sections: [...ACTIVE_STAGES, "Track" as const].map((s) => ({
-          id: s,
-          title: s === "Track" ? "Track (dormant — not in pipeline totals)" : s,
-          note: PIPELINE_KEY_DATE[s]?.label,
-          apart: s === "Track",
-        })),
+        sections: ACTIVE_STAGES.map((s) => ({ id: s, title: s, note: PIPELINE_KEY_DATE[s]?.label })),
       }}
       emptyText="No active deals."
       columns={[
