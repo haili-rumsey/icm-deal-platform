@@ -134,7 +134,7 @@ export function summarize(
       : groupIn(coreDeals, (d) => d.opportunityType, lists.opportunityTypes).map(([t, ds]) => row(t, t, 0, ds));
   return {
     rows,
-    core: row("core", "Core ICM total", 0, coreDeals),
+    core: row("core", "ICM total", 0, coreDeals),
     ios: row("ios", "IOS Deals", 0, deals.filter((d) => d.isIos)),
     total: row("total", "Total", 0, deals),
   };
