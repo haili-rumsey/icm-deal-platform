@@ -48,9 +48,7 @@ export const companyTypeEnum = pgEnum("company_type", COMPANY_TYPES);
 export const teamRoleEnum = pgEnum("team_role", TEAM_ROLES);
 export const sideEnum = pgEnum("side", SIDES);
 export const locationEnum = pgEnum("location", LOCATIONS);
-// "Dead/Lost" is the pre-1.6 combined stage, kept in the database type only until the
-// split has been deployed; no row uses it and the app never writes it.
-export const stageEnum = pgEnum("stage", [...STAGES, "Dead/Lost"]);
+export const stageEnum = pgEnum("stage", STAGES);
 export const pitchStatusEnum = pgEnum("pitch_status", PITCH_STATUSES);
 
 const stamp = (name: string) => timestamp(name, { mode: "date", withTimezone: true });

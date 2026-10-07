@@ -106,6 +106,13 @@
       "when": 1791319245734,
       "tag": "0014_dead_lost_rows",
       "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1791387100128,
+      "tag": "0015_drop_dead_lost_value",
+      "breakpoints": true
     }
   ]
 }
