@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
-import { ArrowDown, ArrowUp, ChevronDown, Columns3, FileSpreadsheet, ListFilter, Search, X } from "lucide-react";
+import { ArrowDown, ArrowUp, ChevronDown, Columns3, FileSpreadsheet, List, ListFilter, Search, X, type LucideIcon } from "lucide-react";
 import { saveListLayoutAction } from "@/app/(app)/list-layout-actions";
 import { CommandBar, CommandButton, CommandDivider } from "./command-bar";
 import { BackCommand } from "./record-page";
@@ -70,6 +70,7 @@ export function DataGrid({
   commands,
   grouping,
   embedded = false,
+  altView,
   emptyText = "We didn't find anything to show here.",
 }: {
   views: View[];
@@ -85,8 +86,14 @@ export function DataGrid({
   grouping?: Grouping;
   /** Part of a larger page (e.g. a report's drill-down): no command bar of its own; Export sits in the toolbar. */
   embedded?: boolean;
+  /**
+   * Another way to show the same rows (the Property report's map): a List / <label>
+   * switch appears, and the alternative is drawn from the rows the filters leave.
+   */
+  altView?: { label: string; icon: LucideIcon; render: (rows: Row[]) => React.ReactNode };
   emptyText?: string;
 }) {
+  const [showAlt, setShowAlt] = useState(false);
   const [visible, setVisible] = useState(() => visibleKeys(allColumns, savedColumns));
   const columns = useMemo(() => allColumns.filter((c) => visible.has(c.key)), [allColumns, visible]);
   const [, startSave] = useTransition();
@@ -252,6 +259,25 @@ export function DataGrid({
             </ul>
           </details>
           <div className="flex items-center gap-2">
+            {altView && (
+              <div role="group" aria-label="View as" className="flex shrink-0 overflow-hidden rounded border border-border text-sm">
+                {[
+                  { alt: false, label: "List", Icon: List },
+                  { alt: true, label: altView.label, Icon: altView.icon },
+                ].map(({ alt, label, Icon }) => (
+                  <button
+                    key={label}
+                    type="button"
+                    aria-pressed={showAlt === alt}
+                    onClick={() => setShowAlt(alt)}
+                    className={`flex items-center gap-1.5 px-2.5 py-1.5 ${showAlt === alt ? "bg-navy text-white" : "hover:bg-hover"}`}
+                  >
+                    <Icon size={16} strokeWidth={1.75} />
+                    {label}
+                  </button>
+                ))}
+              </div>
+            )}
             {embedded && (
               <button
                 type="button"
@@ -335,78 +361,82 @@ export function DataGrid({
           </div>
         )}
 
-        <div className="mt-3 overflow-x-auto">
-          <table className="w-full text-left text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                {columns.map((c) => {
-                  const sk = c.sortKey ?? c.key;
-                  const isSorted = sort.key === sk;
-                  const right = c.kind === "number" || c.total;
-                  const Arrow = sort.dir === "asc" ? ArrowUp : ArrowDown;
-                  const isFiltered = Boolean(filters[c.key]);
-                  return (
-                    <th
-                      key={c.key}
-                      aria-sort={isSorted ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
-                      className={`whitespace-nowrap px-4 py-2 font-semibold first:pl-5 ${right ? "text-right" : ""}`}
-                    >
-                      <span className={`inline-flex items-center gap-1.5 ${right ? "flex-row-reverse" : ""}`}>
-                        <button
-                          type="button"
-                          onClick={() => toggle(sk)}
-                          className={`inline-flex items-center gap-1 hover:text-navy ${right ? "flex-row-reverse" : ""}`}
-                        >
-                          {c.label}
-                          {isSorted ? <Arrow size={14} /> : <ChevronDown size={14} className="text-muted" />}
-                        </button>
-                        <button
-                          type="button"
-                          id={`filter-${listKey}-${c.key}`}
-                          aria-label={`Filter ${c.label}`}
-                          aria-pressed={isFiltered}
-                          title={isFiltered ? describe(c, filters[c.key]) : `Filter ${c.label}`}
-                          onClick={(e) => {
-                            const anchor = e.currentTarget;
-                            setOpenFilter((o) => (o?.key === c.key ? null : { key: c.key, anchor }));
-                          }}
-                          className={`rounded p-0.5 ${isFiltered ? "bg-navy text-white" : "text-muted hover:bg-hover hover:text-navy"}`}
-                        >
-                          <ListFilter size={13} />
-                        </button>
-                      </span>
-                    </th>
-                  );
-                })}
-              </tr>
-            </thead>
-            <tbody>
-              {blocks
-                ? blocks.map((b) =>
-                    b.kind === "total" ? (
-                      totalsRow("grand-total", b.title, b.totals, true)
-                    ) : (
-                      <Fragment key={b.id}>
-                        <tr className="border-b border-border">
-                          <th colSpan={columns.length} scope="colgroup" className="bg-gray-light px-5 pt-4 pb-1.5 text-left">
-                            <span className="font-serif text-base text-navy">{b.title}</span>
-                            {b.note && <span className="ml-3 text-xs font-normal text-muted">Date shown: {b.note}</span>}
-                          </th>
-                        </tr>
-                        {b.rows.map(renderRow)}
-                        {totalsRow(`${b.id}-total`, "Subtotal", b.totals, false)}
-                      </Fragment>
-                    ),
-                  )
-                : shown.map(renderRow)}
-            </tbody>
-          </table>
-          {shown.length === 0 && (
-            <p className="px-5 py-16 text-center text-sm text-muted">
-              {query || filtered.length ? "Nothing matches your search and filters." : emptyText}
-            </p>
-          )}
-        </div>
+        {altView && showAlt ? (
+          <div className="mt-3">{altView.render(shown)}</div>
+        ) : (
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-left text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  {columns.map((c) => {
+                    const sk = c.sortKey ?? c.key;
+                    const isSorted = sort.key === sk;
+                    const right = c.kind === "number" || c.total;
+                    const Arrow = sort.dir === "asc" ? ArrowUp : ArrowDown;
+                    const isFiltered = Boolean(filters[c.key]);
+                    return (
+                      <th
+                        key={c.key}
+                        aria-sort={isSorted ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
+                        className={`whitespace-nowrap px-4 py-2 font-semibold first:pl-5 ${right ? "text-right" : ""}`}
+                      >
+                        <span className={`inline-flex items-center gap-1.5 ${right ? "flex-row-reverse" : ""}`}>
+                          <button
+                            type="button"
+                            onClick={() => toggle(sk)}
+                            className={`inline-flex items-center gap-1 hover:text-navy ${right ? "flex-row-reverse" : ""}`}
+                          >
+                            {c.label}
+                            {isSorted ? <Arrow size={14} /> : <ChevronDown size={14} className="text-muted" />}
+                          </button>
+                          <button
+                            type="button"
+                            id={`filter-${listKey}-${c.key}`}
+                            aria-label={`Filter ${c.label}`}
+                            aria-pressed={isFiltered}
+                            title={isFiltered ? describe(c, filters[c.key]) : `Filter ${c.label}`}
+                            onClick={(e) => {
+                              const anchor = e.currentTarget;
+                              setOpenFilter((o) => (o?.key === c.key ? null : { key: c.key, anchor }));
+                            }}
+                            className={`rounded p-0.5 ${isFiltered ? "bg-navy text-white" : "text-muted hover:bg-hover hover:text-navy"}`}
+                          >
+                            <ListFilter size={13} />
+                          </button>
+                        </span>
+                      </th>
+                    );
+                  })}
+                </tr>
+              </thead>
+              <tbody>
+                {blocks
+                  ? blocks.map((b) =>
+                      b.kind === "total" ? (
+                        totalsRow("grand-total", b.title, b.totals, true)
+                      ) : (
+                        <Fragment key={b.id}>
+                          <tr className="border-b border-border">
+                            <th colSpan={columns.length} scope="colgroup" className="bg-gray-light px-5 pt-4 pb-1.5 text-left">
+                              <span className="font-serif text-base text-navy">{b.title}</span>
+                              {b.note && <span className="ml-3 text-xs font-normal text-muted">Date shown: {b.note}</span>}
+                            </th>
+                          </tr>
+                          {b.rows.map(renderRow)}
+                          {totalsRow(`${b.id}-total`, "Subtotal", b.totals, false)}
+                        </Fragment>
+                      ),
+                    )
+                  : shown.map(renderRow)}
+              </tbody>
+            </table>
+            {shown.length === 0 && (
+              <p className="px-5 py-16 text-center text-sm text-muted">
+                {query || filtered.length ? "Nothing matches your search and filters." : emptyText}
+              </p>
+            )}
+          </div>
+        )}
       </div>
       {openColumn && openFilter && (
         <FilterMenu

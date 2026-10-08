@@ -1,16 +1,16 @@
 import { Plus } from "lucide-react";
 import { CommandLink, RefreshCommand } from "@/components/command-bar";
-import { DataGrid } from "@/components/data-grid";
 import { searchParam } from "@/lib/params";
 import { myListLayout } from "@/server/list-layouts";
 import { listProperties } from "@/server/properties";
+import { PropertiesGrid } from "./properties-grid";
 
 export default async function PropertiesPage({ searchParams }: PageProps<"/properties">) {
   const archived = searchParam((await searchParams).archived) === "1";
   const [rows, saved] = await Promise.all([listProperties({ archived }), myListLayout("properties")]);
 
   return (
-    <DataGrid
+    <PropertiesGrid
       commands={
         <>
           <CommandLink href="/properties/new" icon={Plus}>
@@ -74,6 +74,9 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
         dockDoors: p.dockDoors,
         officeFinishSf: p.officeFinishSf,
         sprinkler: p.sprinklerType,
+        // For the map view; not columns.
+        lat: p.lat === null ? null : Number(p.lat),
+        lng: p.lng === null ? null : Number(p.lng),
       }))}
     />
   );

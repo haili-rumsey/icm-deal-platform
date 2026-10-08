@@ -57,6 +57,8 @@ export async function listProperties(opts: { q?: string; archived?: boolean } = 
       dockDoors: properties.dockDoors,
       officeFinishSf: properties.officeFinishSf,
       sprinklerType: properties.sprinklerType,
+      lat: properties.lat,
+      lng: properties.lng,
       owners: sql<string | null>`(select string_agg(co.name, ', ' order by co.name) from property_owners po join companies co on co.id = po.company_id where po.property_id = "properties"."id")`,
       dealCount: sql<number>`(select count(*)::int from deal_properties dp where dp.property_id = "properties"."id")`,
     })
