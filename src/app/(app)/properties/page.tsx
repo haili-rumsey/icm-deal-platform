@@ -22,7 +22,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
       listKey="properties"
       savedColumns={saved}
       views={[
-        { label: "Active properties", href: "/properties", active: !archived },
+        { label: "Properties", href: "/properties", active: !archived },
         { label: "Archived properties", href: "/properties?archived=1", active: archived },
       ]}
       columns={[
@@ -38,6 +38,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
         { key: "clearHeight", label: "Clear height (ft)", kind: "number" },
         { key: "configuration", label: "Configuration" },
         { key: "deals", label: "Deals", kind: "number" },
+        { key: "dealStatus", label: "Deal status" },
         { key: "owners", label: "Current owner", multi: true, defaultHidden: true },
         { key: "acreage", label: "Acres", kind: "number", defaultHidden: true },
         { key: "zip", label: "Zip", defaultHidden: true },
@@ -60,6 +61,7 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
         submarket: p.submarket,
         sf: p.buildingSf,
         deals: p.dealCount,
+        dealStatus: p.dealStatus,
         unverified: !p.addressVerified,
         owners: p.owners,
         acreage: p.acreage === null ? null : Number(p.acreage),

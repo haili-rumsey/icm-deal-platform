@@ -61,6 +61,16 @@ export async function listProperties(opts: { q?: string; archived?: boolean } = 
       lng: properties.lng,
       owners: sql<string | null>`(select string_agg(co.name, ', ' order by co.name) from property_owners po join companies co on co.id = po.company_id where po.property_id = "properties"."id")`,
       dealCount: sql<number>`(select count(*)::int from deal_properties dp where dp.property_id = "properties"."id")`,
+      // Where the property's deals stand, using the sidebar's groups: an active deal wins,
+      // then closed, then Track/Dead/Lost ("Archive").
+      dealStatus: sql<"Active" | "Closed" | "Archive" | "No deals">`(
+        select case
+          when bool_or(d.stage in ('BOV 1','BOV 2','Engaged','Marketing','Awarded','Under Contract')) then 'Active'
+          when bool_or(d.stage = 'Closed') then 'Closed'
+          when count(*) > 0 then 'Archive'
+          else 'No deals' end
+        from deal_properties dp join deals d on d.id = dp.deal_id
+        where dp.property_id = "properties"."id")`,
     })
     .from(properties)
     .leftJoin(submarkets, eq(submarkets.id, properties.submarketId))

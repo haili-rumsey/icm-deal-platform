@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { Row } from "./data-grid";
 
 /*
@@ -12,7 +12,14 @@ import type { Row } from "./data-grid";
  */
 
 const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
-const NAVY = "#002F6C";
+
+/** Pins by the property's deal status (the sidebar's groups), in brand colors. */
+const STATUSES = [
+  { id: "Active", fill: "#86D295", stroke: "#002F6C", note: "in an active deal" },
+  { id: "Closed", fill: "#002F6C", stroke: "#FFFFFF", note: "last deal closed" },
+  { id: "Archive", fill: "#B1B3B3", stroke: "#53565A", note: "Track, Dead or Lost only" },
+] as const;
+const styleFor = (status: unknown) => STATUSES.find((s) => s.id === status) ?? STATUSES[2];
 
 // Minimal typing for the parts of the Maps API used here.
 type LatLng = { lat: number; lng: number };
@@ -54,13 +61,17 @@ function loadMaps(): Promise<Maps> {
 const coords = (r: Row): LatLng | null =>
   typeof r.lat === "number" && typeof r.lng === "number" ? { lat: r.lat, lng: r.lng } : null;
 
-export function PropertyMap({ rows }: { rows: Row[] }) {
+export function PropertyMap({ rows: all }: { rows: Row[] }) {
+  // Only properties that are on a deal are mapped, for now (Haili, 1.6); the list shows them all.
+  const rows = useMemo(() => all.filter((r) => r.dealStatus !== "No deals"), [all]);
   const el = useRef<HTMLDivElement>(null);
   const map = useRef<GMap | null>(null);
   const markers = useRef<GMarker[]>([]);
   const info = useRef<GInfo | null>(null);
   const [failed, setFailed] = useState(false);
-  const placed = rows.filter((r) => coords(r));
+  const [hidden, setHidden] = useState<Set<string>>(new Set());
+  const located = rows.filter((r) => coords(r));
+  const placed = located.filter((r) => !hidden.has(styleFor(r.dealStatus).id));
   const unplaced = rows.filter((r) => !coords(r));
 
   useEffect(() => {
@@ -81,7 +92,10 @@ export function PropertyMap({ rows }: { rows: Row[] }) {
             map: map.current,
             position,
             title: String(r.address ?? ""),
-            icon: { path: maps.SymbolPath.CIRCLE, scale: 7, fillColor: NAVY, fillOpacity: 0.9, strokeColor: "#FFFFFF", strokeWeight: 2 },
+            icon: (() => {
+              const st = styleFor(r.dealStatus);
+              return { path: maps.SymbolPath.CIRCLE, scale: 7, fillColor: st.fill, fillOpacity: 1, strokeColor: st.stroke, strokeWeight: 2 };
+            })(),
           });
           marker.addListener("click", () => {
             // Built as elements, not an HTML string, so names and addresses can't inject markup.
@@ -97,6 +111,7 @@ export function PropertyMap({ rows }: { rows: Row[] }) {
               [r.city, r.state].filter(Boolean).join(", "),
               typeof r.sf === "number" ? `${r.sf.toLocaleString("en-US")} SF` : null,
               r.buildingClass ? `Class ${r.buildingClass}` : null,
+              `Deals: ${styleFor(r.dealStatus).id}`,
             ]
               .filter(Boolean)
               .join(" · ");
@@ -117,9 +132,9 @@ export function PropertyMap({ rows }: { rows: Row[] }) {
     return () => {
       cancelled = true;
     };
-    // Redraw when the filtered set changes.
+    // Redraw when the filtered set or the legend changes.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [rows]);
+  }, [rows, hidden]);
 
   if (!KEY) {
     return <p className="px-5 py-16 text-center text-sm text-muted">The map isn&apos;t set up yet — it needs its Google key.</p>;
@@ -131,9 +146,28 @@ export function PropertyMap({ rows }: { rows: Row[] }) {
       ) : (
         <div ref={el} className="h-[65vh] min-h-80 w-full rounded border border-border" aria-label="Map of properties" />
       )}
-      <p className="mt-2 text-xs text-muted">
-        {placed.length} propert{placed.length === 1 ? "y" : "ies"} on the map. Click a pin for details.
-      </p>
+      <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-sm" role="group" aria-label="Show on map">
+        {STATUSES.map((st) => {
+          const count = located.filter((r) => styleFor(r.dealStatus).id === st.id).length;
+          return (
+            <label key={st.id} className="flex cursor-pointer items-center gap-1.5" title={st.note}>
+              <input
+                type="checkbox"
+                checked={!hidden.has(st.id)}
+                onChange={(e) => {
+                  const next = new Set(hidden);
+                  if (e.target.checked) next.delete(st.id);
+                  else next.add(st.id);
+                  setHidden(next);
+                }}
+              />
+              <span className="inline-block h-3 w-3 rounded-full border-2" style={{ background: st.fill, borderColor: st.stroke }} aria-hidden />
+              {st.id} <span className="text-muted">({count})</span>
+            </label>
+          );
+        })}
+        <span className="text-xs text-muted">Click a pin for details.</span>
+      </div>
       {unplaced.length > 0 && (
         <details className="mt-2 text-sm">
           <summary className="cursor-pointer text-muted">
