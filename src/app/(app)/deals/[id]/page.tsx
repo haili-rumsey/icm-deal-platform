@@ -19,8 +19,9 @@ import { searchParam } from "@/lib/params";
 import { companyOptions } from "@/server/companies";
 import { contactOptions, icmTeamOptions, streamPeopleOptions } from "@/server/contacts";
 import { getDeal, isLockedFor, missingToClose } from "@/server/deals";
+import { needsDealTabs } from "@/domain/close-check";
 import { propertyOptions } from "@/server/properties";
-import { moveStageAction, saveDeal } from "../actions";
+import { closeDealAction, moveStageAction, saveDeal } from "../actions";
 import { DealDatesFields } from "../deal-dates-fields";
 import { DealFields } from "../deal-fields";
 import { DealFeeFields, DealMoneyFields } from "../deal-money-fields";
@@ -43,8 +44,8 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
   ]);
   if (!data) notFound();
   const { deal } = data;
-  // The close-date prompt fills that one in, so leave it off the up-front list.
-  const closeMissing = deal.stage === "Closed" ? [] : (await missingToClose(id)).filter((m) => m !== "close date");
+  // The close pop-up asks for the simple fields; properties, SF and the team live on the tabs.
+  const closeOnTabs = deal.stage === "Closed" ? [] : (await missingToClose(id)).filter(needsDealTabs);
 
   const value = dealValue(deal);
   // Prompted, never enforced.
@@ -126,8 +127,24 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
         }}
         companies={companyOpts}
         locked={locked}
-        closeMissing={closeMissing}
+        closeInfo={{
+          closeDate: deal.closeDate,
+          dealType: deal.dealType,
+          dealSubtype: deal.dealSubtype,
+          reappsId: deal.reappsId,
+          opportunityType: deal.opportunityType,
+          represented: deal.represented,
+          closedPrice: deal.closedPrice,
+          totalCapitalization: deal.totalCapitalization,
+          loanAmount: deal.loanAmount,
+          totalLeaseConsideration: deal.totalLeaseConsideration,
+          totalCommission: deal.totalCommission,
+          outsideCommission: deal.outsideCommission,
+          hasBuyer: data.parties.some((p) => p.side === "B"),
+          onTabs: closeOnTabs,
+        }}
         action={moveStageAction.bind(null, id)}
+        closeAction={closeDealAction.bind(null, id)}
       />
       {locked && (
         <p className="border-b border-border bg-[#eef2f8] px-4 py-2 text-sm sm:px-5">
@@ -160,7 +177,10 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
                     hasFeeData={[deal.totalCommission, deal.outsideCommission, deal.inHouseGross, deal.feeRate, deal.feeNotes].some((v) => v !== null && v !== "")}
                   >
                     <Section title="Fee">
-                      <DealFeeFields deal={deal} />
+                      <DealFeeFields
+                        deal={deal}
+                        showSplit={isClosed || deal.outsideCommission !== null || !!deal.outsideCommissionNote || deal.inHouseGrossManual}
+                      />
                     </Section>
                   </FeeVisibility>
                   <Section title="Team">

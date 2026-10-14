@@ -84,8 +84,12 @@ export function DealMoneyFields({ deal }: { deal?: Deal }) {
   );
 }
 
-/** Fee — mirrors accounting. In-house gross fills itself as total − outside until typed over. */
-export function DealFeeFields({ deal }: { deal?: Deal }) {
+/**
+ * Fee — mirrors accounting. In-house gross fills itself as total − outside until typed over.
+ * Outside commission and in-house gross show from Closed on (they're filled in on the close
+ * pop-up), or whenever they already hold something; hidden, not removed, so saving keeps them.
+ */
+export function DealFeeFields({ deal, showSplit = true }: { deal?: Deal; showSplit?: boolean }) {
   const d = deal;
   const [total, setTotal] = useState(formatAmount(d?.totalCommission));
   const [outside, setOutside] = useState(formatAmount(d?.outsideCommission));
@@ -114,26 +118,28 @@ export function DealFeeFields({ deal }: { deal?: Deal }) {
       <FieldRow label="Total commission" htmlFor="totalCommission">
         {money("totalCommission", total, setTotal)}
       </FieldRow>
-      <FieldRow label="Outside commission" htmlFor="outsideCommission" hint="Paid outside ICM — co-brokers and other Stream entities.">
-        {money("outsideCommission", outside, setOutside)}
-      </FieldRow>
-      <TextInput label="Outside commission to" name="outsideCommissionNote" defaultValue={d?.outsideCommissionNote} />
-      <FieldRow
-        label="In-house gross"
-        htmlFor="inHouseGross"
-        hint={manual ? "Typed figure (from accounting)." : "Calculated: total − outside. Type over it if accounting's figure differs."}
-      >
-        <input type="hidden" name="inHouseGrossManual" value={manual ? "true" : "false"} />
-        {money("inHouseGross", manual ? typed : calculated, (v) => {
-          setManual(true);
-          setTyped(v);
-        })}
-        {manual && (
-          <button type="button" onClick={() => setManual(false)} className="self-start text-xs text-link hover:underline">
-            Use calculated figure
-          </button>
-        )}
-      </FieldRow>
+      <div className={showSplit ? "contents" : "hidden"}>
+        <FieldRow label="Outside commission" htmlFor="outsideCommission" hint="Paid outside ICM — co-brokers and other Stream entities.">
+          {money("outsideCommission", outside, setOutside)}
+        </FieldRow>
+        <TextInput label="Outside commission to" name="outsideCommissionNote" defaultValue={d?.outsideCommissionNote} />
+        <FieldRow
+          label="In-house gross"
+          htmlFor="inHouseGross"
+          hint={manual ? "Typed figure (from accounting)." : "Calculated: total − outside. Type over it if accounting's figure differs."}
+        >
+          <input type="hidden" name="inHouseGrossManual" value={manual ? "true" : "false"} />
+          {money("inHouseGross", manual ? typed : calculated, (v) => {
+            setManual(true);
+            setTyped(v);
+          })}
+          {manual && (
+            <button type="button" onClick={() => setManual(false)} className="self-start text-xs text-link hover:underline">
+              Use calculated figure
+            </button>
+          )}
+        </FieldRow>
+      </div>
       <PctInput label="Fee %" name="feeRate" defaultValue={d?.feeRate} />
       <div className="xl:col-span-2">
         <TextArea label="Fee notes" name="feeNotes" defaultValue={d?.feeNotes} />

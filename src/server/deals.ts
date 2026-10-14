@@ -349,6 +349,52 @@ export async function moveStage(dealId: string, move: StageMove, byId: string) {
   await db.update(deals).set(set).where(eq(deals.id, dealId));
 }
 
+// ---- Closing (the "Close this deal" pop-up) ----
+
+export type CloseFields = Partial<
+  Pick<
+    Deal,
+    | "closeDate"
+    | "closedPrice"
+    | "totalCapitalization"
+    | "loanAmount"
+    | "totalLeaseConsideration"
+    | "totalCommission"
+    | "outsideCommission"
+    | "reappsId"
+    | "dealType"
+    | "dealSubtype"
+    | "opportunityType"
+    | "represented"
+  >
+>;
+
+/**
+ * Saves what was filled in on the close pop-up — even if the deal can't close yet, so
+ * nothing typed is lost. In-house gross is set to total − outside (they must add up to close).
+ */
+export async function saveCloseFields(dealId: string, fields: CloseFields, buyerCompanyId: string | null, byId: string) {
+  const [d] = await db
+    .select({ total: deals.totalCommission, outside: deals.outsideCommission, dealType: deals.dealType })
+    .from(deals)
+    .where(eq(deals.id, dealId));
+  if (!d) return;
+  const total = fields.totalCommission !== undefined ? fields.totalCommission : d.total;
+  const outside = fields.outsideCommission !== undefined ? fields.outsideCommission : d.outside;
+  const set: Partial<typeof deals.$inferInsert> = { ...fields, lastModifiedAt: new Date(), lastModifiedById: byId };
+  if (fields.dealType || fields.dealSubtype) {
+    const type = fields.dealType ?? d.dealType;
+    const allowed = type ? SUBTYPES_BY_TYPE[type] : [];
+    if (fields.dealSubtype && !allowed.includes(fields.dealSubtype)) set.dealSubtype = null;
+  }
+  if (total !== null && outside !== null) {
+    set.inHouseGross = (Number(total) - Number(outside)).toFixed(2);
+    set.inHouseGrossManual = false;
+  }
+  await db.update(deals).set(set).where(eq(deals.id, dealId));
+  if (buyerCompanyId) await db.insert(dealParties).values({ dealId, side: "B", companyId: buyerCompanyId, contactId: null });
+}
+
 // ---- Minimum info to close ----
 
 /** What's still missing to close this deal, using saved data plus any unsaved overrides. */
@@ -379,6 +425,8 @@ export async function missingToClose(dealId: string, overrides: Partial<CloseChe
     loanAmount: d.loanAmount,
     totalLeaseConsideration: d.totalLeaseConsideration,
     totalCommission: d.totalCommission,
+    outsideCommission: d.outsideCommission,
+    inHouseGross: d.inHouseGrossManual ? d.inHouseGross : null,
     properties: props,
     sideBCount: sideB,
     teamCount: team,

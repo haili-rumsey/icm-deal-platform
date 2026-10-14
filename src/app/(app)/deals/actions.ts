@@ -29,6 +29,7 @@ import {
   DealLockedError,
   missingToClose,
   moveStage,
+  saveCloseFields,
   removeDealParty,
   removeDealProperty,
   removeTeamMember,
@@ -132,8 +133,13 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
   const closing = !!id && input.stage === "Closed" && (await currentStage(id)) !== "Closed";
   if (id && closing) {
     // Moving into Closed: check what's being saved now, plus the deal's properties and parties.
-    const missing = await missingToClose(id, { ...input, teamCount: team.teamIds.length });
-    if (missing.length) return { ok: false, message: closeBlockedMessage(missing) };
+    const missing = await missingToClose(id, {
+      ...input,
+      inHouseGross: input.inHouseGrossManual ? input.inHouseGross : null,
+      teamCount: team.teamIds.length,
+    });
+    if (missing.length)
+      return { ok: false, message: `${closeBlockedMessage(missing)} Click Closed on the stage bar to fill these in.` };
   }
   if (!id) {
     const newId = await createDeal(input, user);
@@ -233,6 +239,50 @@ export async function removeTeamAction(dealId: string, teamId: string) {
 }
 
 export type StageState = { message: string } | null;
+
+export type CloseState = { message: string; missing: string[] } | null;
+
+/**
+ * The "Close this deal" pop-up: saves what was filled in, then moves the deal to Closed
+ * if nothing required is still missing (the one stage move that's blocked).
+ */
+export async function closeDealAction(dealId: string, _prev: CloseState, fd: FormData): Promise<CloseState> {
+  let user;
+  try {
+    user = await editor(dealId);
+  } catch (e) {
+    if (e instanceof DealLockedError) return { message: e.message, missing: [] };
+    throw e;
+  }
+  if ((await currentStage(dealId)) === "Closed") return null;
+  // Only the fields the pop-up showed are in the form; leave everything else alone.
+  const has = (k: string) => fd.has(k);
+  const fields = {
+    ...(has("closeDate") && { closeDate: str(fd, "closeDate") }),
+    ...(has("closedPrice") && { closedPrice: dec(fd, "closedPrice") }),
+    ...(has("totalCapitalization") && { totalCapitalization: dec(fd, "totalCapitalization") }),
+    ...(has("loanAmount") && { loanAmount: dec(fd, "loanAmount") }),
+    ...(has("totalLeaseConsideration") && { totalLeaseConsideration: dec(fd, "totalLeaseConsideration") }),
+    ...(has("totalCommission") && { totalCommission: dec(fd, "totalCommission") }),
+    ...(has("outsideCommission") && { outsideCommission: dec(fd, "outsideCommission") }),
+    ...(has("reappsId") && { reappsId: str(fd, "reappsId") }),
+    ...(has("dealType") && { dealType: oneOf(fd, "dealType", DEAL_TYPES) }),
+    ...(has("dealSubtype") && { dealSubtype: oneOf(fd, "dealSubtype", DEAL_SUBTYPES) }),
+    ...(has("opportunityType") && { opportunityType: oneOf(fd, "opportunityType", OPPORTUNITY_TYPES) }),
+    ...(has("represented") && { represented: oneOf(fd, "represented", REPRESENTED) }),
+  };
+  await saveCloseFields(dealId, fields, str(fd, "buyerCompanyId"), user.id);
+  const missing = await missingToClose(dealId);
+  if (missing.length) {
+    refresh(dealId);
+    return { message: "Saved what you entered. This deal can't close until these are done:", missing };
+  }
+  await moveStage(dealId, { stage: "Closed", date: str(fd, "closeDate") }, user.id);
+  await setOwnersForDeal(db, dealId);
+  revalidatePath("/properties", "layout");
+  refresh(dealId);
+  return null;
+}
 
 /** Stage bar: move to any stage, with the stage's date and (for a lost pitch) who won it. */
 export async function moveStageAction(dealId: string, _prev: StageState, fd: FormData): Promise<StageState> {

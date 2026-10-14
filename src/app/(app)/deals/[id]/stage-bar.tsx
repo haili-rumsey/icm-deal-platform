@@ -8,7 +8,8 @@ import { useUnsavedChanges } from "@/components/record-page";
 import { SearchSelect, type Option } from "@/components/search-select";
 import type { Stage } from "@/domain/options";
 import { OFF_PIPELINE, PIPELINE, STAGE_DATE, STAGE_HINTS, type DateField } from "@/domain/stages";
-import type { StageState } from "../actions";
+import type { CloseState, StageState } from "../actions";
+import { CloseDialog, type CloseInfo } from "./close-dialog";
 
 type Dates = Partial<Record<DateField, string | null>>;
 
@@ -36,17 +37,20 @@ export function StageBar({
   dates,
   companies,
   locked,
-  closeMissing,
+  closeInfo,
   action,
+  closeAction,
 }: {
   stage: Stage;
   dates: Dates;
   companies: Option[];
   locked: boolean;
-  /** What's still needed to close (close date excluded — the move asks for it). */
-  closeMissing: string[];
+  /** Fills the "Close this deal" pop-up. */
+  closeInfo: CloseInfo;
   action: (prev: StageState, fd: FormData) => Promise<StageState>;
+  closeAction: (prev: CloseState, fd: FormData) => Promise<CloseState>;
 }) {
+  const [closing, setClosing] = useState(false);
   const [state, formAction, pending] = useActionState(action, null);
   const [chosen, setTarget] = useState<Stage | null>(null);
   // Once the move lands, the deal's stage becomes the chosen one and the prompt closes.
@@ -69,16 +73,6 @@ export function StageBar({
 
   async function click(s: Stage) {
     if (locked || s === stage || pending) return;
-    // Closing needs the minimum information first — the one stage move that's blocked.
-    if (s === "Closed" && closeMissing.length > 0) {
-      await confirm({
-        title: "Can't close yet",
-        message: "Fill these in on the deal first, then move it to Closed:",
-        items: closeMissing,
-        cancelLabel: "OK",
-      });
-      return;
-    }
     if (
       unsaved &&
       !(await confirm({
@@ -90,6 +84,8 @@ export function StageBar({
     ) {
       return;
     }
+    // Closing opens the pop-up that collects everything needed to close (the one blocked move).
+    if (s === "Closed") return setClosing(true);
     if (needsPrompt(s)) return setTarget(s);
     const fd = new FormData();
     fd.set("stage", s);
@@ -104,6 +100,9 @@ export function StageBar({
   return (
     <div className="border-b border-border bg-card px-3 py-3 sm:px-5">
       {confirmDialog}
+      {closing && stage !== "Closed" && (
+        <CloseDialog info={closeInfo} companies={companies} action={closeAction} onClose={() => setClosing(false)} />
+      )}
       <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
         {/* Chevrons stretch across the row; on narrow screens they keep a readable width and scroll. */}
         <ol className="flex min-w-0 flex-1 overflow-x-auto pb-0.5" aria-label="Stage">

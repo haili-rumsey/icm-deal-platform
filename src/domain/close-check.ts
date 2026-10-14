@@ -17,6 +17,8 @@ export type CloseCheckInput = {
   loanAmount: string | null;
   totalLeaseConsideration: string | null;
   totalCommission: string | null;
+  outsideCommission: string | null;
+  inHouseGross: string | null;
   properties: { address: string | null; buildingSf: number | null; acreage: string | null }[];
   sideBCount: number;
   teamCount: number;
@@ -48,6 +50,10 @@ export function closeBlockers(d: CloseCheckInput): string[] {
   }
 
   if (blank(d.totalCommission)) missing.push("total commission");
+  // Outside commission is required to close, but 0 is a fine answer (Haili, 1.6).
+  if (blank(d.outsideCommission)) missing.push("outside commission (0 if none)");
+  else if (!blank(d.totalCommission) && !feeSplitAddsUp(d.totalCommission!, d.outsideCommission!, d.inHouseGross))
+    missing.push("in-house gross + outside commission to equal total commission");
   // A consulting fee may not be tied to a property.
   const needsProperty = d.dealType !== "Consulting";
   if (d.properties.length === 0) {
@@ -60,6 +66,17 @@ export function closeBlockers(d: CloseCheckInput): string[] {
   if (d.sideBCount === 0) missing.push(d.dealType ? `a ${partyLabel(d.dealType, "B").toLowerCase()} party` : "a side B party");
   if (d.teamCount === 0) missing.push("the deal team");
   return missing;
+}
+
+/** In-house gross + outside commission = total commission (to the cent). A blank in-house is calculated, so it adds up. */
+export function feeSplitAddsUp(total: string, outside: string, inHouse: string | null) {
+  if (blank(inHouse)) return true;
+  return Math.abs(Number(inHouse) + Number(outside) - Number(total)) < 0.005;
+}
+
+/** Close requirements that need the deal's own tabs, not the close pop-up. */
+export function needsDealTabs(item: string) {
+  return item.startsWith("a property") || item.startsWith("an address") || item.startsWith("total SF") || item === "the deal team";
 }
 
 export function closeBlockedMessage(missing: string[]) {
