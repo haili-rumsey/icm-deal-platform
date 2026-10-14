@@ -105,6 +105,11 @@ export async function geocodePlace(placeId: string): Promise<GeocodeResult> {
   return callGeocoding({ place_id: placeId });
 }
 
+/** A map pin → the nearest addresses (used by imports whose only location is a dropped pin). */
+export async function reverseGeocode(lat: number, lng: number): Promise<GeocodeResult> {
+  return callGeocoding({ latlng: `${lat},${lng}` });
+}
+
 /**
  * Suggestions while typing. `sessionToken` groups one person's keystrokes for one
  * address, which is how Google bills autocomplete.
