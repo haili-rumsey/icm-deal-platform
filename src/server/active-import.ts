@@ -30,6 +30,8 @@ export type ActiveImportProperty = {
   configuration: string | null;
   /** The only location is a dropped map pin. */
   pin: { lat: number; lng: number } | null;
+  /** Where the address came from, for Haili's check workbook. */
+  source?: string;
 };
 
 export type ActiveImportDeal = {
@@ -72,6 +74,7 @@ export type PropertyCheck = {
   sf: number | null;
   acres: number | null;
   reused: boolean;
+  source: string;
 };
 
 export type ActiveImportReport = {
@@ -200,6 +203,7 @@ export async function importActiveDeals(
       sf,
       acres,
       reused: false,
+      source: p.source ?? "",
     };
     const known = propertyByKey.get(key);
     if (known) {

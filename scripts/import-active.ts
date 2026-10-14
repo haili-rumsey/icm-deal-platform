@@ -117,17 +117,17 @@ async function main() {
     return ws;
   };
   const ps = sheet("Properties", [
-    ["Tracker row", 9], ["Deal", 32], ["Address as typed", 36], ["Saved as", 32], ["City", 16], ["State", 6],
+    ["Tracker row", 9], ["Deal", 32], ["Where the address came from", 26], ["Address as typed", 36], ["Saved as", 32], ["City", 16], ["State", 6],
     ["Google match", 12], ["SF", 12], ["Acres", 8], ["Shared with another deal", 12],
   ]);
   for (const p of r.propertyChecks) {
     const row = ps.addRow([
-      p.sourceRow, p.dealName, p.typed, p.saved, p.city, p.state,
+      p.sourceRow, p.dealName, p.source, p.typed, p.saved, p.city, p.state,
       p.fromPin ? "From pin — check" : p.verified ? "Yes" : "No — check", p.sf, p.acres, p.reused ? "Yes" : "",
     ]);
-    if (!p.verified) row.getCell(7).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFCE4D6" } };
+    if (!p.verified) row.getCell(8).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FFFCE4D6" } };
   }
-  ps.getColumn(8).numFmt = "#,##0";
+  ps.getColumn(9).numFmt = "#,##0";
   const ds = sheet("Deals", [["Tracker row", 9], ["Deal", 36], ["Stage", 14], ["# properties", 11]]);
   for (const d of r.imported) ds.addRow([d.sourceRow, d.dealName, d.stage, d.properties]);
   const ws = sheet("Warnings", [["Tracker row", 9], ["Deal", 32], ["What to check", 80]]);
