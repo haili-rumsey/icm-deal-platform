@@ -1,0 +1,1 @@
+ALTER TYPE "public"."stage" ADD VALUE 'Off Market' BEFORE 'Closed';

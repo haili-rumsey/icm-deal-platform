@@ -6,7 +6,7 @@ import { listDeals, type DealView } from "@/server/deals";
 import { myListLayout } from "@/server/list-layouts";
 
 // Pipeline order, so sorting by stage reads BOV 1 → Under Contract rather than A–Z.
-const STAGE_ORDER = ["BOV 1", "BOV 2", "Engaged", "Marketing", "Awarded", "Under Contract", "Closed", "Track", "Dead", "Lost"];
+const STAGE_ORDER = ["BOV 1", "BOV 2", "Engaged", "Marketing", "Awarded", "Under Contract", "Off Market", "Closed", "Track", "Dead", "Lost"];
 
 export type ListView = { key: Extract<DealView, "active" | "closed" | "inactive">; label: string; href: string };
 

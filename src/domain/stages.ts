@@ -4,7 +4,7 @@ import { FEE_ONLY_TYPES, type DealType, type Stage } from "./options";
 export const PIPELINE: Stage[] = ["BOV 1", "BOV 2", "Engaged", "Marketing", "Awarded", "Under Contract", "Closed"];
 export const OFF_PIPELINE: Stage[] = ["Track", "Dead", "Lost"];
 /** Counted in active pipeline totals. Track is reported separately, never blended in. */
-export const ACTIVE_STAGES: Stage[] = ["BOV 1", "BOV 2", "Engaged", "Marketing", "Awarded", "Under Contract"];
+export const ACTIVE_STAGES: Stage[] = ["BOV 1", "BOV 2", "Engaged", "Marketing", "Awarded", "Under Contract", "Off Market"];
 
 /**
  * The further along BOV 1 → Closed of two stages; Track, Dead and Lost don't count.
@@ -32,6 +32,7 @@ export const STAGE_HINTS: Record<Stage, string> = {
   Awarded: "Buyer selected — DD and PSA",
   "Under Contract": "Closing period",
   Closed: "Closed",
+  "Off Market": "Being sold quietly, without marketing",
   Track: "Dormant — seller elected to hold",
   Dead: "Had the deal — it fell apart or the seller pulled it",
   Lost: "Pitched and didn't win the listing",
@@ -99,7 +100,7 @@ export function dealValue(d: Prices): DealValue {
   const forStage = byStage[d.stage];
   if (forStage) return headline(num(forStage[0]), forStage[1]);
 
-  // Track / Dead / Lost: whatever was entered last along the way.
+  // Off Market, Track, Dead, Lost: whatever was entered last along the way.
   const latest: [string | null, string][] = [
     [d.closedPrice, "Sale price"],
     [d.guidancePrice, "Guidance"],
@@ -137,10 +138,11 @@ export const PIPELINE_KEY_DATE: Partial<Record<Stage, { field: KeyDateField; lab
   Marketing: { field: "callForOffersDate", label: "Call for offers" },
   Awarded: { field: "ddExpirationDate", label: "DD expiration" },
   "Under Contract": { field: "closeDate", label: "Close date" },
+  "Off Market": { field: "closeDate", label: "Close date" },
   Track: { field: "followUpDate", label: "Follow-up date" },
 };
 
 /** The fee shows from Engaged on — before the listing is won there's no fee to speak of. */
-export const FEE_STAGES: Stage[] = ["Engaged", "Marketing", "Awarded", "Under Contract", "Closed"];
-/** The buyer side shows once a buyer has been selected. */
-export const BUYER_STAGES: Stage[] = ["Awarded", "Under Contract", "Closed"];
+export const FEE_STAGES: Stage[] = ["Engaged", "Marketing", "Awarded", "Under Contract", "Off Market", "Closed"];
+/** The buyer side shows once a buyer has been selected (an off-market deal usually has one in mind). */
+export const BUYER_STAGES: Stage[] = ["Awarded", "Under Contract", "Off Market", "Closed"];

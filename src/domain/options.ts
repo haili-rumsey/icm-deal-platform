@@ -36,6 +36,8 @@ export const INVESTMENT_STRATEGIES = OPPORTUNITY_TYPES;
  * Pipeline stages (PRD §3). Track, Dead and Lost sit outside the active pipeline.
  * Dead and Lost were one stage until 1.6: Lost = pitched and didn't win the listing;
  * Dead = had the deal and it fell apart or the seller pulled it.
+ * Off Market (Haili, 1.6): being sold quietly, without marketing. Active, but picked
+ * from the Stage field only — it has no chevron on the stage bar.
  */
 export const STAGES = [
   "BOV 1",
@@ -44,6 +46,7 @@ export const STAGES = [
   "Marketing",
   "Awarded",
   "Under Contract",
+  "Off Market",
   "Closed",
   "Track",
   "Dead",

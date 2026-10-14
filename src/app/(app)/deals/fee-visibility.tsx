@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import type { Stage } from "@/domain/options";
 
 /** Fee matters once the listing is won: Engaged through Closed. */
-const FEE_STAGES: Stage[] = ["Engaged", "Marketing", "Awarded", "Under Contract", "Closed"];
+const FEE_STAGES: Stage[] = ["Engaged", "Marketing", "Awarded", "Under Contract", "Off Market", "Closed"];
 
 /**
  * Shows the fee section from Engaged on. It stays visible whenever fee figures are

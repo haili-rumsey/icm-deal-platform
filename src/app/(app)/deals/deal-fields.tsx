@@ -25,7 +25,7 @@ export function DealFields({ deal }: { deal?: Deal }) {
         <Checkbox label="IOS Deal" name="isIos" defaultChecked={d?.isIos} />
         <Checkbox label="Direct award (no competitive process)" name="directAward" defaultChecked={d?.directAward} />
       </div>
-      <TextArea label="Closing notes" name="closingNotes" defaultValue={d?.closingNotes} />
+      <TextArea label="Deal notes" name="closingNotes" defaultValue={d?.closingNotes} />
     </>
   );
 }

@@ -65,7 +65,7 @@ export async function listProperties(opts: { q?: string; archived?: boolean } = 
       // then closed, then Track/Dead/Lost ("Archive").
       dealStatus: sql<"Active" | "Closed" | "Archive" | "No deals">`(
         select case
-          when bool_or(d.stage in ('BOV 1','BOV 2','Engaged','Marketing','Awarded','Under Contract')) then 'Active'
+          when bool_or(d.stage in ('BOV 1','BOV 2','Engaged','Marketing','Awarded','Under Contract','Off Market')) then 'Active'
           when bool_or(d.stage = 'Closed') then 'Closed'
           when count(*) > 0 then 'Archive'
           else 'No deals' end
