@@ -32,6 +32,8 @@ export type ActiveImportProperty = {
   pin: { lat: number; lng: number } | null;
   /** Where the address came from, for Haili's check workbook. */
   source?: string;
+  /** "building": typed for this building; "deal": the tracker's deal total on a one-building deal. */
+  sizeFrom?: "building" | "deal" | null;
 };
 
 export type ActiveImportDeal = {
@@ -138,7 +140,8 @@ export async function importActiveDeals(
     contactByKey.set(`${c.companyId}|${personKey(c.first, c.last)}`, c.id);
     if (c.companyId === streamId) streamPeople.set(personKey(c.first, c.last), c.id);
   }
-  type Known = { id: string; sf: number | null; acres: number | null; label: string };
+  /** `from`: where the size on record came from — the system already, or this run (building / deal figure). */
+  type Known = { id: string; sf: number | null; acres: number | null; label: string; from: "system" | "building" | "deal" | null };
   const propertyByKey = new Map<string, Known>();
   const keyFor = (placeId: string | null, address: string, city: string, designation: string | null | undefined) =>
     placeId ? `place|${placeId}|${norm(designation)}` : `text|${norm(address)}|${norm(city)}|${norm(designation)}`;
@@ -148,6 +151,7 @@ export async function importActiveDeals(
       sf: p.buildingSf,
       acres: p.acreage === null ? null : Number(p.acreage),
       label: p.address ?? "(no address)",
+      from: p.buildingSf !== null || p.acreage !== null ? "system" : null,
     });
   }
 
@@ -178,6 +182,9 @@ export async function importActiveDeals(
     return row.id;
   }
 
+  /** Sizes are per building (Haili, 1.6): a figure typed for the building wins over one already on
+   *  record; a deal total never overwrites a building's size and is kept in the deal notes instead. */
+  const dealNoteAdds = new Map<number, string[]>();
   async function propertyId(d: ActiveImportDeal, p: ActiveImportProperty) {
     const match = await opts.geocode(p);
     const typed = [p.address, p.buildingDesignation].filter(Boolean).join(", ") || (p.pin ? `Map pin ${p.pin.lat}, ${p.pin.lng}` : "");
@@ -210,10 +217,25 @@ export async function importActiveDeals(
       report.propertiesReused++;
       check.reused = true;
       report.propertyChecks.push(check);
-      // One size per property: keep the first figure, fill gaps, report disagreements.
       const fill: Partial<typeof properties.$inferInsert> = {};
-      if (sf !== null && known.sf === null) fill.buildingSf = known.sf = sf;
-      else if (sf !== null && known.sf !== sf) report.sizeConflicts.push(`${known.label}: ${known.sf} SF kept, ${sf} SF on ${d.dealName}`);
+      const building = p.sizeFrom === "building";
+      if (sf !== null && known.sf === null) {
+        fill.buildingSf = known.sf = sf;
+        known.from = p.sizeFrom ?? null;
+      } else if (sf !== null && known.sf !== sf) {
+        if (building && known.from !== "building") {
+          report.sizeConflicts.push(`${known.label}: building size set to ${sf.toLocaleString("en-US")} SF (was ${known.sf!.toLocaleString("en-US")})`);
+          fill.buildingSf = known.sf = sf;
+          known.from = "building";
+        } else {
+          report.sizeConflicts.push(`${known.label}: kept ${known.sf!.toLocaleString("en-US")} SF; ${d.dealName} gives ${sf.toLocaleString("en-US")} SF`);
+          if (!building) {
+            const adds = dealNoteAdds.get(d.sourceRow) ?? [];
+            adds.push(`Total size in tracker: ${sf.toLocaleString("en-US")} SF`);
+            dealNoteAdds.set(d.sourceRow, adds);
+          }
+        }
+      }
       if (acres !== null && known.acres === null) fill.acreage = String((known.acres = acres));
       if (Object.keys(fill).length) await db.update(properties).set(fill).where(eq(properties.id, known.id));
       return known.id;
@@ -240,7 +262,7 @@ export async function importActiveDeals(
         ...by,
       })
       .returning({ id: properties.id });
-    propertyByKey.set(key, { id: row.id, sf, acres, label: check.saved || typed });
+    propertyByKey.set(key, { id: row.id, sf, acres, label: check.saved || typed, from: sf !== null || acres !== null ? (p.sizeFrom ?? null) : null });
     report.propertiesCreated++;
     report.propertyChecks.push(check);
     if (!verified) report.unverified.push(`${d.dealName}: ${typed}${p.city ? `, ${p.city}` : ""} ${p.state}`);
@@ -294,6 +316,8 @@ export async function importActiveDeals(
       if (propertyIds.includes(id)) continue; // e.g. the same building typed twice
       propertyIds.push(id);
     }
+    const adds = dealNoteAdds.get(d.sourceRow);
+    if (adds) await db.update(deals).set({ closingNotes: [...d.notes, ...adds].join("\n") }).where(eq(deals.id, deal.id));
     if (propertyIds.length) await db.insert(dealProperties).values(propertyIds.map((propertyId) => ({ dealId: deal.id, propertyId })));
 
     const sellers: string[] = [];

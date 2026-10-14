@@ -132,7 +132,7 @@ async function main() {
   for (const d of r.imported) ds.addRow([d.sourceRow, d.dealName, d.stage, d.properties]);
   const ws = sheet("Warnings", [["Tracker row", 9], ["Deal", 32], ["What to check", 80]]);
   for (const w of r.warnings) ws.addRow([w.sourceRow, w.dealName, w.message]);
-  for (const s of r.sizeConflicts) ws.addRow(["", "", `Size difference on a shared building: ${s}`]);
+  for (const s of r.sizeConflicts) ws.addRow(["", "", `Building size: ${s}`]);
   const ns = sheet("New companies", [["Company", 40]]);
   for (const n of r.companiesCreated) ns.addRow([n]);
   const checkPath = join(dirname(dealsPath), commit ? "Active Import Result.xlsx" : "Active Import Check.xlsx");
@@ -150,7 +150,7 @@ async function main() {
   console.log(`Companies: ${r.companiesCreated.length} new. People: ${r.contactsCreated.length} new (${r.contactsCreated.join(", ")}).`);
   console.log(`No Google match (saved as typed, flagged for cleanup): ${r.unverified.length}`);
   list("Warnings", r.warnings.map((w) => `row ${w.sourceRow} ${w.dealName}: ${w.message}`));
-  list("Size differences on shared properties", r.sizeConflicts);
+  list("Building sizes (shared buildings)", r.sizeConflicts);
   console.log(`\nCheck workbook: ${checkPath}`);
 }
 
