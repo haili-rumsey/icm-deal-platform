@@ -58,7 +58,7 @@ export function PropertiesSection({
                 </Link>
                 <span className="text-muted"> · {[p.city, p.state].filter(Boolean).join(", ")}</span>
                 {p.submarket && <span className="text-muted"> · {p.submarket}</span>}
-                {!p.addressVerified && <FlagMark label="Unverified" />}
+                {!p.addressVerified && !p.pinManual && <FlagMark label="Unverified" />}
               </span>
               <span className="flex items-baseline gap-4 text-muted">
                 {p.buildingSf ? `${p.buildingSf.toLocaleString()} SF` : null}

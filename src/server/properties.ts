@@ -6,7 +6,7 @@ import { companies, dealProperties, deals, properties, propertyOwners, submarket
 export type Property = typeof properties.$inferSelect;
 export type PropertyInput = Omit<
   Property,
-  "id" | "createdAt" | "createdById" | "lastModifiedAt" | "lastModifiedById" | "archivedAt"
+  "id" | "createdAt" | "createdById" | "lastModifiedAt" | "lastModifiedById" | "archivedAt" | "pinManual"
 >;
 
 /** "4500 Mountain Creek Pkwy, Bldg 2" — the address line, without city. */
@@ -44,6 +44,7 @@ export async function listProperties(opts: { q?: string; archived?: boolean } = 
       state: properties.state,
       buildingSf: properties.buildingSf,
       addressVerified: properties.addressVerified,
+      pinManual: properties.pinManual,
       submarket: submarkets.name,
       zip: properties.zip,
       county: properties.county,
@@ -125,10 +126,14 @@ export async function createProperty(input: PropertyInput, ownerIds: string[], b
 }
 
 export async function updateProperty(id: string, input: PropertyInput, ownerIds: string[], byId: string) {
+  // A pin placed by hand stays put, whatever the address lookup says.
+  const [current] = await db.select({ pinManual: properties.pinManual }).from(properties).where(eq(properties.id, id));
+  const { lat, lng, ...rest } = input;
+  const set = current?.pinManual ? rest : { ...rest, lat, lng };
   const ops = [
     db
       .update(properties)
-      .set({ ...input, lastModifiedAt: new Date(), lastModifiedById: byId })
+      .set({ ...set, lastModifiedAt: new Date(), lastModifiedById: byId })
       .where(eq(properties.id, id)),
     db.delete(propertyOwners).where(eq(propertyOwners.propertyId, id)),
   ] as const;
@@ -137,6 +142,14 @@ export async function updateProperty(id: string, input: PropertyInput, ownerIds:
   } else {
     await db.batch(ops);
   }
+}
+
+/** Adjust pin: the spot dragged to on the map, kept over later address lookups. */
+export async function setPropertyPin(id: string, lat: number, lng: number, byId: string) {
+  await db
+    .update(properties)
+    .set({ lat: lat.toFixed(7), lng: lng.toFixed(7), pinManual: true, lastModifiedAt: new Date(), lastModifiedById: byId })
+    .where(eq(properties.id, id));
 }
 
 export async function propertySfTotals(ids: string[]) {

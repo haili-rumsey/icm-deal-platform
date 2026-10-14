@@ -62,7 +62,8 @@ export default async function PropertiesPage({ searchParams }: PageProps<"/prope
         sf: p.buildingSf,
         deals: p.dealCount,
         dealStatus: p.dealStatus,
-        unverified: !p.addressVerified,
+        // A pin placed by hand clears the flag (Haili, 1.6).
+        unverified: !p.addressVerified && !p.pinManual,
         owners: p.owners,
         acreage: p.acreage === null ? null : Number(p.acreage),
         zip: p.zip,

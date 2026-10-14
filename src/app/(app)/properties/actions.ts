@@ -6,7 +6,8 @@ import { requireUser } from "@/auth";
 import type { SaveState } from "@/components/record-page";
 import { BUILDING_CLASSES, CONFIGURATIONS, SPRINKLER_TYPES, TENANCY } from "@/domain/options";
 import { dec, ids, int, oneOf, str } from "@/lib/form";
-import { createProperty, updateProperty, type PropertyInput } from "@/server/properties";
+import { geocodeAddress } from "@/server/geocode";
+import { createProperty, getProperty, setPropertyPin, updateProperty, type PropertyInput } from "@/server/properties";
 
 function parse(fd: FormData): PropertyInput {
   const verified = fd.get("addressVerified") === "true";
@@ -52,4 +53,26 @@ export async function saveProperty(id: string | null, _prev: SaveState, fd: Form
   revalidatePath("/properties", "layout");
   revalidatePath("/deals", "layout");
   return { ok: true, message: "Saved." };
+}
+
+/** Adjust pin: where to start the map for a property with no pin yet — its city, via Google. */
+export async function pinStartAction(id: string): Promise<{ lat: number; lng: number } | null> {
+  await requireUser();
+  const data = await getProperty(id);
+  if (!data) return null;
+  const { city, state, zip } = data.property;
+  const place = [city, [state, zip].filter(Boolean).join(" ")].filter(Boolean).join(", ");
+  if (!place) return null;
+  const res = await geocodeAddress(place);
+  return res.ok && res.matches[0] ? { lat: res.matches[0].lat, lng: res.matches[0].lng } : null;
+}
+
+/** Adjust pin: save the spot the pin was dragged to. */
+export async function savePinAction(id: string, lat: number, lng: number): Promise<{ ok: boolean }> {
+  const user = await requireUser();
+  if (!Number.isFinite(lat) || !Number.isFinite(lng) || Math.abs(lat) > 90 || Math.abs(lng) > 180) return { ok: false };
+  await setPropertyPin(id, lat, lng, user.id);
+  revalidatePath("/properties", "layout");
+  revalidatePath("/reports/cleanup");
+  return { ok: true };
 }

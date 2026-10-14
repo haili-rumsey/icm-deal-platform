@@ -120,6 +120,13 @@
       "when": 1792000662087,
       "tag": "0016_off_market_stage",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1792007972800,
+      "tag": "0017_property_pin_manual",
+      "breakpoints": true
     }
   ]
 }

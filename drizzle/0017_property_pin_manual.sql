@@ -1,0 +1,1 @@
+ALTER TABLE "properties" ADD COLUMN "pin_manual" boolean DEFAULT false NOT NULL;

@@ -20,6 +20,7 @@ import { userName } from "@/server/people";
 import { addressLine, getProperty } from "@/server/properties";
 import { saveProperty } from "../actions";
 import { PropertyFields } from "../property-fields";
+import { PinAdjuster } from "./pin-adjuster";
 
 export default async function PropertyPage({ params }: PageProps<"/properties/[id]">) {
   const { id } = await params;
@@ -36,6 +37,11 @@ export default async function PropertyPage({ params }: PageProps<"/properties/[i
         <BackCommand fallbackHref="/properties" />
         <SaveCommand />
         <RefreshCommand />
+        <PinAdjuster
+          id={id}
+          pin={p.lat !== null && p.lng !== null ? { lat: Number(p.lat), lng: Number(p.lng) } : null}
+          pinManual={p.pinManual}
+        />
         <CommandDivider />
         <HousekeepingCommands kind="property" id={id} archivedAt={p.archivedAt} canDelete={user.isAdmin} />
       </CommandBar>
@@ -52,7 +58,10 @@ export default async function PropertyPage({ params }: PageProps<"/properties/[i
         ]}
         flags={
           <>
-            {!p.addressVerified && <FlagMark label="No Google match — flagged for cleanup" />}
+            {!p.addressVerified && !p.pinManual && <FlagMark label="No Google match — flagged for cleanup" />}
+            {p.pinManual && (
+              <span className="inline-flex items-center rounded-sm bg-gray-light px-2 py-0.5 text-xs font-semibold text-gray-dark">Pin placed by hand</span>
+            )}
             {p.archivedAt && <FlagMark label="Archived" />}
           </>
         }

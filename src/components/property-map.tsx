@@ -11,7 +11,8 @@ import type { Row } from "./data-grid";
  * the server-only key used for address lookup.
  */
 
-const KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
+export const MAPS_KEY = process.env.NEXT_PUBLIC_GOOGLE_MAPS_BROWSER_KEY;
+const KEY = MAPS_KEY;
 
 /** Pins by the property's deal status (the sidebar's groups), in brand colors. */
 const STATUSES = [
@@ -26,7 +27,7 @@ type LatLng = { lat: number; lng: number };
 type GMap = { fitBounds(b: unknown, pad?: number): void; setCenter(p: LatLng): void; setZoom(z: number): void };
 type GMarker = { setMap(m: GMap | null): void; addListener(e: string, f: () => void): void };
 type GInfo = { setContent(html: HTMLElement): void; open(o: { map: GMap; anchor: GMarker }): void; close(): void };
-type Maps = {
+export type Maps = {
   Map: new (el: HTMLElement, o: object) => GMap;
   Marker: new (o: object) => GMarker;
   InfoWindow: new () => GInfo;
@@ -42,7 +43,7 @@ declare global {
 
 let loading: Promise<Maps> | null = null;
 /** Loads Google's script once per page visit. */
-function loadMaps(): Promise<Maps> {
+export function loadMaps(): Promise<Maps> {
   if (window.google?.maps) return Promise.resolve(window.google.maps);
   loading ??= new Promise((resolve, reject) => {
     window.__icmMapsReady = () => resolve(window.google!.maps);

@@ -146,6 +146,7 @@ export async function getDeal(id: string) {
         buildingSf: properties.buildingSf,
         acreage: properties.acreage,
         addressVerified: properties.addressVerified,
+        pinManual: properties.pinManual,
         submarket: submarkets.name,
       })
       .from(dealProperties)

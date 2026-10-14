@@ -19,8 +19,8 @@ const WHY_NO_ADDRESS = /map link|back-filled|left blank|building numbers/i;
 
 /**
  * The "Needs cleanup" report (Haili, 1.6): everything waiting to be filled in, in one
- * place — deals with no property, properties without a Google match, companies marked
- * "no website", contacts marked "no email". Archived records are left out. A row drops
+ * place — deals with no property, properties with neither a Google match nor a pin placed
+ * by hand, companies marked "no website", contacts marked "no email". Archived records are left out. A row drops
  * off as soon as the record is fixed.
  */
 export async function listCleanup(): Promise<CleanupRow[]> {
@@ -35,7 +35,7 @@ export async function listCleanup(): Promise<CleanupRow[]> {
       select p.id, p.name, p.address, p.city, p.state, p.last_modified_at as modified_at,
         (select string_agg(d.deal_name, ', ' order by d.deal_name) from deal_properties dp join deals d on d.id = dp.deal_id where dp.property_id = p.id) as deals
       from properties p
-      where p.archived_at is null and not p.address_verified`),
+      where p.archived_at is null and not p.address_verified and not p.pin_manual`),
     db.execute<{ id: string; name: string; deals: number; modified_at: Date }>(sql`
       select c.id, c.name, c.last_modified_at as modified_at,
         (select count(distinct dp.deal_id)::int from deal_parties dp where dp.company_id = c.id) as deals

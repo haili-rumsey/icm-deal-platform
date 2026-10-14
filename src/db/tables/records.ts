@@ -139,6 +139,9 @@ export const properties = pgTable(
     lng: numeric("lng", { precision: 10, scale: 7 }),
     // False when saved without a Google match; flagged for cleanup.
     addressVerified: boolean("address_verified").notNull().default(false),
+    // Pin dragged into place by hand (Adjust pin). Kept over later Google lookups, and
+    // takes an unmatched property off the Needs cleanup report (Haili, 1.6).
+    pinManual: boolean("pin_manual").notNull().default(false),
     buildingSf: integer("building_sf"),
     acreage: numeric("acreage", { precision: 12, scale: 3 }),
     occupancyPct: numeric("occupancy_pct", { precision: 5, scale: 2 }),
