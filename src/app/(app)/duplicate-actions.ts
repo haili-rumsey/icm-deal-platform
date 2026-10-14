@@ -2,6 +2,7 @@
 
 import { requireUser } from "@/auth";
 import { companiesWithDomain, contactsWithEmail, propertiesAtPlace, type Match } from "@/server/duplicates";
+import type { Place } from "@/server/properties";
 
 // Warnings only: these never stop a save.
 
@@ -15,7 +16,7 @@ export async function checkContactEmail(excludeId: string | null, email: string)
   return contactsWithEmail(email, excludeId ?? undefined);
 }
 
-export async function checkPlace(excludeId: string | null, placeId: string, buildingDesignation: string | null) {
+export async function checkPlace(excludeId: string | null, place: Place, buildingDesignation: string | null) {
   await requireUser();
-  return propertiesAtPlace(placeId, buildingDesignation, excludeId ?? undefined);
+  return propertiesAtPlace(place, buildingDesignation, excludeId ?? undefined);
 }

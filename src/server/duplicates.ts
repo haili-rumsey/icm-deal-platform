@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { companies, contacts, properties } from "@/db/schema";
 import { websiteDomain } from "./companies";
 import { normalizeContactEmail } from "./contacts";
-import { propertyLabel } from "./properties";
+import { propertyLabel, samePlace, type Place } from "./properties";
 
 /**
  * Possible duplicates, for warnings only — the user can always carry on.
@@ -56,11 +56,11 @@ export async function contactsWithEmail(email: string, excludeId?: string): Prom
  * "same address" rather than "same property".
  */
 export async function propertiesAtPlace(
-  placeId: string,
+  place: Place,
   buildingDesignation: string | null,
   excludeId?: string,
 ): Promise<(Match & { sameBuilding: boolean })[]> {
-  if (!placeId) return [];
+  if (!place.placeId) return [];
   const rows = await db
     .select({
       id: properties.id,
@@ -72,7 +72,7 @@ export async function propertiesAtPlace(
     })
     .from(properties)
     .where(
-      and(eq(properties.googlePlaceId, placeId), isNull(properties.archivedAt), excludeId ? ne(properties.id, excludeId) : undefined),
+      and(samePlace(place), isNull(properties.archivedAt), excludeId ? ne(properties.id, excludeId) : undefined),
     );
   const norm = (s: string | null) => (s ?? "").trim().toLowerCase().replace(/\s+/g, " ");
   return rows.map((r) => ({

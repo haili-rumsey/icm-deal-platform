@@ -22,8 +22,14 @@ import { saveProperty } from "../actions";
 import { PropertyFields } from "../property-fields";
 import { PinAdjuster } from "./pin-adjuster";
 
-export default async function PropertyPage({ params }: PageProps<"/properties/[id]">) {
-  const { id } = await params;
+export default async function PropertyPage({ params, searchParams }: PageProps<"/properties/[id]">) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
+  const notice =
+    sp.merged !== undefined
+      ? "Merged: the duplicate record's deals and details are now on this building."
+      : sp.existing !== undefined
+        ? "This building was already in the system, so it was opened instead of creating a copy. Any blank details were filled in from what you entered."
+        : null;
   const [user, data, companies] = await Promise.all([requireUser(), getProperty(id), companyOptions()]);
   if (!data) notFound();
   const { property: p, owners, deals } = data;
@@ -66,6 +72,7 @@ export default async function PropertyPage({ params }: PageProps<"/properties/[i
           </>
         }
       />
+      {notice && <p className="border-b border-border bg-[#eef2f8] px-4 py-2 text-sm sm:px-5">{notice}</p>}
       <Tabs
         tabs={[
           {

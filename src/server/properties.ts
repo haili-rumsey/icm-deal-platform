@@ -144,6 +144,93 @@ export async function updateProperty(id: string, input: PropertyInput, ownerIds:
   }
 }
 
+// ---- One record per building (Haili, 1.6) ----
+
+const sameDesignation = (col: typeof properties.buildingDesignation, designation: string | null) =>
+  sql`lower(trim(coalesce(${col}, ''))) = lower(trim(${designation ?? ""}))`;
+
+export type Place = { placeId: string | null; address: string | null; city: string | null; state: string | null };
+
+/**
+ * Same Google place. Google can give one address two place IDs (typed suggestion vs.
+ * direct lookup), so a Google-matched property at the same street, city and state counts too.
+ */
+export function samePlace(p: Place) {
+  const byId = p.placeId ? eq(properties.googlePlaceId, p.placeId) : undefined;
+  const byAddress =
+    p.address && p.state
+      ? sql`(${properties.addressVerified} and lower(trim(${properties.address})) = lower(trim(${p.address}))
+            and lower(trim(coalesce(${properties.city}, ''))) = lower(trim(${p.city ?? ""})) and upper(${properties.state}) = upper(${p.state}))`
+      : undefined;
+  return byId && byAddress ? or(byId, byAddress) : (byId ?? byAddress ?? sql`false`);
+}
+
+/** The building already in the system at this Google place (same building designation), if any. */
+export async function findSameBuilding(place: Place, designation: string | null, excludeId?: string) {
+  if (!place.placeId) return null;
+  const [row] = await db
+    .select({ id: properties.id })
+    .from(properties)
+    .where(
+      and(
+        samePlace(place),
+        sameDesignation(properties.buildingDesignation, designation),
+        isNull(properties.archivedAt),
+        excludeId ? sql`${properties.id} <> ${excludeId}` : undefined,
+      ),
+    )
+    .orderBy(asc(properties.createdAt))
+    .limit(1);
+  return row?.id ?? null;
+}
+
+/** Facts copied onto the kept building only where it has none (never overwriting). */
+const FILLABLE = [
+  "name", "submarket_id", "building_sf", "acreage", "occupancy_pct", "tenancy", "building_class", "year_built",
+  "clear_height_ft", "configuration", "dock_doors", "office_finish_sf", "sprinkler_type",
+] as const;
+
+/** Fills the kept building's blanks from a new property form that matched it. */
+export async function fillBlanks(id: string, input: PropertyInput, ownerIds: string[], byId: string) {
+  const [current] = await db.select().from(properties).where(eq(properties.id, id));
+  if (!current) return;
+  const keys = ["name", "submarketId", "buildingSf", "acreage", "occupancyPct", "tenancy", "buildingClass", "yearBuilt", "clearHeightFt", "configuration", "dockDoors", "officeFinishSf", "sprinklerType"] as const;
+  const set: Record<string, unknown> = {};
+  for (const k of keys) if (current[k] === null && input[k] !== null) set[k] = input[k];
+  if (Object.keys(set).length) await db.update(properties).set({ ...set, lastModifiedAt: new Date(), lastModifiedById: byId }).where(eq(properties.id, id));
+  const [{ n }] = await db.select({ n: sql<number>`count(*)::int` }).from(propertyOwners).where(eq(propertyOwners.propertyId, id));
+  if (n === 0 && ownerIds.length) await db.insert(propertyOwners).values(ownerIds.map((companyId) => ({ propertyId: id, companyId })));
+}
+
+/**
+ * Merges a duplicate building into the one being kept: its deals move over, its facts
+ * fill the kept building's blanks, its owners are used if the kept building has none,
+ * then the duplicate is removed. All in one transaction.
+ */
+export async function mergeProperty(fromId: string, intoId: string, byId: string) {
+  if (fromId === intoId) return;
+  const fill = sql.join(
+    FILLABLE.map((c) => sql`${sql.identifier(c)} = coalesce(keep.${sql.identifier(c)}, dup.${sql.identifier(c)})`),
+    sql`, `,
+  );
+  await db.batch([
+    db.execute(sql`
+      update properties keep set ${fill}, last_modified_at = now(), last_modified_by_id = ${byId}
+      from properties dup where keep.id = ${intoId} and dup.id = ${fromId}`),
+    db.execute(sql`
+      insert into deal_properties (deal_id, property_id)
+      select deal_id, ${intoId} from deal_properties where property_id = ${fromId}
+      on conflict do nothing`),
+    db.execute(sql`
+      insert into property_owners (property_id, company_id)
+      select ${intoId}, company_id from property_owners
+      where property_id = ${fromId} and not exists (select 1 from property_owners where property_id = ${intoId})`),
+    db.delete(dealProperties).where(eq(dealProperties.propertyId, fromId)),
+    db.delete(propertyOwners).where(eq(propertyOwners.propertyId, fromId)),
+    db.delete(properties).where(eq(properties.id, fromId)),
+  ]);
+}
+
 /** Adjust pin: the spot dragged to on the map, kept over later address lookups. */
 export async function setPropertyPin(id: string, lat: number, lng: number, byId: string) {
   await db

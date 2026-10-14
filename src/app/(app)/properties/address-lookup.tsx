@@ -1,12 +1,14 @@
 "use client";
 
 import { useEffect, useId, useRef, useState, useTransition } from "react";
+import { useConfirm } from "@/components/confirm-dialog";
 import { DuplicateWarning } from "@/components/duplicate-warning";
 import { inputCls } from "@/components/fields";
 import { US_STATES } from "@/domain/options";
 import type { Match } from "@/server/duplicates";
 import type { GeocodeMatch, Suggestion } from "@/server/geocode";
 import { checkPlace } from "../duplicate-actions";
+import { mergePropertyAction } from "./actions";
 import { lookupAddressAction, resolvePlaceAction, suggestAddressesAction } from "./lookup-action";
 
 type Address = {
@@ -29,11 +31,14 @@ type Address = {
 export function AddressLookup({
   initial,
   excludeId,
+  designation,
   onLocationChange,
 }: {
   initial?: Address;
   /** The property being edited, so it doesn't warn about itself. */
   excludeId?: string;
+  /** Its building designation, to tell "same building" from "same address". */
+  designation?: string | null;
   /** Tells the submarket picker which city/state is now entered. */
   onLocationChange?: (city: string, state: string) => void;
 }) {
@@ -43,7 +48,9 @@ export function AddressLookup({
   const [matches, setMatches] = useState<GeocodeMatch[]>([]);
   const [message, setMessage] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
-  const [samePlace, setSamePlace] = useState<Match[]>([]);
+  const [samePlace, setSamePlace] = useState<(Match & { sameBuilding?: boolean })[]>([]);
+  const [confirm, confirmDialog] = useConfirm();
+  const [merging, startMerge] = useTransition();
   const [suggestions, setSuggestions] = useState<Suggestion[]>([]);
   const [open, setOpen] = useState(false);
   // One token per address being entered; Google bills a typing session as one unit.
@@ -108,7 +115,7 @@ export function AddressLookup({
     session.current = crypto.randomUUID();
     onLocationChange?.(m.city, m.state);
     // Same Google place already in the system? Warn, don't block.
-    startTransition(async () => setSamePlace(await checkPlace(excludeId ?? null, m.placeId, null)));
+    startTransition(async () => setSamePlace(await checkPlace(excludeId ?? null, { placeId: m.placeId, address: m.address, city: m.city, state: m.state }, designation ?? null)));
   }
 
   const hidden = chosen && mode === "lookup" && (
@@ -176,14 +183,45 @@ export function AddressLookup({
     );
   }
 
+  // Editing a property whose corrected address is a building already in the system: offer to merge.
+  const mergeInto = excludeId ? samePlace.filter((m) => m.sameBuilding) : [];
+  async function merge(into: Match) {
+    if (
+      !(await confirm({
+        title: "Merge into the existing building?",
+        message: `This property's deals and details move to ${into.label}, and this duplicate record is removed. Nothing on the existing building is overwritten.`,
+        confirmLabel: "Merge",
+        cancelLabel: "Cancel",
+      }))
+    )
+      return;
+    startMerge(() => mergePropertyAction(excludeId!, into.id));
+  }
+
   return (
     <div className="flex flex-col gap-2">
       {hidden}
+      {confirmDialog}
       <DuplicateWarning
         title="This address is already in the system"
         matches={samePlace}
-        footer="If it's the same building, open the existing property instead. If it's a different building at this address, give it a building designation and save."
+        footer={
+          excludeId
+            ? "If it's the same building, merge this record into it. If it's a different building at this address, give it a building designation and save."
+            : "If it's the same building, saving attaches the existing record instead of creating a copy. If it's a different building at this address, give it a building designation."
+        }
       />
+      {mergeInto.map((m) => (
+        <button
+          key={m.id}
+          type="button"
+          onClick={() => merge(m)}
+          disabled={merging}
+          className="self-start rounded-sm border border-navy px-3 py-1.5 text-sm font-semibold text-navy hover:bg-hover disabled:opacity-60"
+        >
+          {merging ? "Merging…" : `Merge into ${m.label}`}
+        </button>
+      ))}
       {chosen ? (
         <div className="flex flex-wrap items-center justify-between gap-2 rounded-sm border border-[#c8c8c4] bg-white px-2.5 py-1.5 text-sm">
           <span>

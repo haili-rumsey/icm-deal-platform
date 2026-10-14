@@ -23,6 +23,7 @@ export function PropertyFields({
       <PropertyLocation
         geo={geo}
         excludeId={p?.id}
+        designation={p?.buildingDesignation}
         initialSubmarketId={p?.submarketId}
         initial={
           p

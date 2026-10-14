@@ -64,6 +64,9 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
   const names = (side: "A" | "B") =>
     [...new Set(data.parties.filter((p) => p.side === side).map((p) => p.companyName))].join(" / ");
   const addProperty = searchParam(sp.addProperty);
+  // Set when a new property's address was already in the system and that building was attached instead.
+  const attached = searchParam(sp.attached);
+  const attachedLabel = attached ? data.properties.find((p) => p.id === attached)?.address : null;
   const companyOpts = companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }));
 
   // Closed deals are read-only except for the three admins.
@@ -146,13 +149,18 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
         action={moveStageAction.bind(null, id)}
         closeAction={closeDealAction.bind(null, id)}
       />
+      {attachedLabel && (
+        <p className="border-b border-border bg-[#eef2f8] px-4 py-2 text-sm sm:px-5">
+          {attachedLabel} was already in the system, so the existing building was attached to this deal instead of creating a copy.
+        </p>
+      )}
       {locked && (
         <p className="border-b border-border bg-[#eef2f8] px-4 py-2 text-sm sm:px-5">
           This deal is closed, so it&apos;s read-only. Only Haili Rumsey, Seth Koschak and Matteson Hamilton can change it.
         </p>
       )}
       <Tabs
-        initial={addProperty ? "properties" : undefined}
+        initial={addProperty || attached ? "properties" : undefined}
         tabs={[
           {
             id: "summary",

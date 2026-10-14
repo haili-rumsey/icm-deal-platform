@@ -18,11 +18,13 @@ function key(city: string, state: string) {
 export function PropertyLocation({
   initial,
   excludeId,
+  designation,
   geo,
   initialSubmarketId,
 }: {
   initial?: Initial;
   excludeId?: string;
+  designation?: string | null;
   geo: GeoLookup;
   initialSubmarketId?: string | null;
 }) {
@@ -37,7 +39,7 @@ export function PropertyLocation({
   return (
     <>
       <FieldRow label="Address">
-        <AddressLookup initial={initial} excludeId={excludeId} onLocationChange={(city, state) => setLoc({ city, state })} />
+        <AddressLookup initial={initial} excludeId={excludeId} designation={designation} onLocationChange={(city, state) => setLoc({ city, state })} />
       </FieldRow>
       <FieldRow
         label="Submarket"
