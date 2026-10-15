@@ -1,6 +1,7 @@
 "use client";
 
 import { Fragment, useEffect, useRef, useState } from "react";
+import type { ListLayout } from "@/server/list-layouts";
 import { usePathname, useRouter } from "next/navigation";
 import { ChevronDown, ChevronRight, FileSpreadsheet, List } from "lucide-react";
 import { CommandBar, CommandButton, CommandDivider, RefreshCommand } from "@/components/command-bar";
@@ -48,7 +49,7 @@ export function OpportunityReport({
   summary: { rows: SummaryRow[]; core: SummaryRow; ios: SummaryRow; total: SummaryRow };
   noCloseDate: number;
   dealRows: Row[];
-  savedColumns: string[] | null;
+  savedColumns: ListLayout | null;
 }) {
   const router = useRouter();
   const pathname = usePathname();

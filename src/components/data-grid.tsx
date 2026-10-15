@@ -4,6 +4,7 @@ import Link from "next/link";
 import { Fragment, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { ArrowDown, ArrowUp, ChevronDown, Columns3, FileSpreadsheet, List, ListFilter, Search, X, type LucideIcon } from "lucide-react";
 import { saveListLayoutAction } from "@/app/(app)/list-layout-actions";
+import type { ListLayout } from "@/server/list-layouts";
 import { CommandBar, CommandButton, CommandDivider } from "./command-bar";
 import { BackCommand } from "./record-page";
 import { exportToExcel } from "./data-grid-export";
@@ -51,11 +52,17 @@ function visibleKeys(columns: Column[], saved: string[] | null | undefined) {
   return new Set([columns[0].key, ...keys]);
 }
 
+/** Narrowest a column can be dragged to. */
+const MIN_WIDTH = 60;
+
 /**
  * A Dynamics-style list: view switcher in the title, instant Quick find,
  * click a column header to sort (click again to reverse), a filter on every
- * column, "Edit columns" to choose what shows — remembered per person under
- * `listKey` — and Export to Excel of exactly what's on screen.
+ * column, "Edit columns" to choose what shows, drag a header's right edge to
+ * set a column's width (double-click it to fit again) — both remembered per
+ * person under `listKey` — and Export to Excel of exactly what's on screen.
+ * Text stays on one line (Haili, 1.6); a narrowed column ends in "…" with the
+ * full text on hover.
  *
  * Renders the page's command bar too, so Export sits beside the page's own
  * commands (`commands`).
@@ -77,9 +84,9 @@ export function DataGrid({
   columns: Column[];
   rows: Row[];
   defaultSort?: { key: string; dir: "asc" | "desc" };
-  /** Where this person's column choice is saved, e.g. "deals-closed". */
+  /** Where this person's column choice and widths are saved, e.g. "deals-closed". */
   listKey: string;
-  savedColumns?: string[] | null;
+  savedColumns?: ListLayout | null;
   /** The page's commands (New, Refresh…); Export to Excel is added after them. */
   commands?: React.ReactNode;
   /** Show rows in fixed sections with subtotals (the Pipeline report's stages). */
@@ -94,7 +101,13 @@ export function DataGrid({
   emptyText?: string;
 }) {
   const [showAlt, setShowAlt] = useState(false);
-  const [visible, setVisible] = useState(() => visibleKeys(allColumns, savedColumns));
+  const [visible, setVisible] = useState(() => visibleKeys(allColumns, savedColumns?.columns));
+  const [widths, setWidths] = useState<Record<string, number>>(() => savedColumns?.widths ?? {});
+  // The widths as of the last render, for saving at the end of a drag.
+  const widthsRef = useRef(widths);
+  useEffect(() => {
+    widthsRef.current = widths;
+  }, [widths]);
   const columns = useMemo(() => allColumns.filter((c) => visible.has(c.key)), [allColumns, visible]);
   const [, startSave] = useTransition();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -103,8 +116,42 @@ export function DataGrid({
     // Several quick clicks become one save of the final choice.
     if (saveTimer.current) clearTimeout(saveTimer.current);
     const columns = next ? allColumns.filter((c) => next.has(c.key)).map((c) => c.key) : null;
-    saveTimer.current = setTimeout(() => startSave(() => saveListLayoutAction(listKey, columns)), 400);
+    saveTimer.current = setTimeout(() => startSave(() => saveListLayoutAction(listKey, { columns })), 400);
   }
+  function saveWidths(next: Record<string, number>) {
+    setWidths(next);
+    startSave(() => saveListLayoutAction(listKey, { widths: Object.keys(next).length ? next : null }));
+  }
+  /** Drag a header's right edge: the column follows the pointer, and the width is saved on release. */
+  function startResize(key: string, e: React.PointerEvent<HTMLElement>) {
+    e.preventDefault();
+    e.stopPropagation();
+    const th = e.currentTarget.closest("th");
+    if (!th) return;
+    const startX = e.clientX;
+    // The width is the content's, inside the cell padding.
+    const cs = getComputedStyle(th);
+    const startW = th.getBoundingClientRect().width - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+    let latest = startW;
+    const move = (ev: PointerEvent) => {
+      latest = Math.max(MIN_WIDTH, Math.round(startW + ev.clientX - startX));
+      setWidths((w) => ({ ...w, [key]: latest }));
+    };
+    const up = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", up);
+      document.body.style.cursor = "";
+      if (latest !== startW) saveWidths({ ...widthsRef.current, [key]: latest });
+    };
+    document.body.style.cursor = "col-resize";
+    window.addEventListener("pointermove", move);
+    window.addEventListener("pointerup", up);
+  }
+  /**
+   * A set width goes on a wrapper inside the cell (tables ignore a cell's max width), so long
+   * text ends in "…" rather than widening the column.
+   */
+  const widthStyle = (key: string) => (widths[key] ? { width: widths[key] } : undefined);
   const [query, setQuery] = useState("");
   const [sort, setSort] = useState(defaultSort ?? { key: allColumns[0].key, dir: "asc" as const });
   // Filters last while you're on the page; they aren't saved.
@@ -185,17 +232,19 @@ export function DataGrid({
           return (
             <td
               key={c.key}
-              title={title}
-              className={`px-4 py-2.5 first:pl-5 ${c.kind === "number" || c.total ? "whitespace-nowrap text-right tabular-nums" : ""} ${c.kind === "link" ? "min-w-48" : ""}`}
+              title={title ?? (widths[c.key] && text ? text : undefined)}
+              className={`whitespace-nowrap px-4 py-2.5 first:pl-5 ${c.kind === "number" || c.total ? "text-right tabular-nums" : ""}`}
             >
-              {c.kind === "link" && c.hrefKey ? (
-                <Link href={String(r[c.hrefKey])} className="font-semibold text-link hover:underline">
-                  {text || "(untitled)"}
-                </Link>
-              ) : (
-                text
-              )}
-              {flagged && <FlagMark label={c.flagLabel ?? "Needs cleanup"} />}
+              <div style={widthStyle(c.key)} className="overflow-hidden text-ellipsis">
+                {c.kind === "link" && c.hrefKey ? (
+                  <Link href={String(r[c.hrefKey])} className="font-semibold text-link hover:underline">
+                    {text || "(untitled)"}
+                  </Link>
+                ) : (
+                  text
+                )}
+                {flagged && <FlagMark label={c.flagLabel ?? "Needs cleanup"} />}
+              </div>
             </td>
           );
         })}
@@ -208,11 +257,15 @@ export function DataGrid({
     return (
       <tr key={key} className={grand ? "border-y-2 border-navy bg-navy/5 font-bold" : "border-b border-border bg-background font-semibold"}>
         {columns.map((c, i) => (
-          <td key={c.key} className={`px-4 py-2 first:pl-5 ${c.total || c.kind === "number" ? "whitespace-nowrap text-right tabular-nums" : ""}`}>
+          <td
+            key={c.key}
+            className={`whitespace-nowrap px-4 py-2 first:pl-5 ${c.total || c.kind === "number" ? "text-right tabular-nums" : ""}`}
+          >
             {i === 0 ? (
-              <span className="whitespace-nowrap">
+              // Sized like the column; the label may run on into the empty cell beside it.
+              <div style={widthStyle(c.key)} className="overflow-visible whitespace-nowrap">
                 {label} · {countLabel(t.count, grouping!.unit)}
-              </span>
+              </div>
             ) : c.total ? (
               formatTotal(c, t.sums[c.key] ?? null)
             ) : null}
@@ -318,6 +371,11 @@ export function DataGrid({
                 >
                   Reset to default columns
                 </button>
+                {Object.keys(widths).length > 0 && (
+                  <button type="button" onClick={() => saveWidths({})} className="w-full px-3 pt-1 pb-1 text-left text-xs text-link hover:underline">
+                    Reset column widths
+                  </button>
+                )}
               </div>
             </details>
             <label className="flex flex-1 items-center gap-2 rounded border border-border px-2.5 py-1.5 sm:w-72 sm:flex-none focus-within:border-navy">
@@ -365,7 +423,7 @@ export function DataGrid({
           <div className="mt-3">{altView.render(shown)}</div>
         ) : (
           <div className="mt-3 overflow-x-auto">
-            <table className="w-full text-left text-sm">
+            <table className="w-full min-w-max text-left text-sm">
               <thead>
                 <tr className="border-b border-border">
                   {columns.map((c) => {
@@ -378,9 +436,9 @@ export function DataGrid({
                       <th
                         key={c.key}
                         aria-sort={isSorted ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
-                        className={`whitespace-nowrap px-4 py-2 font-semibold first:pl-5 ${right ? "text-right" : ""}`}
+                        className={`relative whitespace-nowrap px-4 py-2 font-semibold first:pl-5 ${right ? "text-right" : ""}`}
                       >
-                        <span className={`inline-flex items-center gap-1.5 ${right ? "flex-row-reverse" : ""}`}>
+                        <span style={widthStyle(c.key)} className={`inline-flex items-center gap-1.5 overflow-hidden ${right ? "flex-row-reverse" : ""}`}>
                           <button
                             type="button"
                             onClick={() => toggle(sk)}
@@ -404,6 +462,19 @@ export function DataGrid({
                             <ListFilter size={13} />
                           </button>
                         </span>
+                        <span
+                          role="separator"
+                          aria-orientation="vertical"
+                          aria-label={`Resize ${c.label} column`}
+                          title="Drag to resize · double-click to fit"
+                          onPointerDown={(e) => startResize(c.key, e)}
+                          onDoubleClick={() => {
+                            const next = { ...widths };
+                            delete next[c.key];
+                            saveWidths(next);
+                          }}
+                          className="absolute inset-y-0 right-0 w-2 cursor-col-resize border-r-2 border-transparent hover:border-blue"
+                        />
                       </th>
                     );
                   })}
@@ -417,9 +488,9 @@ export function DataGrid({
                       ) : (
                         <Fragment key={b.id}>
                           <tr className="border-b border-border">
-                            <th colSpan={columns.length} scope="colgroup" className="bg-gray-light px-5 pt-4 pb-1.5 text-left">
-                              <span className="font-serif text-base text-navy">{b.title}</span>
-                              {b.note && <span className="ml-3 text-xs font-normal text-muted">Date shown: {b.note}</span>}
+                            <th colSpan={columns.length} scope="colgroup" className="bg-blue px-5 py-2 text-left text-white">
+                              <span className="font-serif text-base">{b.title}</span>
+                              {b.note && <span className="ml-3 text-xs font-normal text-white/80">Date shown: {b.note}</span>}
                             </th>
                           </tr>
                           {b.rows.map(renderRow)}

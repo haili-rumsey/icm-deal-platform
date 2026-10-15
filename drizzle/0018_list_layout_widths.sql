@@ -1,0 +1,1 @@
+ALTER TABLE "list_layouts" ADD COLUMN "widths" jsonb;

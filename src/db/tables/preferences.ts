@@ -1,7 +1,7 @@
-import { pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
+import { jsonb, pgTable, primaryKey, text, timestamp } from "drizzle-orm/pg-core";
 import { users } from "./auth";
 
-/** Each person's chosen columns for a list or report, keyed by list (e.g. "deals-closed"). */
+/** Each person's chosen columns (and column widths) for a list or report, keyed by list (e.g. "deals-closed"). */
 export const listLayouts = pgTable(
   "list_layouts",
   {
@@ -9,8 +9,10 @@ export const listLayouts = pgTable(
       .notNull()
       .references(() => users.id, { onDelete: "cascade" }),
     listKey: text("list_key").notNull(),
-    // Visible column keys, in display order.
+    // Visible column keys, in display order. Empty = the list's defaults.
     columns: text("columns").array().notNull(),
+    // Column widths in pixels, dragged by the person; a column not listed sizes to fit.
+    widths: jsonb("widths").$type<Record<string, number>>(),
     updatedAt: timestamp("updated_at", { mode: "date", withTimezone: true }).notNull().defaultNow(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.listKey] })],

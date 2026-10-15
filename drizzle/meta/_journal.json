@@ -127,6 +127,13 @@
       "when": 1792007972800,
       "tag": "0017_property_pin_manual",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1792072646383,
+      "tag": "0018_list_layout_widths",
+      "breakpoints": true
     }
   ]
 }
