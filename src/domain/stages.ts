@@ -146,3 +146,20 @@ export const PIPELINE_KEY_DATE: Partial<Record<Stage, { field: KeyDateField; lab
 export const FEE_STAGES: Stage[] = ["Engaged", "Marketing", "Awarded", "Under Contract", "Off Market", "Closed"];
 /** The buyer side shows once a buyer has been selected (an off-market deal usually has one in mind). */
 export const BUYER_STAGES: Stage[] = ["Awarded", "Under Contract", "Off Market", "Closed"];
+
+export type PriceField = "bovPriceMid" | "guidancePrice" | "closedPrice" | "totalCapitalization" | "loanAmount" | "totalLeaseConsideration";
+
+/**
+ * The price that counts at this stage (the one the deal value shows) — what the
+ * Pipeline report's quick-edit panel offers. Null for fee-only deal types.
+ */
+export function stagePriceField(dealType: DealType | null, stage: Stage): { field: PriceField; label: string } | null {
+  if (dealType === "Equity") return { field: "totalCapitalization", label: "Total capitalization" };
+  if (dealType === "Debt") return { field: "loanAmount", label: "Loan amount" };
+  if (dealType === "Lease") return { field: "totalLeaseConsideration", label: "Total lease consideration" };
+  if (dealType && FEE_ONLY_TYPES.includes(dealType)) return null;
+  if (stage === "BOV 1" || stage === "BOV 2" || stage === "Track" || stage === "Dead" || stage === "Lost")
+    return { field: "bovPriceMid", label: "BOV mid" };
+  if (stage === "Engaged" || stage === "Marketing") return { field: "guidancePrice", label: "Guidance" };
+  return { field: "closedPrice", label: "Sale price" };
+}

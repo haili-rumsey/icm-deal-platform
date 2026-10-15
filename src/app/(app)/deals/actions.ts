@@ -14,8 +14,12 @@ import {
   SIDES,
   STAGES,
   TEAM_ROLES,
+  type Stage,
 } from "@/domain/options";
-import { closeBlockedMessage } from "@/domain/close-check";
+import { closeBlockedMessage, needsDealTabs } from "@/domain/close-check";
+import { FEE_STAGES, PIPELINE_KEY_DATE, stagePriceField, type KeyDateField, type PriceField } from "@/domain/stages";
+import { icmTeamOptions } from "@/server/contacts";
+import type { CloseInfo } from "./[id]/close-dialog";
 import { bool, dec, ids, oneOf, str } from "@/lib/form";
 import { db } from "@/db";
 import { setOwnersForDeal } from "@/server/property-owners";
@@ -30,6 +34,10 @@ import {
   missingToClose,
   moveStage,
   saveCloseFields,
+  getDeal,
+  isLockedFor,
+  quickUpdateDeal,
+  setLeadAnalyst,
   removeDealParty,
   removeDealProperty,
   removeTeamMember,
@@ -165,6 +173,8 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
 function refresh(dealId: string) {
   revalidatePath(`/deals/${dealId}`);
   revalidatePath("/deals");
+  // The Pipeline report's quick-edit panel moves stages too; keep the reports current.
+  revalidatePath("/reports", "layout");
 }
 
 export async function addPropertyAction(dealId: string, fd: FormData) {
@@ -318,4 +328,94 @@ export async function moveStageAction(dealId: string, _prev: StageState, fd: For
   }
   refresh(dealId);
   return null;
+}
+
+// ---- Quick edit (Pipeline report side panel, Haili 1.6) ----
+
+export type QuickDeal = {
+  id: string;
+  dealName: string;
+  stage: Stage;
+  version: string;
+  locked: boolean;
+  dates: Partial<Record<"pitchDate" | "wonDate" | "launchDate" | "awardedDate" | "closeDate" | "followUpDate", string | null>>;
+  keyDate: { field: KeyDateField; label: string; value: string | null } | null;
+  price: { field: PriceField; label: string; value: string | null } | null;
+  /** Shown from Engaged on, or whenever a fee is entered. */
+  fee: { show: boolean; value: string | null };
+  leadAnalystId: string | null;
+  team: { id: string; name: string }[];
+  notes: string | null;
+  closeInfo: CloseInfo;
+};
+
+/** What the quick-edit panel needs for one deal. */
+export async function quickDealAction(id: string): Promise<QuickDeal | null> {
+  const user = await requireUser();
+  const [data, team] = await Promise.all([getDeal(id), icmTeamOptions(id)]);
+  if (!data) return null;
+  const d = data.deal;
+  const closeOnTabs = d.stage === "Closed" ? [] : (await missingToClose(id)).filter(needsDealTabs);
+  const key = PIPELINE_KEY_DATE[d.stage];
+  const price = stagePriceField(d.dealType, d.stage);
+  return {
+    id,
+    dealName: d.dealName,
+    stage: d.stage,
+    version: d.lastModifiedAt.toISOString(),
+    locked: isLockedFor(d.stage, user),
+    dates: {
+      pitchDate: d.pitchDate,
+      wonDate: d.wonDate,
+      launchDate: d.launchDate,
+      awardedDate: d.awardedDate,
+      closeDate: d.closeDate,
+      followUpDate: d.followUpDate,
+    },
+    keyDate: key ? { ...key, value: d[key.field] } : null,
+    price: price ? { ...price, value: d[price.field] } : null,
+    fee: { show: FEE_STAGES.includes(d.stage) || d.totalCommission !== null, value: d.totalCommission },
+    leadAnalystId: data.team.find((t) => t.isLeadAnalyst)?.contactId ?? null,
+    team: team.map((t) => ({ id: t.id, name: t.name })),
+    notes: d.closingNotes,
+    closeInfo: {
+      closeDate: d.closeDate,
+      dealType: d.dealType,
+      dealSubtype: d.dealSubtype,
+      reappsId: d.reappsId,
+      opportunityType: d.opportunityType,
+      represented: d.represented,
+      closedPrice: d.closedPrice,
+      totalCapitalization: d.totalCapitalization,
+      loanAmount: d.loanAmount,
+      totalLeaseConsideration: d.totalLeaseConsideration,
+      totalCommission: d.totalCommission,
+      outsideCommission: d.outsideCommission,
+      hasBuyer: data.parties.some((p) => p.side === "B"),
+      onTabs: closeOnTabs,
+    },
+  };
+}
+
+const QUICK_DATES: KeyDateField[] = ["pitchDueDate", "pitchDate", "launchDate", "callForOffersDate", "ddExpirationDate", "closeDate", "followUpDate"];
+const QUICK_PRICES: PriceField[] = ["bovPriceMid", "guidancePrice", "closedPrice", "totalCapitalization", "loanAmount", "totalLeaseConsideration"];
+
+/** Saves the quick-edit panel: only the fields it sent (key date, price, fee, lead analyst, notes). */
+export async function quickSaveDealAction(dealId: string, _prev: SaveState, fd: FormData): Promise<SaveState> {
+  let user;
+  try {
+    user = await editor(dealId);
+  } catch (e) {
+    if (e instanceof DealLockedError) return { ok: false, message: e.message };
+    throw e;
+  }
+  const set: Record<string, string | null> = {};
+  for (const k of QUICK_DATES) if (fd.has(k)) set[k] = str(fd, k);
+  for (const k of QUICK_PRICES) if (fd.has(k)) set[k] = dec(fd, k);
+  if (fd.has("totalCommission")) set.totalCommission = dec(fd, "totalCommission");
+  if (fd.has("closingNotes")) set.closingNotes = str(fd, "closingNotes");
+  await quickUpdateDeal(dealId, set, user.id);
+  if (fd.has("leadAnalystId")) await setLeadAnalyst(dealId, str(fd, "leadAnalystId"), user.id);
+  refresh(dealId);
+  return { ok: true, message: "Saved." };
 }

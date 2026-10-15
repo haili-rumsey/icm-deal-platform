@@ -79,6 +79,8 @@ export function DataGrid({
   embedded = false,
   altView,
   emptyText = "We didn't find anything to show here.",
+  onRowClick,
+  selectedId,
 }: {
   views: View[];
   columns: Column[];
@@ -99,6 +101,10 @@ export function DataGrid({
    */
   altView?: { label: string; icon: LucideIcon; render: (rows: Row[]) => React.ReactNode };
   emptyText?: string;
+  /** Clicking a row (not its links or buttons) calls this, e.g. to open a quick-edit panel. */
+  onRowClick?: (row: Row) => void;
+  /** The row shown as selected (by `id`). */
+  selectedId?: string | null;
 }) {
   const [showAlt, setShowAlt] = useState(false);
   const [visible, setVisible] = useState(() => visibleKeys(allColumns, savedColumns?.columns));
@@ -224,7 +230,22 @@ export function DataGrid({
 
   function renderRow(r: Row, i: number) {
     return (
-      <tr key={String(r.id ?? i)} className="border-b border-border last:border-0 hover:bg-background">
+      <tr
+        key={String(r.id ?? i)}
+        onClick={
+          onRowClick
+            ? (e) => {
+                // Links and buttons in the row keep doing their own thing.
+                if ((e.target as HTMLElement).closest("a,button,input,select,textarea")) return;
+                onRowClick(r);
+              }
+            : undefined
+        }
+        aria-selected={onRowClick ? selectedId === r.id : undefined}
+        className={`border-b border-border last:border-0 ${onRowClick ? "cursor-pointer" : ""} ${
+          selectedId != null && selectedId === r.id ? "bg-[#e6eef8]" : "hover:bg-background"
+        }`}
+      >
         {columns.map((c) => {
           const text = displayText(r[c.key], c.kind);
           const flagged = c.flagKey && r[c.flagKey] === true;
@@ -237,7 +258,7 @@ export function DataGrid({
             >
               <div style={widthStyle(c.key)} className="overflow-hidden text-ellipsis">
                 {c.kind === "link" && c.hrefKey ? (
-                  <Link href={String(r[c.hrefKey])} className="font-semibold text-link hover:underline">
+                  <Link href={String(r[c.hrefKey])} className="font-bold text-link hover:underline">
                     {text || "(untitled)"}
                   </Link>
                 ) : (
@@ -255,7 +276,7 @@ export function DataGrid({
   /** A subtotal or grand-total row: the count in the first cell, sums under their columns. */
   function totalsRow(key: string, label: string, t: { count: number; sums: Record<string, number | null> }, grand: boolean) {
     return (
-      <tr key={key} className={grand ? "border-y-2 border-navy bg-navy/5 font-bold" : "border-b border-border bg-background font-semibold"}>
+      <tr key={key} className={grand ? "border-y-2 border-navy bg-navy/5 font-bold" : "border-b border-gray bg-gray-light font-bold"}>
         {columns.map((c, i) => (
           <td
             key={c.key}
@@ -422,9 +443,10 @@ export function DataGrid({
         {altView && showAlt ? (
           <div className="mt-3">{altView.render(shown)}</div>
         ) : (
-          <div className="mt-3 overflow-x-auto">
+          // The table scrolls inside its own box (both ways) so the header row stays in view.
+          <div className="mt-3 max-h-[calc(100vh-13rem)] overflow-auto">
             <table className="w-full min-w-max text-left text-sm">
-              <thead>
+              <thead className="sticky top-0 z-10 bg-card shadow-[0_1px_0_var(--color-border)]">
                 <tr className="border-b border-border">
                   {columns.map((c) => {
                     const sk = c.sortKey ?? c.key;

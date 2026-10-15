@@ -1,6 +1,6 @@
 "use client";
 
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { Check } from "lucide-react";
 import { inputCls } from "@/components/fields";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -51,6 +51,13 @@ export function StageBar({
   closeAction: (prev: CloseState, fd: FormData) => Promise<CloseState>;
 }) {
   const [closing, setClosing] = useState(false);
+  // On a narrow screen (or the quick-edit panel) the chevrons scroll; keep the current one in view.
+  const chevrons = useRef<HTMLOListElement>(null);
+  useEffect(() => {
+    const ol = chevrons.current;
+    const current = ol?.querySelector<HTMLElement>("[aria-current=step]")?.closest("li");
+    if (ol && current) ol.scrollLeft = Math.max(0, current.offsetLeft - (ol.clientWidth - current.offsetWidth) / 2);
+  }, [stage]);
   const [state, formAction, pending] = useActionState(action, null);
   const [chosen, setTarget] = useState<Stage | null>(null);
   // Once the move lands, the deal's stage becomes the chosen one and the prompt closes.
@@ -105,7 +112,7 @@ export function StageBar({
       )}
       <div className="flex flex-col gap-2 lg:flex-row lg:items-stretch">
         {/* Chevrons stretch across the row; on narrow screens they keep a readable width and scroll. */}
-        <ol className="flex min-w-0 flex-1 overflow-x-auto pb-0.5" aria-label="Stage">
+        <ol ref={chevrons} className="relative flex min-w-0 flex-1 overflow-x-auto pb-0.5" aria-label="Stage">
           {PIPELINE.map((s, i) => {
             const isCurrent = s === stage;
             const done = currentIndex >= 0 && i < currentIndex;

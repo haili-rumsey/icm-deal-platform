@@ -439,3 +439,33 @@ export async function currentStage(dealId: string) {
   const [row] = await db.select({ stage: deals.stage }).from(deals).where(eq(deals.id, dealId));
   return row?.stage ?? null;
 }
+
+// ---- Quick edit (Pipeline report side panel, Haili 1.6) ----
+
+/** Sets the deal's one lead analyst (adding them to the team if needed); null clears it. */
+export async function setLeadAnalyst(dealId: string, contactId: string | null, byId: string) {
+  await db.update(dealTeam).set({ isLeadAnalyst: false }).where(eq(dealTeam.dealId, dealId));
+  if (contactId) {
+    await db
+      .insert(dealTeam)
+      .values({ dealId, contactId, roles: ["Analyst"], isLeadAnalyst: true })
+      .onConflictDoUpdate({ target: [dealTeam.dealId, dealTeam.contactId], set: { isLeadAnalyst: true } });
+  }
+  await touch(dealId, byId);
+}
+
+/** Saves the quick-edit fields only; anything not sent is left alone. In-house gross follows the fee unless typed over. */
+export async function quickUpdateDeal(dealId: string, set: Partial<typeof deals.$inferInsert>, byId: string) {
+  const [d] = await db
+    .select({ outside: deals.outsideCommission, manual: deals.inHouseGrossManual })
+    .from(deals)
+    .where(eq(deals.id, dealId));
+  if (!d) return;
+  if (set.totalCommission !== undefined && !d.manual) {
+    set.inHouseGross = set.totalCommission === null ? null : (Number(set.totalCommission) - Number(d.outside ?? 0)).toFixed(2);
+  }
+  await db
+    .update(deals)
+    .set({ ...set, lastModifiedAt: new Date(), lastModifiedById: byId })
+    .where(eq(deals.id, dealId));
+}

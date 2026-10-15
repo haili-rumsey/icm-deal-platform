@@ -1,9 +1,10 @@
 import { RefreshCommand } from "@/components/command-bar";
-import { DataGrid } from "@/components/data-grid";
+import { companyOptions } from "@/server/companies";
 import { shortDay } from "@/components/data-grid-filters";
 import { BUYER_STAGES, dealValue, FEE_STAGES, formatMoney, PIPELINE_KEY_DATE } from "@/domain/stages";
 import { listDeals } from "@/server/deals";
 import { myListLayout } from "@/server/list-layouts";
+import { PipelineView } from "./pipeline-view";
 
 const day = (iso: string | null) => (iso ? shortDay(iso) : null);
 
@@ -16,14 +17,20 @@ const money = (v: string | null) => (v === null ? null : Number(v));
  * order (Under Contract → BOV 1, then Off Market) with subtotals and a grand total. Track deals aren't shown
  * here (Haili, 1.6); they're on the Archive list with Dead and Lost.
  * Each deal leads with the date that matters at its stage. Lead analyst is the
- * only team field shown by default (PRD §6).
+ * only team field shown by default (PRD §6). Clicking a row opens the quick-edit
+ * panel (stage bar + the meeting's fields) without leaving the report.
  */
 export default async function PipelineReportPage() {
-  const [deals, saved] = await Promise.all([listDeals({ view: "pipeline" }), myListLayout("report-pipeline")]);
+  const [deals, saved, companies] = await Promise.all([
+    listDeals({ view: "pipeline" }),
+    myListLayout("report-pipeline"),
+    companyOptions(),
+  ]);
 
   return (
-    <DataGrid
-      commands={<RefreshCommand />}
+    <PipelineView
+      companies={companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }))}
+      commands={<RefreshCommand key="refresh" />}
       views={[{ label: "Pipeline report", href: "/reports/pipeline", active: true }]}
       listKey="report-pipeline"
       savedColumns={saved}
@@ -76,6 +83,8 @@ export default async function PipelineReportPage() {
         const fee = FEE_STAGES.includes(d.stage) ? money(d.totalCommission) : null;
         return {
           id: d.id,
+          // Lets an open quick-edit panel reload when this deal changes.
+          version: d.lastModifiedAt.toISOString(),
           href: `/deals/${d.id}`,
           stage: d.stage,
           furthest: d.furthestStage,
