@@ -1,16 +1,19 @@
 import { RefreshCommand } from "@/components/command-bar";
 import { DataGrid } from "@/components/data-grid";
 import { shortDay } from "@/components/data-grid-filters";
-import { ACTIVE_STAGES, BUYER_STAGES, dealValue, FEE_STAGES, formatMoney, PIPELINE_KEY_DATE } from "@/domain/stages";
+import { BUYER_STAGES, dealValue, FEE_STAGES, formatMoney, PIPELINE_KEY_DATE } from "@/domain/stages";
 import { listDeals } from "@/server/deals";
 import { myListLayout } from "@/server/list-layouts";
 
 const day = (iso: string | null) => (iso ? shortDay(iso) : null);
+
+/** Haili's tracker order (1.6): closest to closing first, Off Market last. */
+const REPORT_ORDER = ["Under Contract", "Awarded", "Marketing", "Engaged", "BOV 2", "BOV 1", "Off Market"] as const;
 const money = (v: string | null) => (v === null ? null : Number(v));
 
 /**
- * The weekly meeting's report: every active deal, grouped by stage (BOV 1 →
- * Under Contract) with subtotals and a grand total. Track deals aren't shown
+ * The weekly meeting's report: every active deal, grouped by stage in the tracker's
+ * order (Under Contract → BOV 1, then Off Market) with subtotals and a grand total. Track deals aren't shown
  * here (Haili, 1.6); they're on the Archive list with Dead and Lost.
  * Each deal leads with the date that matters at its stage. Lead analyst is the
  * only team field shown by default (PRD §6).
@@ -29,7 +32,7 @@ export default async function PipelineReportPage() {
         by: "stage",
         unit: "deal",
         totalLabel: "Active pipeline",
-        sections: ACTIVE_STAGES.map((s) => ({ id: s, title: s, note: PIPELINE_KEY_DATE[s]?.label })),
+        sections: REPORT_ORDER.map((s) => ({ id: s, title: s, note: PIPELINE_KEY_DATE[s]?.label })),
       }}
       emptyText="No active deals."
       columns={[
