@@ -44,12 +44,15 @@ export type Column = {
 
 export type View = { label: string; href: string; active: boolean };
 
-/** Visible column keys: the saved choice (unknown keys dropped), else the defaults. The first column always shows. */
-function visibleKeys(columns: Column[], saved: string[] | null | undefined) {
+/**
+ * Visible column keys in display order: the saved choice (unknown keys dropped), else the
+ * defaults. The list's first column always shows (it can be moved).
+ */
+function visibleOrder(columns: Column[], saved: string[] | null | undefined) {
   const known = new Set(columns.map((c) => c.key));
   const picked = saved?.filter((k) => known.has(k)) ?? [];
-  const keys = picked.length ? picked : columns.filter((c) => !c.defaultHidden).map((c) => c.key);
-  return new Set([columns[0].key, ...keys]);
+  const keys = [...new Set(picked.length ? picked : columns.filter((c) => !c.defaultHidden).map((c) => c.key))];
+  return keys.includes(columns[0].key) ? keys : [columns[0].key, ...keys];
 }
 
 /** Narrowest a column can be dragged to. */
@@ -107,22 +110,38 @@ export function DataGrid({
   selectedId?: string | null;
 }) {
   const [showAlt, setShowAlt] = useState(false);
-  const [visible, setVisible] = useState(() => visibleKeys(allColumns, savedColumns?.columns));
+  const [order, setOrder] = useState(() => visibleOrder(allColumns, savedColumns?.columns));
+  const visible = useMemo(() => new Set(order), [order]);
+  // Header being dragged to a new place, and the header it's over.
+  const [drag, setDrag] = useState<{ key: string; over: string | null } | null>(null);
   const [widths, setWidths] = useState<Record<string, number>>(() => savedColumns?.widths ?? {});
   // The widths as of the last render, for saving at the end of a drag.
   const widthsRef = useRef(widths);
   useEffect(() => {
     widthsRef.current = widths;
   }, [widths]);
-  const columns = useMemo(() => allColumns.filter((c) => visible.has(c.key)), [allColumns, visible]);
+  const columns = useMemo(() => {
+    const byKey = new Map(allColumns.map((c) => [c.key, c]));
+    return order.map((k) => byKey.get(k)).filter((c): c is Column => !!c);
+  }, [allColumns, order]);
   const [, startSave] = useTransition();
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  function choose(next: Set<string> | null) {
-    setVisible(next ?? visibleKeys(allColumns, null));
+  /** Shown columns in order (null = the list's defaults), saved for this person. */
+  function choose(next: string[] | null) {
+    setOrder(next ?? visibleOrder(allColumns, null));
     // Several quick clicks become one save of the final choice.
     if (saveTimer.current) clearTimeout(saveTimer.current);
-    const columns = next ? allColumns.filter((c) => next.has(c.key)).map((c) => c.key) : null;
-    saveTimer.current = setTimeout(() => startSave(() => saveListLayoutAction(listKey, { columns })), 400);
+    saveTimer.current = setTimeout(() => startSave(() => saveListLayoutAction(listKey, { columns: next })), 400);
+  }
+  /** Drop a dragged header onto another: it takes that one's place. */
+  function moveColumn(key: string, onto: string) {
+    const from = order.indexOf(key);
+    const to = order.indexOf(onto);
+    if (from < 0 || to < 0 || from === to) return;
+    const next = [...order];
+    next.splice(from, 1);
+    next.splice(to, 0, key);
+    choose(next);
   }
   function saveWidths(next: Record<string, number>) {
     setWidths(next);
@@ -375,22 +394,18 @@ export function DataGrid({
                       type="checkbox"
                       checked={visible.has(c.key)}
                       disabled={i === 0}
-                      onChange={(e) => {
-                        const next = new Set(visible);
-                        if (e.target.checked) next.add(c.key);
-                        else next.delete(c.key);
-                        choose(next);
-                      }}
+                      onChange={(e) => choose(e.target.checked ? [...order, c.key] : order.filter((k) => k !== c.key))}
                     />
                     {c.label}
                   </label>
                 ))}
+                <p className="border-t border-border px-3 pt-2 text-xs text-muted">Drag a column header left or right to move it.</p>
                 <button
                   type="button"
                   onClick={() => choose(null)}
-                  className="mt-1 w-full border-t border-border px-3 pt-2 pb-1 text-left text-xs text-link hover:underline"
+                  className="mt-1 w-full px-3 pt-1 pb-1 text-left text-xs text-link hover:underline"
                 >
-                  Reset to default columns
+                  Reset to default columns and order
                 </button>
                 {Object.keys(widths).length > 0 && (
                   <button type="button" onClick={() => saveWidths({})} className="w-full px-3 pt-1 pb-1 text-left text-xs text-link hover:underline">
@@ -458,9 +473,33 @@ export function DataGrid({
                       <th
                         key={c.key}
                         aria-sort={isSorted ? (sort.dir === "asc" ? "ascending" : "descending") : undefined}
-                        className={`relative whitespace-nowrap px-4 py-2 font-semibold first:pl-5 ${right ? "text-right" : ""}`}
+                        onDragOver={(e) => {
+                          if (!drag) return;
+                          e.preventDefault();
+                          if (drag.over !== c.key) setDrag({ ...drag, over: c.key });
+                        }}
+                        onDrop={(e) => {
+                          e.preventDefault();
+                          if (drag) moveColumn(drag.key, c.key);
+                          setDrag(null);
+                        }}
+                        className={`relative whitespace-nowrap px-4 py-2 font-semibold first:pl-5 ${right ? "text-right" : ""} ${
+                          drag?.key === c.key ? "opacity-50" : drag?.over === c.key ? "bg-[#e6eef8] shadow-[inset_3px_0_0_var(--color-blue)]" : ""
+                        }`}
                       >
-                        <span style={widthStyle(c.key)} className={`inline-flex items-center gap-1.5 overflow-hidden ${right ? "flex-row-reverse" : ""}`}>
+                        {/* Drag the header (not its edge, which resizes) to move the column. */}
+                        <span
+                          draggable
+                          onDragStart={(e) => {
+                            e.dataTransfer.effectAllowed = "move";
+                            e.dataTransfer.setData("text/plain", c.label);
+                            setDrag({ key: c.key, over: null });
+                          }}
+                          onDragEnd={() => setDrag(null)}
+                          title="Drag to move this column"
+                          style={widthStyle(c.key)}
+                          className={`inline-flex cursor-grab items-center gap-1.5 overflow-hidden active:cursor-grabbing ${right ? "flex-row-reverse" : ""}`}
+                        >
                           <button
                             type="button"
                             onClick={() => toggle(sk)}
