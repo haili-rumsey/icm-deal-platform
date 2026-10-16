@@ -21,6 +21,8 @@ const DEAL_COLUMNS: Column[] = [
   { key: "feeLabel", label: "Fee", sortKey: "fee", type: "money" },
   { key: "sf", label: "SF", kind: "number" },
   { key: "acres", label: "AC", kind: "number" },
+  // Value ÷ total building SF (Haili, 1.6); switch on under Edit columns.
+  { key: "psfLabel", label: "Price / SF", sortKey: "psf", type: "money", defaultHidden: true },
   { key: "ios", label: "IOS Deal", defaultHidden: true },
   { key: "category", label: "Category", defaultHidden: true },
   { key: "cities", label: "City", multi: true, defaultHidden: true },

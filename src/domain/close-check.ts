@@ -50,9 +50,8 @@ export function closeBlockers(d: CloseCheckInput): string[] {
   }
 
   if (blank(d.totalCommission)) missing.push("total commission");
-  // Outside commission is required to close, but 0 is a fine answer (Haili, 1.6).
-  if (blank(d.outsideCommission)) missing.push("outside commission (0 if none)");
-  else if (!blank(d.totalCommission) && !feeSplitAddsUp(d.totalCommission!, d.outsideCommission!, d.inHouseGross))
+  // Outside commission left blank counts as $0 (Haili, 1.6); in-house + outside must equal the total.
+  if (!blank(d.totalCommission) && !feeSplitAddsUp(d.totalCommission!, d.outsideCommission ?? "0", d.inHouseGross))
     missing.push("in-house gross + outside commission to equal total commission");
   // A consulting fee may not be tied to a property.
   const needsProperty = d.dealType !== "Consulting";

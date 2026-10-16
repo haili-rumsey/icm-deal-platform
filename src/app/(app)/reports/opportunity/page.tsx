@@ -1,6 +1,6 @@
 import { DEAL_SUBTYPES, DEAL_TYPES, OPPORTUNITY_TYPES } from "@/domain/options";
 import { parsePeriod, periodChoices, summarize, type GroupBy, type ReportDeal } from "@/domain/opportunity-report";
-import { dealValue, formatMoney } from "@/domain/stages";
+import { dealValue, formatMoney, pricePerSf, formatPsf } from "@/domain/stages";
 import { searchParam } from "@/lib/params";
 import { listDeals } from "@/server/deals";
 import { myListLayout } from "@/server/list-layouts";
@@ -69,6 +69,8 @@ export default async function OpportunityReportPage({ searchParams }: PageProps<
           feeLabel: formatMoney(r.fee),
           sf: r.sf,
           acres: r.acres,
+          psf: pricePerSf(r.value, d.totalSf),
+          psfLabel: formatPsf(pricePerSf(r.value, d.totalSf)),
           ios: d.isIos ? "Yes" : null,
           category: d.category,
           cities: d.cities,

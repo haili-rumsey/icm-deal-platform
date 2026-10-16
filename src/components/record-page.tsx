@@ -39,6 +39,16 @@ export function useUnsavedChanges() {
   return useContext(RecordFormContext)?.dirty ?? false;
 }
 
+/** Saves the record's main form (as its Save button would) and reports how that save went. Safe outside a provider. */
+export function useRecordSave() {
+  const ctx = useContext(RecordFormContext);
+  return {
+    save: () => (document.getElementById(FORM_ID) as HTMLFormElement | null)?.requestSubmit(),
+    pending: ctx?.pending ?? false,
+    state: ctx?.state ?? null,
+  };
+}
+
 function serialize(form: HTMLFormElement) {
   return JSON.stringify([...new FormData(form).entries()].map(([k, v]) => [k, String(v)]));
 }

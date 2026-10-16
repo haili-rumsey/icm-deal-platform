@@ -83,22 +83,23 @@ function parse(fd: FormData): DealInput | string {
     bovPriceMid: dec(fd, "bovPriceMid"),
     bovPriceHigh: dec(fd, "bovPriceHigh"),
     bovYear1Cap: dec(fd, "bovYear1Cap"),
-    bovUlirr: dec(fd, "bovUlirr"),
-    bovLirr: dec(fd, "bovLirr"),
-    bovExitCap: dec(fd, "bovExitCap"),
-    bovHoldYears: dec(fd, "bovHoldYears"),
+    // ULIRR, LIRR, exit cap and hold period are no longer tracked (Haili, 1.6); columns to be dropped.
+    bovUlirr: null,
+    bovLirr: null,
+    bovExitCap: null,
+    bovHoldYears: null,
     guidancePrice: dec(fd, "guidancePrice"),
     omYear1Cap: dec(fd, "omYear1Cap"),
-    omUlirr: dec(fd, "omUlirr"),
-    omLirr: dec(fd, "omLirr"),
-    omExitCap: dec(fd, "omExitCap"),
-    omHoldYears: dec(fd, "omHoldYears"),
+    omUlirr: null,
+    omLirr: null,
+    omExitCap: null,
+    omHoldYears: null,
     closedPrice: dec(fd, "closedPrice"),
     closedYear1Cap: dec(fd, "closedYear1Cap"),
-    closedUlirr: dec(fd, "closedUlirr"),
-    closedLirr: dec(fd, "closedLirr"),
-    closedExitCap: dec(fd, "closedExitCap"),
-    closedHoldYears: dec(fd, "closedHoldYears"),
+    closedUlirr: null,
+    closedLirr: null,
+    closedExitCap: null,
+    closedHoldYears: null,
     priceNotes: str(fd, "priceNotes"),
 
     totalCapitalization: dec(fd, "totalCapitalization"),
@@ -138,7 +139,9 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
       message: "A new deal can't start at Closed. Save it at Under Contract, add its property and buyer side, then move it to Closed.",
     };
   }
-  const closing = !!id && input.stage === "Closed" && (await currentStage(id)) !== "Closed";
+  const current = id ? await currentStage(id) : null;
+  let closing = !!id && input.stage === "Closed" && current !== "Closed";
+  let blocked: string | null = null;
   if (id && closing) {
     // Moving into Closed: check what's being saved now, plus the deal's properties and parties.
     const missing = await missingToClose(id, {
@@ -146,8 +149,12 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
       inHouseGross: input.inHouseGrossManual ? input.inHouseGross : null,
       teamCount: team.teamIds.length,
     });
-    if (missing.length)
-      return { ok: false, message: `${closeBlockedMessage(missing)} Click Closed on the stage bar to fill these in.` };
+    if (missing.length) {
+      // Save everything else and leave the stage as it was — never lose the other edits.
+      blocked = `Saved your changes, but the deal stays ${current}. Still needed to close: ${missing.join(", ")}. Click Closed on the stage bar to finish.`;
+      input.stage = current!;
+      closing = false;
+    }
   }
   if (!id) {
     const newId = await createDeal(input, user);
@@ -166,8 +173,9 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
   // A closed sale makes its buyer the properties' current owner.
   if (closing) await setOwnersForDeal(db, id);
   revalidatePath("/deals", "layout");
+  revalidatePath("/reports", "layout");
   if (closing) revalidatePath("/properties", "layout");
-  return { ok: true, message: "Saved." };
+  return blocked ? { ok: false, message: blocked } : { ok: true, message: "Saved." };
 }
 
 function refresh(dealId: string) {

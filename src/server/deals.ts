@@ -381,14 +381,15 @@ export async function saveCloseFields(dealId: string, fields: CloseFields, buyer
     .where(eq(deals.id, dealId));
   if (!d) return;
   const total = fields.totalCommission !== undefined ? fields.totalCommission : d.total;
-  const outside = fields.outsideCommission !== undefined ? fields.outsideCommission : d.outside;
-  const set: Partial<typeof deals.$inferInsert> = { ...fields, lastModifiedAt: new Date(), lastModifiedById: byId };
+  // Blank outside commission means none: recorded as $0 (Haili, 1.6).
+  const outside = (fields.outsideCommission !== undefined ? fields.outsideCommission : d.outside) ?? "0.00";
+  const set: Partial<typeof deals.$inferInsert> = { ...fields, outsideCommission: outside, lastModifiedAt: new Date(), lastModifiedById: byId };
   if (fields.dealType || fields.dealSubtype) {
     const type = fields.dealType ?? d.dealType;
     const allowed = type ? SUBTYPES_BY_TYPE[type] : [];
     if (fields.dealSubtype && !allowed.includes(fields.dealSubtype)) set.dealSubtype = null;
   }
-  if (total !== null && outside !== null) {
+  if (total !== null) {
     set.inHouseGross = (Number(total) - Number(outside)).toFixed(2);
     set.inHouseGrossManual = false;
   }

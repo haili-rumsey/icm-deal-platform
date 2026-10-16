@@ -1,7 +1,7 @@
 import { RefreshCommand } from "@/components/command-bar";
 import { companyOptions } from "@/server/companies";
 import { shortDay } from "@/components/data-grid-filters";
-import { BUYER_STAGES, dealValue, FEE_STAGES, formatMoney, PIPELINE_KEY_DATE } from "@/domain/stages";
+import { BUYER_STAGES, dealValue, FEE_STAGES, formatMoney, PIPELINE_KEY_DATE, pricePerSf, formatPsf } from "@/domain/stages";
 import { listDeals } from "@/server/deals";
 import { myListLayout } from "@/server/list-layouts";
 import { PipelineView } from "./pipeline-view";
@@ -54,6 +54,8 @@ export default async function PipelineReportPage() {
         { key: "valueLabel", label: "Total deal value", sortKey: "value", type: "money", total: true },
         { key: "feeLabel", label: "Fee", sortKey: "fee", type: "money", total: true },
         // Off until switched on under "Edit columns".
+        // Total deal value ÷ total building SF (Haili, 1.6).
+        { key: "psfLabel", label: "Price / SF", sortKey: "psf", type: "money", defaultHidden: true },
         { key: "stage", label: "Stage", defaultHidden: true },
         { key: "furthest", label: "Furthest stage", defaultHidden: true },
         { key: "type", label: "Type", defaultHidden: true },
@@ -98,6 +100,8 @@ export default async function PipelineReportPage() {
           cities: d.cities,
           submarkets: d.submarkets,
           sf: d.totalSf || null,
+          psf: pricePerSf(value, d.totalSf),
+          psfLabel: formatPsf(pricePerSf(value, d.totalSf)),
           value,
           valueLabel: formatMoney(value, true),
           fee,

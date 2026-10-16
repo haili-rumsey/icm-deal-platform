@@ -1,7 +1,7 @@
 import { Plus } from "lucide-react";
 import { CommandLink, RefreshCommand } from "@/components/command-bar";
 import { DataGrid } from "@/components/data-grid";
-import { dealValue, formatMoney, pricePerSf } from "@/domain/stages";
+import { dealValue, formatMoney, pricePerSf, formatPsf } from "@/domain/stages";
 import { listDeals, type DealView } from "@/server/deals";
 import { myListLayout } from "@/server/list-layouts";
 
@@ -110,7 +110,7 @@ export async function DealList({ views, current }: { views: ListView[]; current:
           inHouse: d.inHouseGross === null ? null : Number(d.inHouseGross),
           inHouseLabel: formatMoney(d.inHouseGross === null ? null : Number(d.inHouseGross)),
           psf: pricePerSf(v.value, d.totalSf),
-          psfLabel: formatMoney(pricePerSf(v.value, d.totalSf)),
+          psfLabel: formatPsf(pricePerSf(v.value, d.totalSf)),
           ios: d.isIos ? "Yes" : null,
           category: d.category,
           cities: d.cities,

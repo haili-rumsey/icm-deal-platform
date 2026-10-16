@@ -21,6 +21,7 @@ export function DealDatesFields({
     <Grid>
       <StageSelect
         defaultValue={d?.stage ?? "BOV 1"}
+        canClose={!!d}
         hint={
           d
             ? undefined

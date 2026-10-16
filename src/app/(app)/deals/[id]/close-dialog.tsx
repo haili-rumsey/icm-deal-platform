@@ -83,7 +83,7 @@ function Pick({ name, label, options, value, set }: { name: string; label: strin
 /**
  * "Close this deal" (Haili, 1.6): everything needed to close, filled in in one place.
  * Fields already filled in on the deal are shown only where they're part of the close
- * (date, price, fee). Outside commission is required (0 is fine) and in-house gross is
+ * (date, price, fee). Outside commission left blank counts as $0, and in-house gross is
  * total − outside. Properties, SF and the team live on the deal's tabs, so they're listed.
  */
 export function CloseDialog({
@@ -174,7 +174,7 @@ export function CloseDialog({
             <h3 className="text-sm font-bold text-navy">Fee</h3>
           </div>
           <Money name="totalCommission" label="Total commission" value={total} set={setTotal} />
-          <Money name="outsideCommission" label="Outside commission" value={outside} set={setOutside} hint="Paid outside ICM. Enter 0 if none." />
+          <Money name="outsideCommission" label="Outside commission" value={outside} set={setOutside} hint="Paid outside ICM. Leave blank if none ($0)." />
           <FieldRow label="In-house gross" hint="Total − outside. Must add up to the total commission.">
             <p className="rounded-sm border border-border bg-background px-2.5 py-1.5 text-sm">{inHouse ? `$${inHouse}` : "—"}</p>
           </FieldRow>

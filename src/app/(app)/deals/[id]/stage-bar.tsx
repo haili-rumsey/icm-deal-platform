@@ -4,7 +4,7 @@ import { startTransition, useActionState, useEffect, useRef, useState } from "re
 import { Check } from "lucide-react";
 import { inputCls } from "@/components/fields";
 import { useConfirm } from "@/components/confirm-dialog";
-import { useUnsavedChanges } from "@/components/record-page";
+import { useRecordSave, useUnsavedChanges } from "@/components/record-page";
 import { SearchSelect, type Option } from "@/components/search-select";
 import type { Stage } from "@/domain/options";
 import { OFF_PIPELINE, PIPELINE, STAGE_DATE, STAGE_HINTS, type DateField } from "@/domain/stages";
@@ -64,7 +64,36 @@ export function StageBar({
   const target = chosen && chosen !== stage ? chosen : null;
   const currentIndex = PIPELINE.indexOf(stage);
   const unsaved = useUnsavedChanges();
+  const formSave = useRecordSave();
   const [confirm, confirmDialog] = useConfirm();
+  // A stage chosen while the form had unsaved changes: it happens once those are saved.
+  const afterSave = useRef<Stage | null>(null);
+  const saveStarted = useRef(false);
+  useEffect(() => {
+    if (!afterSave.current) return;
+    if (formSave.pending) {
+      saveStarted.current = true;
+      return;
+    }
+    if (!saveStarted.current) return; // the save this move waits for hasn't begun yet
+    const s = afterSave.current;
+    if (formSave.state && !formSave.state.ok) {
+      afterSave.current = null; // the save failed; nothing moves
+      saveStarted.current = false;
+    } else if (!unsaved) {
+      afterSave.current = null;
+      saveStarted.current = false;
+      proceed(s);
+    }
+    // proceed only reads current props; re-run when the save settles.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [unsaved, formSave.pending, formSave.state]);
+  // The Stage field's "Closed" opens the same close pop-up as the chevron (one way to close).
+  useEffect(() => {
+    const onRequest = () => click("Closed");
+    window.addEventListener("deal-close-request", onRequest);
+    return () => window.removeEventListener("deal-close-request", onRequest);
+  });
 
   function needsPrompt(s: Stage) {
     const df = STAGE_DATE[s];
@@ -80,17 +109,23 @@ export function StageBar({
 
   async function click(s: Stage) {
     if (locked || s === stage || pending) return;
-    if (
-      unsaved &&
-      !(await confirm({
-        title: "Unsaved changes",
-        message: `You've changed this deal without saving. Moving it to ${s} will discard those changes. To keep them, cancel and click Save first.`,
-        confirmLabel: "Move anyway",
+    if (unsaved) {
+      // Keep the edits: save them first, then make the move (Haili, 1.6).
+      const ok = await confirm({
+        title: "Save your changes first?",
+        message: `You've changed this deal without saving. Save those changes, then move it to ${s}?`,
+        confirmLabel: "Save and continue",
         cancelLabel: "Cancel",
-      }))
-    ) {
+      });
+      if (!ok) return;
+      afterSave.current = s;
+      formSave.save();
       return;
     }
+    proceed(s);
+  }
+
+  function proceed(s: Stage) {
     // Closing opens the pop-up that collects everything needed to close (the one blocked move).
     if (s === "Closed") return setClosing(true);
     if (needsPrompt(s)) return setTarget(s);

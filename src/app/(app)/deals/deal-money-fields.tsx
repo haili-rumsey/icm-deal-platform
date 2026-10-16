@@ -7,17 +7,10 @@ import type { Deal } from "@/server/deals";
 
 type Block = "bov" | "om" | "closed";
 
+/** Each block tracks its price(s) and Year 1 cap only (Haili, 1.6 — ULIRR, LIRR, exit cap and hold dropped). */
 function Underwriting({ block, d }: { block: Block; d?: Deal }) {
   const v = (k: string) => (d ? ((d as Record<string, unknown>)[k] as string | null) : null);
-  return (
-    <>
-      <PctInput label="Year 1 cap" name={`${block}Year1Cap`} defaultValue={v(`${block}Year1Cap`)} />
-      <PctInput label="ULIRR" name={`${block}Ulirr`} defaultValue={v(`${block}Ulirr`)} />
-      <PctInput label="LIRR" name={`${block}Lirr`} defaultValue={v(`${block}Lirr`)} />
-      <PctInput label="Exit cap" name={`${block}ExitCap`} defaultValue={v(`${block}ExitCap`)} />
-      <TextInput label="Hold period (yrs)" name={`${block}HoldYears`} defaultValue={v(`${block}HoldYears`)} />
-    </>
-  );
+  return <PctInput label="Year 1 cap" name={`${block}Year1Cap`} defaultValue={v(`${block}Year1Cap`)} />;
 }
 
 function BlockTitle({ children, note }: { children: React.ReactNode; note?: string }) {

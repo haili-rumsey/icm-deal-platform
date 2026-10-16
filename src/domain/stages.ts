@@ -118,6 +118,11 @@ export function pricePerSf(value: number | null, totalSf: number) {
   return value !== null && totalSf > 0 ? value / totalSf : null;
 }
 
+/** "$196.99" — price per SF to the cent. */
+export function formatPsf(v: number | null) {
+  return v === null ? null : `$${v.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+
 export function formatMoney(v: number | null, compact = false) {
   if (v === null) return null;
   if (compact && Math.abs(v) >= 1_000_000) return `$${(v / 1_000_000).toLocaleString("en-US", { maximumFractionDigits: 2 })}M`;
