@@ -218,25 +218,15 @@ export const deals = pgTable(
     bovPriceLow: money("bov_price_low"),
     bovPriceMid: money("bov_price_mid"),
     bovPriceHigh: money("bov_price_high"),
+    // Year 1 cap columns are kept but hidden from the form (Haili, 2026-11-03); ULIRR, LIRR,
+    // exit cap and hold period were dropped in migration 0019.
     bovYear1Cap: pct("bov_year1_cap"),
-    bovUlirr: pct("bov_ulirr"),
-    bovLirr: pct("bov_lirr"),
-    bovExitCap: pct("bov_exit_cap"),
-    bovHoldYears: numeric("bov_hold_years", { precision: 5, scale: 2 }),
     // OM / Guidance — guidance_price is internal only, never in client-facing output.
     guidancePrice: money("guidance_price"),
     omYear1Cap: pct("om_year1_cap"),
-    omUlirr: pct("om_ulirr"),
-    omLirr: pct("om_lirr"),
-    omExitCap: pct("om_exit_cap"),
-    omHoldYears: numeric("om_hold_years", { precision: 5, scale: 2 }),
     // Closed — as transacted.
     closedPrice: money("closed_price"),
     closedYear1Cap: pct("closed_year1_cap"),
-    closedUlirr: pct("closed_ulirr"),
-    closedLirr: pct("closed_lirr"),
-    closedExitCap: pct("closed_exit_cap"),
-    closedHoldYears: numeric("closed_hold_years", { precision: 5, scale: 2 }),
     priceNotes: text("price_notes"),
 
     // ---- Headline figures for non-sale deal types (PRD §2). ----

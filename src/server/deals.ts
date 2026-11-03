@@ -17,10 +17,6 @@ export type DealInput = Omit<
   | "lastModifiedAt"
   | "lastModifiedById"
   | "archivedAt"
-  // No longer tracked (1.6); columns are dropped once this code is live.
-  | "bovUlirr" | "bovLirr" | "bovExitCap" | "bovHoldYears"
-  | "omUlirr" | "omLirr" | "omExitCap" | "omHoldYears"
-  | "closedUlirr" | "closedLirr" | "closedExitCap" | "closedHoldYears"
   // Cap rate hidden 2026-11-03: not on the form, so saves must leave the stored values alone.
   | "bovYear1Cap" | "omYear1Cap" | "closedYear1Cap"
 >;

@@ -134,6 +134,13 @@
       "when": 1792072646383,
       "tag": "0018_list_layout_widths",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793735448444,
+      "tag": "0019_graceful_stryfe",
+      "breakpoints": true
     }
   ]
 }
