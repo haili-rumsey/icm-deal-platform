@@ -11,7 +11,18 @@ import { ACTIVE_STAGES, furthestOf, furthestStageLocked, STAGE_DATE } from "@/do
 export type Deal = typeof deals.$inferSelect;
 export type DealInput = Omit<
   Deal,
-  "id" | "createdAt" | "createdById" | "lastModifiedAt" | "lastModifiedById" | "archivedAt"
+  | "id"
+  | "createdAt"
+  | "createdById"
+  | "lastModifiedAt"
+  | "lastModifiedById"
+  | "archivedAt"
+  // No longer tracked (1.6); columns are dropped once this code is live.
+  | "bovUlirr" | "bovLirr" | "bovExitCap" | "bovHoldYears"
+  | "omUlirr" | "omLirr" | "omExitCap" | "omHoldYears"
+  | "closedUlirr" | "closedLirr" | "closedExitCap" | "closedHoldYears"
+  // Cap rate hidden 2026-11-03: not on the form, so saves must leave the stored values alone.
+  | "bovYear1Cap" | "omYear1Cap" | "closedYear1Cap"
 >;
 type TeamRole = (typeof dealTeam.$inferSelect)["roles"][number];
 

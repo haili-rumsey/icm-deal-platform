@@ -5,13 +5,10 @@ import { FieldRow, formatAmount, Grid, inputCls, MoneyInput, PctInput, TextArea,
 import { withCommas } from "@/components/number-input";
 import type { Deal } from "@/server/deals";
 
-type Block = "bov" | "om" | "closed";
-
-/** Each block tracks its price(s) and Year 1 cap only (Haili, 1.6 — ULIRR, LIRR, exit cap and hold dropped). */
-function Underwriting({ block, d }: { block: Block; d?: Deal }) {
-  const v = (k: string) => (d ? ((d as Record<string, unknown>)[k] as string | null) : null);
-  return <PctInput label="Year 1 cap" name={`${block}Year1Cap`} defaultValue={v(`${block}Year1Cap`)} />;
-}
+/*
+ * Each block tracks its price(s) only. Cap rate (Year 1 cap) was hidden 2026-11-03 (Haili) because it
+ * isn't consistent deal to deal; the columns and the ~34 imported values are kept, not shown or edited.
+ */
 
 function BlockTitle({ children, note }: { children: React.ReactNode; note?: string }) {
   return (
@@ -58,16 +55,13 @@ export function DealMoneyFields({ deal }: { deal?: Deal }) {
           <MoneyInput label="Price — low" name="bovPriceLow" defaultValue={d?.bovPriceLow} />
           <MoneyInput label="Price — mid" name="bovPriceMid" defaultValue={d?.bovPriceMid} />
           <MoneyInput label="Price — high" name="bovPriceHigh" defaultValue={d?.bovPriceHigh} />
-          <Underwriting block="bov" d={d} />
       </div>
 
       <BlockTitle note="Guidance is internal only — given out on request, never published.">OM / Guidance</BlockTitle>
       <MoneyInput label="Guidance price" name="guidancePrice" defaultValue={d?.guidancePrice} />
-      <Underwriting block="om" d={d} />
 
       <BlockTitle>Closed</BlockTitle>
       <MoneyInput label="Sale price" name="closedPrice" defaultValue={d?.closedPrice} hint="One price from award through close. Note any retrade or credit in Price notes." />
-      <Underwriting block="closed" d={d} />
 
       <div className="xl:col-span-2">
         <TextArea label="Price notes" name="priceNotes" defaultValue={d?.priceNotes} />
