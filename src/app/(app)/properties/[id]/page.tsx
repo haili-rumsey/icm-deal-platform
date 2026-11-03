@@ -81,7 +81,7 @@ export default async function PropertyPage({ params, searchParams }: PageProps<"
             content: (
               <>
                 <Section title="Property">
-                  <MainForm>
+                  <MainForm key={p.lastModifiedAt.toISOString()}>
                     <PropertyFields
                       property={p}
                       companies={companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }))}

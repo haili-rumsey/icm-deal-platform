@@ -57,7 +57,7 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
       />
       <div className="flex flex-col gap-4 p-3 sm:p-5">
         <Section title="Summary">
-          <MainForm>
+          <MainForm key={contact.lastModifiedAt.toISOString()}>
             <ContactFields contact={contact} companies={companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }))} />
           </MainForm>
         </Section>

@@ -69,7 +69,7 @@ export default async function CompanyPage({ params }: PageProps<"/companies/[id]
             content: (
               <>
                 <Section title="Company">
-                  <MainForm>
+                  <MainForm key={company.lastModifiedAt.toISOString()}>
                     <CompanyFields company={company} />
                   </MainForm>
                 </Section>
