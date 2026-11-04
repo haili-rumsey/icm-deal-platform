@@ -128,7 +128,9 @@ export function CombineForm({
             The deal picked above{chosen ? <> — <span className="font-semibold">{chosen.name}</span></> : ""}
           </span>
         </label>
-        <p className="text-xs text-muted">The deal that stays keeps its own prices, stage and dates. The other goes to Dead.</p>
+        <p className="text-xs text-muted">
+          The deal that stays keeps its own prices, stage and dates. The other is archived, so it drops out of lists and reports.
+        </p>
       </fieldset>
       <div>
         <ConfirmSubmit
@@ -142,7 +144,7 @@ export function CombineForm({
                   message: `"${foldName}"'s properties, parties and team move onto "${keepName}".`,
                   items: [
                     `"${keepName}" keeps its own prices, stage and dates.`,
-                    `"${foldName}" goes to Dead with the note "Combined into ${keepName}" — it isn't deleted.`,
+                    `"${foldName}" is archived — off every list and report, but not deleted — and its Deal notes say "Combined into ${keepName}".`,
                     "The two deals are linked to each other.",
                   ],
                   confirmLabel: "Combine",

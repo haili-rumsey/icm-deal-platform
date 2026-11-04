@@ -163,7 +163,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
         </p>
       )}
       <Tabs
-        initial={addProperty || attached ? "properties" : undefined}
+        initial={addProperty || attached ? "properties" : searchParam(sp.tab)}
         tabs={[
           {
             id: "summary",

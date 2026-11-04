@@ -12,9 +12,9 @@ import { furthestOf } from "@/domain/stages";
  * copies the seller (side A), deal team, type, stage and dates — not prices, since portfolio
  * pricing doesn't apply to one building. The two deals are linked both ways.
  *
- * Combine: another deal's properties, parties and team move onto this deal (this deal's prices
- * are kept). The other deal goes to Dead with the note "Combined into …" — never deleted — and
- * the two are linked.
+ * Combine: the user picks which of two deals stays. The other's properties, parties and team
+ * move onto it (the staying deal's prices are kept). The other is archived — off every list and
+ * report, never deleted — with "Combined into …" added to its Deal notes, and the two are linked.
  *
  * Closed deals can't be broken out or combined: a closed record is accounting's.
  */
@@ -99,7 +99,7 @@ export async function combineDeals(intoId: string, otherId: string, byId: string
   if (intoId === otherId) throw new DealLinkError("Pick a different deal to combine with.");
   const [[into], [other], otherProps, intoParties, otherParties, intoTeam, otherTeam] = await Promise.all([
     db.select({ id: deals.id, name: deals.dealName, stage: deals.stage }).from(deals).where(eq(deals.id, intoId)),
-    db.select({ id: deals.id, stage: deals.stage, furthestStage: deals.furthestStage }).from(deals).where(eq(deals.id, otherId)),
+    db.select({ id: deals.id, stage: deals.stage, notes: deals.closingNotes }).from(deals).where(eq(deals.id, otherId)),
     db.select({ id: dealProperties.propertyId }).from(dealProperties).where(eq(dealProperties.dealId, otherId)),
     db.select().from(dealParties).where(eq(dealParties.dealId, intoId)),
     db.select().from(dealParties).where(eq(dealParties.dealId, otherId)),
@@ -147,12 +147,13 @@ export async function combineDeals(intoId: string, otherId: string, byId: string
     // Clear the other deal's team first so the move never trips the one-lead-analyst rule.
     db.delete(dealTeam).where(eq(dealTeam.dealId, otherId)),
     ...(newTeam.length ? [db.insert(dealTeam).values(newTeam)] : []),
+    // Archived, not Dead (Haili, 2026-11-04): a merged duplicate isn't a deal that died, so it
+    // must not count in any list or report. Its stage is left as it was.
     db
       .update(deals)
       .set({
-        stage: "Dead",
-        furthestStage: furthestOf(other.furthestStage, other.stage),
-        deadNote: `Combined into "${into.name}" on ${today()}.`,
+        archivedAt: now,
+        closingNotes: [other.notes, `Combined into "${into.name}" on ${today()}.`].filter(Boolean).join("\n"),
         lastModifiedAt: now,
         lastModifiedById: byId,
       })

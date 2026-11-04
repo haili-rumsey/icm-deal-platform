@@ -176,8 +176,9 @@ export async function addPropertyAction(dealId: string, fd: FormData) {
   if (!propertyId) return;
   await addDealProperty(dealId, propertyId, user.id);
   refresh(dealId);
-  // Drop the ?addProperty= hint once it's been used.
-  redirect(`/deals/${dealId}`, RedirectType.replace);
+  // Drop the ?addProperty= hint once it's been used, but stay on the Properties tab so
+  // more can be added (Haili, 2026-11-04).
+  redirect(`/deals/${dealId}?tab=properties`, RedirectType.replace);
 }
 
 export async function removePropertyAction(dealId: string, propertyId: string) {
@@ -206,7 +207,7 @@ export async function breakOutAction(dealId: string, propertyId: string): Promis
 
 /**
  * Combines this deal with the chosen one. The user picks which deal stays active (Haili,
- * 2026-11-04); the other goes to Dead with a note. Opens the deal that stays.
+ * 2026-11-04); the other is archived with a note. Opens the deal that stays.
  */
 export async function combineAction(dealId: string, _prev: LinkState, fd: FormData): Promise<LinkState> {
   const user = await editor(dealId);
