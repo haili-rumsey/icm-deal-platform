@@ -24,6 +24,7 @@ import { bool, dec, ids, oneOf, str } from "@/lib/form";
 import { db } from "@/db";
 import { setOwnersForDeal } from "@/server/property-owners";
 import { createCompany } from "@/server/companies";
+import { breakOutProperty, combineDeals, DealLinkError } from "@/server/deal-links";
 import {
   addDealParty,
   addDealProperty,
@@ -183,6 +184,41 @@ export async function removePropertyAction(dealId: string, propertyId: string) {
   const user = await editor(dealId);
   await removeDealProperty(dealId, propertyId, user.id);
   refresh(dealId);
+}
+
+// ---- Break out / Combine ----
+
+export type LinkState = { message: string | null };
+
+/** Moves one property onto a new deal of its own, then opens that deal. */
+export async function breakOutAction(dealId: string, propertyId: string): Promise<LinkState> {
+  const user = await editor(dealId);
+  let newId: string;
+  try {
+    newId = await breakOutProperty(dealId, propertyId, user.id);
+  } catch (e) {
+    if (e instanceof DealLinkError) return { message: e.message };
+    throw e;
+  }
+  refresh(dealId);
+  redirect(`/deals/${newId}`);
+}
+
+/** Folds the chosen deal into this one; the chosen deal goes to Dead with a note. */
+export async function combineAction(dealId: string, _prev: LinkState, fd: FormData): Promise<LinkState> {
+  const user = await editor(dealId);
+  const otherId = str(fd, "otherDealId");
+  if (!otherId) return { message: "Pick the deal to combine into this one." };
+  await assertCanEdit(otherId, user);
+  try {
+    await combineDeals(dealId, otherId, user.id);
+  } catch (e) {
+    if (e instanceof DealLinkError) return { message: e.message };
+    throw e;
+  }
+  refresh(dealId);
+  refresh(otherId);
+  return { message: null };
 }
 
 export async function addPartyAction(dealId: string, fd: FormData) {

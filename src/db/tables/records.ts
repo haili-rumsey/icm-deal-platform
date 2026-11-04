@@ -283,6 +283,30 @@ export const dealParties = pgTable(
   (t) => [index("deal_parties_deal_idx").on(t.dealId), index("deal_parties_company_idx").on(t.companyId)],
 );
 
+/**
+ * Related deals (Break out / Combine, approved 2026-10-14, built after 1.6 sign-off).
+ * "Broken out": from = the original portfolio deal, to = the new single-property deal.
+ * "Combined": from = the deal folded in (now Dead), to = the deal that took it over.
+ */
+export const dealLinkKindEnum = pgEnum("deal_link_kind", ["Broken out", "Combined"]);
+
+export const dealLinks = pgTable(
+  "deal_links",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    kind: dealLinkKindEnum("kind").notNull(),
+    fromDealId: uuid("from_deal_id")
+      .notNull()
+      .references(() => deals.id, { onDelete: "cascade" }),
+    toDealId: uuid("to_deal_id")
+      .notNull()
+      .references(() => deals.id, { onDelete: "cascade" }),
+    createdAt: stamp("created_at").notNull().defaultNow(),
+    createdById: text("created_by_id").references(() => users.id),
+  },
+  (t) => [index("deal_links_from_idx").on(t.fromDealId), index("deal_links_to_idx").on(t.toDealId)],
+);
+
 /** The single record of who is on a deal. One row per person; several roles allowed. */
 export const dealTeam = pgTable(
   "deal_team",

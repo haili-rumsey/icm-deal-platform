@@ -141,6 +141,13 @@
       "when": 1793735448444,
       "tag": "0019_graceful_stryfe",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1793821786871,
+      "tag": "0020_gray_red_wolf",
+      "breakpoints": true
     }
   ]
 }

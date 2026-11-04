@@ -27,13 +27,14 @@ import { DealFields } from "../deal-fields";
 import { DealFeeFields, DealMoneyFields } from "../deal-money-fields";
 import { FeeVisibility } from "../fee-visibility";
 import { DealTeamFields } from "../deal-team-fields";
-import { PartiesSection, PropertiesSection, TeamSection } from "./sections";
+import { combineOptions, relatedDeals } from "@/server/deal-links";
+import { PartiesSection, PropertiesSection, RelatedDealsSection, TeamSection } from "./sections";
 import { StageBar } from "./stage-bar";
 
 export default async function DealPage({ params, searchParams }: PageProps<"/deals/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   // Everything the page needs, fetched at once rather than one after another.
-  const [user, data, streamPeople, icmTeam, companies, contacts, properties] = await Promise.all([
+  const [user, data, streamPeople, icmTeam, companies, contacts, properties, related, combinable] = await Promise.all([
     requireUser(),
     getDeal(id),
     streamPeopleOptions(),
@@ -41,6 +42,8 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
     companyOptions(),
     contactOptions(),
     propertyOptions(),
+    relatedDeals(id),
+    combineOptions(id),
   ]);
   if (!data) notFound();
   const { deal } = data;
@@ -204,6 +207,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
                     />
                   </Section>
                 </MainForm>
+                <RelatedDealsSection deal={data} related={related} combineOptions={combinable} locked={locked} />
                 <ModifiedStamp at={deal.lastModifiedAt} by={data.modifiedByName} />
               </>
             ),

@@ -8,6 +8,8 @@ import type { getDeal } from "@/server/deals";
 import {
   addPartyAction,
   addPropertyAction,
+  breakOutAction,
+  combineAction,
   createPartyCompanyAction,
   removePartyAction,
   removePropertyAction,
@@ -15,6 +17,8 @@ import {
   toggleRoleAction,
 } from "../actions";
 import { PartyAdder } from "./party-adder";
+import { BreakOutButton, CombineForm } from "./deal-links";
+import type { RelatedDeal } from "@/server/deal-links";
 
 type DealData = NonNullable<Awaited<ReturnType<typeof getDeal>>>;
 
@@ -36,6 +40,8 @@ export function PropertiesSection({
   const linked = new Set(deal.properties.map((p) => p.id));
   const totalSf = deal.properties.reduce((s, p) => s + (p.buildingSf ?? 0), 0);
   const totalAcres = deal.properties.reduce((s, p) => s + Number(p.acreage ?? 0), 0);
+  // Break out needs a portfolio (2+ properties) and an open deal.
+  const canBreakOut = !locked && deal.deal.stage !== "Closed" && deal.properties.length > 1;
 
   return (
     <Section
@@ -62,6 +68,13 @@ export function PropertiesSection({
               </span>
               <span className="flex items-baseline gap-4 text-muted">
                 {p.buildingSf ? `${p.buildingSf.toLocaleString()} SF` : null}
+                {canBreakOut && (
+                  <BreakOutButton
+                    action={breakOutAction.bind(null, id, p.id)}
+                    dealName={deal.deal.dealName}
+                    propertyLabel={p.name || [p.address, p.buildingDesignation].filter(Boolean).join(", ") || "this property"}
+                  />
+                )}
                 {!locked && (
                   <form action={removePropertyAction.bind(null, id, p.id)}>
                     <PendingButton className={removeBtn} pendingLabel="Removing…">
@@ -99,6 +112,47 @@ export function PropertiesSection({
         </Link>
       </p>
         </>
+      )}
+    </Section>
+  );
+}
+
+/** Deals broken out of / combined with this one, plus "Combine another deal into this one". */
+export function RelatedDealsSection({
+  deal,
+  related,
+  combineOptions,
+  locked,
+}: {
+  deal: DealData;
+  related: RelatedDeal[];
+  combineOptions: Option[];
+  locked?: boolean;
+}) {
+  const id = deal.deal.id;
+  const canCombine = !locked && deal.deal.stage !== "Closed";
+  if (!related.length && !canCombine) return null;
+  return (
+    <Section title={`Related deals (${related.length})`}>
+      {related.length > 0 && (
+        <ul className="mb-4 divide-y divide-border text-sm">
+          {related.map((r) => (
+            <li key={r.linkId} className="flex flex-wrap items-baseline gap-2 py-2">
+              <span className="text-muted">{r.label}</span>
+              <Link href={`/deals/${r.dealId}`} className="font-semibold text-link hover:underline">
+                {r.dealName}
+              </Link>
+              <span className="text-muted">· {r.stage}</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {canCombine && (
+        <CombineForm
+          action={combineAction.bind(null, id)}
+          dealName={deal.deal.dealName}
+          options={combineOptions.filter((o) => !related.some((r) => r.dealId === o.id))}
+        />
       )}
     </Section>
   );

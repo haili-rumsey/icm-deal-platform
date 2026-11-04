@@ -30,7 +30,9 @@ export async function listCleanup(): Promise<CleanupRow[]> {
       from deals d
       where d.archived_at is null
         and d.deal_type is distinct from 'Consulting'
-        and not exists (select 1 from deal_properties dp where dp.deal_id = d.id)`),
+        and not exists (select 1 from deal_properties dp where dp.deal_id = d.id)
+        -- A deal combined into another gave its properties away on purpose.
+        and not exists (select 1 from deal_links dl where dl.kind = 'Combined' and dl.from_deal_id = d.id)`),
     db.execute<{ id: string; name: string | null; address: string | null; city: string | null; state: string | null; deals: string | null; modified_at: Date }>(sql`
       select p.id, p.name, p.address, p.city, p.state, p.last_modified_at as modified_at,
         (select string_agg(d.deal_name, ', ' order by d.deal_name) from deal_properties dp join deals d on d.id = dp.deal_id where dp.property_id = p.id) as deals
