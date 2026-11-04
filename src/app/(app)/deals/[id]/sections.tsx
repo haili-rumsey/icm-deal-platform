@@ -151,7 +151,7 @@ export function RelatedDealsSection({
         <CombineForm
           action={combineAction.bind(null, id)}
           dealName={deal.deal.dealName}
-          options={combineOptions.filter((o) => !related.some((r) => r.dealId === o.id))}
+          options={combineOptions}
         />
       )}
     </Section>
