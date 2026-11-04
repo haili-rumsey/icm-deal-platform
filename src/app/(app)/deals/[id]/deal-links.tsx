@@ -86,7 +86,10 @@ export function BreakOutButton({
   );
 }
 
-/** "Combine with…": the chosen deal is folded into this one and goes to Dead. */
+/**
+ * "Combine with…": pick another deal and which of the two stays active. The other one's
+ * properties, parties and team move onto the one that stays, and it goes to Dead.
+ */
 export function CombineForm({
   action,
   dealName,
@@ -98,37 +101,57 @@ export function CombineForm({
 }) {
   const [state, formAction] = useActionState(action, { message: null });
   const [chosen, setChosen] = useState<Option | null>(null);
+  const [keep, setKeep] = useState<"this" | "other" | null>(null);
+  const keepName = keep === "this" ? dealName : chosen?.name;
+  const foldName = keep === "this" ? chosen?.name : dealName;
   return (
-    <form
-      action={formAction}
-      className="grid grid-cols-1 items-end gap-3 rounded-sm border border-dashed border-gray p-3 sm:grid-cols-[1fr_auto]"
-    >
+    <form action={formAction} className="flex flex-col gap-3 rounded-sm border border-dashed border-gray p-3">
       <SearchSelect
         name="otherDealId"
-        label="Combine another deal into this one"
+        label="Combine with another deal"
         layout="stacked"
         options={options}
         placeholder="Search by deal name…"
         onChange={(id) => setChosen(options.find((o) => o.id === id) ?? null)}
       />
-      <ConfirmSubmit
-        label="Combine"
-        pendingLabel="Combining…"
-        className={smallBtn}
-        ask={() =>
-          chosen && {
-            title: `Combine "${chosen.name}" into this deal?`,
-            message: `Its properties, parties and team move onto "${dealName}".`,
-            items: [
-              `This deal's prices are kept.`,
-              `"${chosen.name}" goes to Dead with the note "Combined into ${dealName}" — it isn't deleted.`,
-              "The two deals are linked to each other.",
-            ],
-            confirmLabel: "Combine",
+      <fieldset className="flex flex-col gap-1.5 text-sm">
+        <legend className="mb-1 font-semibold">Which deal stays active?</legend>
+        <label className="flex items-baseline gap-2">
+          <input type="radio" name="keep" value="this" checked={keep === "this"} onChange={() => setKeep("this")} />
+          <span>
+            This deal — <span className="font-semibold">{dealName}</span>
+          </span>
+        </label>
+        <label className="flex items-baseline gap-2">
+          <input type="radio" name="keep" value="other" checked={keep === "other"} onChange={() => setKeep("other")} />
+          <span>
+            The deal picked above{chosen ? <> — <span className="font-semibold">{chosen.name}</span></> : ""}
+          </span>
+        </label>
+        <p className="text-xs text-muted">The deal that stays keeps its own prices, stage and dates. The other goes to Dead.</p>
+      </fieldset>
+      <div>
+        <ConfirmSubmit
+          label="Combine"
+          pendingLabel="Combining…"
+          className={smallBtn}
+          ask={() =>
+            chosen && keep
+              ? {
+                  title: `Keep "${keepName}" and combine "${foldName}" into it?`,
+                  message: `"${foldName}"'s properties, parties and team move onto "${keepName}".`,
+                  items: [
+                    `"${keepName}" keeps its own prices, stage and dates.`,
+                    `"${foldName}" goes to Dead with the note "Combined into ${keepName}" — it isn't deleted.`,
+                    "The two deals are linked to each other.",
+                  ],
+                  confirmLabel: "Combine",
+                }
+              : null
           }
-        }
-      />
-      {state.message && <p className="text-sm text-danger sm:col-span-2">{state.message}</p>}
+        />
+      </div>
+      {state.message && <p className="text-sm text-danger">{state.message}</p>}
     </form>
   );
 }

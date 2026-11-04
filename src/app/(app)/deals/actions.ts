@@ -204,21 +204,27 @@ export async function breakOutAction(dealId: string, propertyId: string): Promis
   redirect(`/deals/${newId}`);
 }
 
-/** Folds the chosen deal into this one; the chosen deal goes to Dead with a note. */
+/**
+ * Combines this deal with the chosen one. The user picks which deal stays active (Haili,
+ * 2026-11-04); the other goes to Dead with a note. Opens the deal that stays.
+ */
 export async function combineAction(dealId: string, _prev: LinkState, fd: FormData): Promise<LinkState> {
   const user = await editor(dealId);
   const otherId = str(fd, "otherDealId");
-  if (!otherId) return { message: "Pick the deal to combine into this one." };
+  if (!otherId) return { message: "Pick the deal to combine with." };
+  const keep = str(fd, "keep");
+  if (keep !== "this" && keep !== "other") return { message: "Choose which deal stays active." };
   await assertCanEdit(otherId, user);
+  const [keepId, foldId] = keep === "this" ? [dealId, otherId] : [otherId, dealId];
   try {
-    await combineDeals(dealId, otherId, user.id);
+    await combineDeals(keepId, foldId, user.id);
   } catch (e) {
     if (e instanceof DealLinkError) return { message: e.message };
     throw e;
   }
   refresh(dealId);
   refresh(otherId);
-  return { message: null };
+  redirect(`/deals/${keepId}`);
 }
 
 export async function addPartyAction(dealId: string, fd: FormData) {
