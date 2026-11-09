@@ -1,4 +1,5 @@
-import { RefreshCommand } from "@/components/command-bar";
+import { Plus } from "lucide-react";
+import { CommandLink, RefreshCommand } from "@/components/command-bar";
 import { companyOptions } from "@/server/companies";
 import { shortDay } from "@/components/data-grid-filters";
 import { BUYER_STAGES, dealValue, FEE_STAGES, formatMoney, PIPELINE_KEY_DATE, pricePerSf, formatPsf } from "@/domain/stages";
@@ -30,7 +31,15 @@ export default async function PipelineReportPage() {
   return (
     <PipelineView
       companies={companies.map((c) => ({ id: c.id, name: c.name, hint: c.domain }))}
-      commands={<RefreshCommand key="refresh" />}
+      commands={
+        <>
+          {/* Haili, 2026-11-09: start a deal straight from the weekly meeting's report. */}
+          <CommandLink href="/deals/new" icon={Plus}>
+            New deal
+          </CommandLink>
+          <RefreshCommand />
+        </>
+      }
       views={[{ label: "Pipeline report", href: "/reports/pipeline", active: true }]}
       listKey="report-pipeline"
       savedColumns={saved}
