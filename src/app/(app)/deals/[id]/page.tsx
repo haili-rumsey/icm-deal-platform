@@ -251,6 +251,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
                 contacts={contacts}
                 savedColumns={bidLayout}
                 locked={locked}
+                round={searchParam(sp.round)}
               />
             ),
           },

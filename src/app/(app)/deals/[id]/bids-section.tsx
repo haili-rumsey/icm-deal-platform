@@ -24,6 +24,10 @@ const day = (iso: string | null) => {
 };
 const days = (n: number | null) => (n === null ? null : `${n} days`);
 
+// Row colours, explained in the key above the matrix (Haili, 2026-11-10). Awarded wins over verbal.
+const AWARDED_ROW = "bg-blue/20";
+const VERBAL_ROW = "bg-gray-light";
+
 const COLUMNS: Column[] = [
   { key: "bidder", label: "Bidder" },
   { key: "contact", label: "Contact" },
@@ -37,7 +41,6 @@ const COLUMNS: Column[] = [
   { key: "ddLabel", label: "DD period", sortKey: "dd", type: "number" },
   { key: "closingLabel", label: "Closing period", sortKey: "closing", type: "number" },
   { key: "bidDateLabel", label: "Bid date", sortKey: "bidDate", type: "date" },
-  { key: "status", label: "Status" },
   { key: "notes", label: "Comments" },
   { key: "debtNotes", label: "Debt notes", defaultHidden: true },
 ];
@@ -55,8 +58,11 @@ export function BidsSection({
   contacts,
   savedColumns,
   locked,
+  round,
 }: {
   dealId: string;
+  /** The round picked in the matrix's dropdown ("all" or a round name), from the page address. */
+  round?: string;
   bids: BidRow[];
   totalSf: number;
   companies: Option[];
@@ -98,27 +104,56 @@ export function BidsSection({
       closingLabel: days(b.closingPeriodDays),
       bidDate: b.bidDate,
       bidDateLabel: day(b.bidDate),
-      status: b.isAwarded ? "Awarded" : null,
+      isAwarded: b.isAwarded,
+      isVerbal: b.isVerbal,
+      roundName: b.bidRound,
       notes: b.notes,
       debtNotes: b.debtNotes,
     };
   });
 
+  // The title dropdown picks a round (Haili, 2026-11-10). It opens on the latest round that has
+  // a bid; "All rounds" shows everything. A bid with no round set shows in every view, so a
+  // missing round never hides a bid.
+  const rounds = BID_ROUNDS.filter((r) => bids.some((b) => b.bidRound === r));
+  const latest = rounds.at(-1) ?? null;
+  const active = round === "all" ? "all" : rounds.find((r) => r === round) ?? latest ?? "all";
+  const href = (r: string) => `/deals/${dealId}?tab=bids&round=${encodeURIComponent(r)}`;
+  const views = [
+    ...rounds.map((r) => ({ label: `Bid matrix — ${r}`, href: href(r), active: active === r })),
+    { label: "Bid matrix — All rounds", href: href("all"), active: active === "all" },
+  ];
+  const shownRows = active === "all" ? rows : rows.filter((r) => r.roundName === active || r.roundName === null);
+
   return (
     <Section title={`Bids (${bids.length})`}>
       <div className="flex flex-col gap-4">
         {bids.length > 0 && (
-          <DataGrid
-            embedded
-            views={[{ label: "Bid matrix", href: `/deals/${dealId}?tab=bids`, active: true }]}
-            listKey="deal-bids"
-            savedColumns={savedColumns}
-            columns={COLUMNS}
-            rows={rows}
-            defaultSort={{ key: "amount", dir: "desc" }}
-            onRowClick={locked ? undefined : (r) => setEditingId(String(r.id))}
-            selectedId={editingId}
-          />
+          <>
+            {/* Key for the row colours. */}
+            <div className="flex flex-wrap items-center gap-5 text-sm">
+              <span className="flex items-center gap-2">
+                <span className={`inline-block h-4 w-6 rounded-sm border border-border ${AWARDED_ROW}`} /> Awarded bid
+              </span>
+              <span className="flex items-center gap-2">
+                <span className={`inline-block h-4 w-6 rounded-sm border border-border ${VERBAL_ROW}`} /> Verbal offer
+              </span>
+            </div>
+            <DataGrid
+              key={active}
+              embedded
+              views={views}
+              listKey="deal-bids"
+              savedColumns={savedColumns}
+              columns={COLUMNS}
+              rows={shownRows}
+              defaultSort={{ key: "amount", dir: "desc" }}
+              onRowClick={locked ? undefined : (r) => setEditingId(String(r.id))}
+              selectedId={editingId}
+              rowClass={(r) => (r.isAwarded ? AWARDED_ROW : r.isVerbal ? VERBAL_ROW : undefined)}
+              emptyText="No bids in this round."
+            />
+          </>
         )}
         {bids.length === 0 && <p className="text-sm text-muted">No bids yet.</p>}
         {!locked && (
@@ -126,6 +161,7 @@ export function BidsSection({
             key={editing?.id ?? `new-${formRound}`}
             dealId={dealId}
             bid={editing}
+            defaultRound={active === "all" ? null : active}
             companies={companies}
             contacts={contacts}
             onDone={closeForm}
@@ -139,12 +175,15 @@ export function BidsSection({
 function BidForm({
   dealId,
   bid,
+  defaultRound,
   companies,
   contacts,
   onDone,
 }: {
   dealId: string;
   bid: BidRow | null;
+  /** A new bid starts in the round the matrix is showing. */
+  defaultRound: string | null;
   companies: Option[];
   contacts: { id: string; name: string; companyId: string }[];
   onDone: () => void;
@@ -225,7 +264,7 @@ function BidForm({
           defaultId={bid && bid.companyId === companyId ? bid.contactId : null}
           placeholder={!companyId ? "Pick the company first" : companyContacts.length ? "Search this company's contacts…" : "No contacts at this company yet"}
         />
-        <Select label="Round" name="bidRound" options={BID_ROUNDS} defaultValue={bid?.bidRound} />
+        <Select label="Round" name="bidRound" options={BID_ROUNDS} defaultValue={bid ? bid.bidRound : defaultRound} />
         <MoneyInput label="Offer" name="bidAmount" defaultValue={bid?.bidAmount} />
         <TextInput label="Bid date" name="bidDate" type="date" defaultValue={bid?.bidDate} />
         <div className="flex flex-wrap items-center gap-6 sm:ml-[10.25rem]">

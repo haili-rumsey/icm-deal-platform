@@ -84,6 +84,7 @@ export function DataGrid({
   emptyText = "We didn't find anything to show here.",
   onRowClick,
   selectedId,
+  rowClass,
 }: {
   views: View[];
   columns: Column[];
@@ -108,6 +109,8 @@ export function DataGrid({
   onRowClick?: (row: Row) => void;
   /** The row shown as selected (by `id`). */
   selectedId?: string | null;
+  /** Background for a row that isn't selected (e.g. the bid matrix's verbal and awarded bids); explain it in a key. */
+  rowClass?: (row: Row) => string | undefined;
 }) {
   const [showAlt, setShowAlt] = useState(false);
   const [order, setOrder] = useState(() => visibleOrder(allColumns, savedColumns?.columns));
@@ -262,7 +265,7 @@ export function DataGrid({
         }
         aria-selected={onRowClick ? selectedId === r.id : undefined}
         className={`border-b border-border last:border-0 ${onRowClick ? "cursor-pointer" : ""} ${
-          selectedId != null && selectedId === r.id ? "bg-[#e6eef8]" : "hover:bg-background"
+          selectedId != null && selectedId === r.id ? "bg-[#e6eef8]" : (rowClass?.(r) ?? "hover:bg-background")
         }`}
       >
         {columns.map((c) => {
