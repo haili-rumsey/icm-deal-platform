@@ -11,7 +11,7 @@ import { BID_ROUNDS } from "@/domain/options";
 import { formatMoney, formatPsf, pricePerSf } from "@/domain/stages";
 import type { ListLayout } from "@/server/list-layouts";
 import type { BidRow } from "@/server/bids";
-import { awardBidAction, deleteBidAction, saveBidAction, unawardBidAction, type BidFormState } from "../bid-actions";
+import { awardBidAction, deleteBidAction, fellOutAction, saveBidAction, unawardBidAction, type BidFormState } from "../bid-actions";
 
 const smallBtn = "rounded-sm border border-navy px-3 py-1.5 text-sm font-semibold text-navy hover:bg-hover disabled:opacity-50";
 const quietBtn = "rounded-sm border border-gray px-3 py-1.5 text-sm text-gray-dark hover:bg-hover disabled:opacity-50";
@@ -27,6 +27,8 @@ const days = (n: number | null) => (n === null ? null : `${n} days`);
 // Row colours, explained in the key above the matrix (Haili, 2026-11-10). Awarded wins over verbal.
 const AWARDED_ROW = "bg-blue/20";
 const VERBAL_ROW = "bg-gray-light";
+// An awarded bid that fell out (2.2): kept in the matrix, struck through.
+const FELL_OUT_ROW = "text-muted line-through";
 
 const COLUMNS: Column[] = [
   { key: "bidder", label: "Bidder" },
@@ -43,6 +45,8 @@ const COLUMNS: Column[] = [
   { key: "bidDateLabel", label: "Bid date", sortKey: "bidDate", type: "date" },
   { key: "notes", label: "Comments" },
   { key: "debtNotes", label: "Debt notes", defaultHidden: true },
+  { key: "fellOutLabel", label: "Fell out", sortKey: "fellOutDate", type: "date", defaultHidden: true },
+  { key: "fellOutNote", label: "Fell-out note", defaultHidden: true },
 ];
 
 /**
@@ -104,11 +108,17 @@ export function BidsSection({
       closingLabel: days(b.closingPeriodDays),
       bidDate: b.bidDate,
       bidDateLabel: day(b.bidDate),
-      isAwarded: b.isAwarded,
+      isAwarded: b.isAwarded && !b.fellOut,
       isVerbal: b.isVerbal,
-      // Awarded first, then latest round first (no round last), then highest offer.
+      fellOut: b.fellOut,
+      fellOutDate: b.fellOutDate,
+      fellOutLabel: day(b.fellOutDate),
+      fellOutNote: b.fellOutNote,
+      // Awarded first, then any that fell out, then latest round first (no round last), then highest offer.
       matrixOrder: b.isAwarded
-        ? 0
+        ? b.fellOut
+          ? 1
+          : 0
         : (b.bidRound ? BID_ROUNDS.length - BID_ROUNDS.indexOf(b.bidRound) : BID_ROUNDS.length + 1) * 1e13 - (amount ?? 0),
       roundName: b.bidRound,
       notes: b.notes,
@@ -123,7 +133,7 @@ export function BidsSection({
   // and the rest below by round, latest round first, highest offer first (Haili, 2026-11-10).
   const rounds = BID_ROUNDS.filter((r) => bids.some((b) => b.bidRound === r));
   const latest = rounds.at(-1) ?? null;
-  const awarded = bids.some((b) => b.isAwarded);
+  const awarded = bids.some((b) => b.isAwarded && !b.fellOut);
   const active = round === "all" ? "all" : rounds.find((r) => r === round) ?? (awarded ? "all" : latest ?? "all");
   const href = (r: string) => `/deals/${dealId}?tab=bids&round=${encodeURIComponent(r)}`;
   const views = [
@@ -145,6 +155,11 @@ export function BidsSection({
               <span className="flex items-center gap-2">
                 <span className={`inline-block h-4 w-6 rounded-sm border border-border ${VERBAL_ROW}`} /> Verbal offer
               </span>
+              {bids.some((b) => b.fellOut) && (
+                <span className="flex items-center gap-2">
+                  <span className={`text-sm ${FELL_OUT_ROW}`}>Struck through</span> = awarded, then fell out
+                </span>
+              )}
             </div>
             <DataGrid
               key={active}
@@ -157,7 +172,7 @@ export function BidsSection({
               defaultSort={awarded && active === "all" ? { key: "matrixOrder", dir: "asc" } : { key: "amount", dir: "desc" }}
               onRowClick={locked ? undefined : (r) => setEditingId(String(r.id))}
               selectedId={editingId}
-              rowClass={(r) => (r.isAwarded ? AWARDED_ROW : r.isVerbal ? VERBAL_ROW : undefined)}
+              rowClass={(r) => (r.fellOut ? FELL_OUT_ROW : r.isAwarded ? AWARDED_ROW : r.isVerbal ? VERBAL_ROW : undefined)}
               emptyText="No bids in this round."
             />
           </>
@@ -202,6 +217,7 @@ function BidForm({
   const companyContacts = contacts.filter((c) => c.companyId === companyId);
   const [confirm, dialog] = useConfirm();
   const [busy, startBusy] = useTransition();
+  const [fellOutOpen, setFellOutOpen] = useState(false);
   const router = useRouter();
   // After a save the form closes (or, for a new bid, starts empty for the next one).
   useEffect(() => {
@@ -241,12 +257,15 @@ function BidForm({
     });
   }
 
+  const status = bid?.fellOut ? " (awarded, fell out)" : bid?.isAwarded ? " (awarded)" : "";
+
   return (
+    <div className="flex flex-col gap-3">
     <form action={formAction} className="flex flex-col gap-3 rounded-sm border border-dashed border-gray p-3">
       {dialog}
       <div className="flex items-baseline justify-between gap-3">
         <p className="text-sm font-semibold">
-          {bid ? `Edit bid — ${bid.companyName}${bid.isAwarded ? " (awarded)" : ""}` : "Add a bid"}
+          {bid ? `Edit bid — ${bid.companyName}${status}` : "Add a bid"}
         </p>
         {bid && (
           <button type="button" onClick={onDone} className="text-sm text-muted hover:text-foreground">
@@ -295,7 +314,12 @@ function BidForm({
             Award this bid
           </button>
         )}
-        {bid?.isAwarded && (
+        {bid?.isAwarded && !bid.fellOut && (
+          <button type="button" disabled={busy} onClick={() => setFellOutOpen(true)} className={quietBtn}>
+            Mark fell out
+          </button>
+        )}
+        {bid?.isAwarded && !bid.fellOut && (
           <button
             type="button"
             disabled={busy}
@@ -322,6 +346,46 @@ function BidForm({
           blank (you&apos;re asked before an existing price is replaced).
         </p>
       )}
+      {bid?.fellOut && (
+        <p className="text-sm">
+          <span className="font-semibold">Fell out {day(bid.fellOutDate)}:</span> {bid.fellOutNote}
+        </p>
+      )}
+    </form>
+    {bid && fellOutOpen && <FellOutForm dealId={dealId} bid={bid} onCancel={() => setFellOutOpen(false)} onDone={onDone} />}
+    </div>
+  );
+}
+
+/**
+ * Marking the awarded bid fell out (2.2). The note is required. The bid stays in the matrix,
+ * its company comes off the buyer side, the deal goes back to Marketing, and the note is logged
+ * on the bidder's company, tagged to this deal.
+ */
+function FellOutForm({ dealId, bid, onCancel, onDone }: { dealId: string; bid: BidRow; onCancel: () => void; onDone: () => void }) {
+  const [state, formAction] = useActionState<BidFormState, FormData>(fellOutAction.bind(null, dealId, bid.id), { message: null });
+  useEffect(() => {
+    if (state.saved) onDone();
+  }, [state.saved, onDone]);
+  const today = new Date().toLocaleDateString("sv-SE", { timeZone: "America/Chicago" });
+  return (
+    <form action={formAction} className="flex flex-col gap-3 rounded-sm border border-danger/40 bg-[#fbeaea]/40 p-3">
+      <p className="text-sm font-semibold">{bid.companyName}&apos;s awarded bid fell out</p>
+      <p className="text-xs text-muted">
+        The bid stays in the matrix, struck through. {bid.companyName} comes off the buyer side, the deal goes back to Marketing, and
+        this note is logged on {bid.companyName}&apos;s notes, tagged to this deal.
+      </p>
+      <TextInput label="Date it fell out" name="fellOutDate" type="date" defaultValue={today} />
+      <TextArea label="What happened (required)" name="fellOutNote" />
+      {state.message && <p className="text-sm text-danger">{state.message}</p>}
+      <div className="flex items-center gap-3">
+        <PendingButton className={smallBtn} pendingLabel="Saving…">
+          Mark fell out
+        </PendingButton>
+        <button type="button" onClick={onCancel} className="text-sm text-muted hover:text-foreground">
+          Cancel
+        </button>
+      </div>
     </form>
   );
 }

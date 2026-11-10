@@ -22,6 +22,7 @@ import {
   DEAL_SUBTYPES,
   DEAL_TYPES,
   LOCATIONS,
+  NOTE_SOURCES,
   OPPORTUNITY_TYPES,
   PITCH_STATUSES,
   REPRESENTED,
@@ -334,8 +335,13 @@ export const bids = pgTable(
     isVerbal: boolean("is_verbal").notNull().default(false),
     // The bidder toured the project (Haili, 2026-11-09).
     toured: boolean("toured").notNull().default(false),
-    // The winning bid — this is what identifies the buyer. At most one per deal.
+    // The winning bid — this is what identifies the buyer. At most one per deal that hasn't fallen out.
     isAwarded: boolean("is_awarded").notNull().default(false),
+    // An awarded bid that failed before closing (2.2). It stays awarded so the history shows who
+    // won first; a second bid can then be awarded. The note is required.
+    fellOut: boolean("fell_out").notNull().default(false),
+    fellOutDate: date("fell_out_date"),
+    fellOutNote: text("fell_out_note"),
     ddPeriodDays: integer("dd_period_days"),
     closingPeriodDays: integer("closing_period_days"),
     initialEm: money("initial_em"),
@@ -348,7 +354,39 @@ export const bids = pgTable(
   (t) => [
     index("bids_deal_idx").on(t.dealId),
     index("bids_company_idx").on(t.companyId),
-    uniqueIndex("bids_one_awarded_idx").on(t.dealId).where(sql`${t.isAwarded}`),
+    uniqueIndex("bids_one_awarded_idx").on(t.dealId).where(sql`${t.isAwarded} and not ${t.fellOut}`),
+  ],
+);
+
+/**
+ * Notes (PRD §5, milestone 2.2). They belong to the company — relationships outlive deals —
+ * with an optional deal tag (also shown on the deal) and contact. The author is an ICM team
+ * member (Haili, 2026-11-10); entered-by is whoever typed it, so a note logged on someone's
+ * behalf shows "Seth Koschak · entered by Haili Rumsey".
+ */
+export const noteSourceEnum = pgEnum("note_source", NOTE_SOURCES);
+
+export const notes = pgTable(
+  "notes",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
+    dealId: uuid("deal_id").references(() => deals.id, { onDelete: "set null" }),
+    contactId: uuid("contact_id").references(() => contacts.id),
+    authorId: uuid("author_id").references(() => contacts.id),
+    enteredById: text("entered_by_id").references(() => users.id),
+    loggedAt: stamp("logged_at").notNull().defaultNow(),
+    source: noteSourceEnum("source"),
+    body: text("body").notNull(),
+    ...tracking(),
+  },
+  (t) => [
+    index("notes_company_idx").on(t.companyId),
+    index("notes_deal_idx").on(t.dealId),
+    index("notes_contact_idx").on(t.contactId),
+    index("notes_author_idx").on(t.authorId),
   ],
 );
 

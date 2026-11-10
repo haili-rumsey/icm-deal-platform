@@ -31,6 +31,9 @@ import { combineOptions, relatedDeals } from "@/server/deal-links";
 import { listBids } from "@/server/bids";
 import { myListLayout } from "@/server/list-layouts";
 import { BidsSection } from "./bids-section";
+import { listNotes } from "@/server/notes";
+import { noteOptions } from "@/server/note-options";
+import { NotesPanel } from "@/components/notes-panel";
 import { PartiesSection, PropertiesSection, RelatedDealsSection, TeamSection } from "./sections";
 import { StageBar } from "./stage-bar";
 
@@ -50,6 +53,7 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
     listBids(id),
     myListLayout("deal-bids"),
   ]);
+  const [notes, noteOpts] = await Promise.all([listNotes({ dealId: id }), noteOptions(user.email)]);
   if (!data) notFound();
   const { deal } = data;
   // The close pop-up asks for the simple fields; properties, SF and the team live on the tabs.
@@ -254,6 +258,12 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
                 round={searchParam(sp.round)}
               />
             ),
+          },
+          {
+            // Notes tagged to this deal; each one lives on its company (PRD §5).
+            id: "notes",
+            label: `Notes (${notes.length})`,
+            content: <NotesPanel notes={notes} fixed={{ dealId: id }} options={noteOpts} canDelete={user.isAdmin} />,
           },
         ]}
       />

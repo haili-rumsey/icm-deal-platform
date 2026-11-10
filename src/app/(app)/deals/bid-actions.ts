@@ -5,7 +5,8 @@ import { requireUser } from "@/auth";
 import { BID_ROUNDS } from "@/domain/options";
 import { bool, dec, int, oneOf, str } from "@/lib/form";
 import { assertCanEdit } from "@/server/deals";
-import { awardBid, createBid, deleteBid, unawardBid, updateBid, type AwardResult, type BidInput } from "@/server/bids";
+import { awardBid, createBid, deleteBid, markFellOut, unawardBid, updateBid, type AwardResult, type BidInput } from "@/server/bids";
+import { contactIdForEmail, icmTeamOptions } from "@/server/contacts";
 
 export type BidFormState = { message: string | null; saved?: number };
 
@@ -65,6 +66,23 @@ export async function awardBidAction(dealId: string, bidId: string, price: "ask"
     revalidatePath("/reports", "layout");
   }
   return result;
+}
+
+/** Marks the awarded bid fell out. The note is required (PRD §1 Bid). */
+export async function fellOutAction(dealId: string, bidId: string, _prev: BidFormState, fd: FormData): Promise<BidFormState> {
+  const user = await editor(dealId);
+  const note = str(fd, "fellOutNote");
+  if (!note) return { message: "A note is required when a bid falls out — say what happened." };
+  const contactId = await contactIdForEmail(user.email);
+  const roster = contactId ? await icmTeamOptions() : [];
+  await markFellOut(dealId, bidId, str(fd, "fellOutDate"), note, {
+    userId: user.id,
+    authorContactId: contactId && roster.some((r) => r.id === contactId) ? contactId : null,
+  });
+  refresh(dealId);
+  revalidatePath("/reports", "layout");
+  revalidatePath("/notes");
+  return { message: null, saved: 1 };
 }
 
 export async function unawardBidAction(dealId: string, bidId: string) {

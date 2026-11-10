@@ -66,6 +66,10 @@ export const SIDES = ["A", "B"] as const;
 /** Bid rounds (PRD §1 Bid), in order. */
 export const BID_ROUNDS = ["Round 1", "Round 2", "Round 3", "Best & Final"] as const;
 export type BidRound = (typeof BID_ROUNDS)[number];
+
+/** Where a note came from (PRD §5). */
+export const NOTE_SOURCES = ["Call", "Meeting", "Email", "Tour", "Roadshow", "Internal"] as const;
+export type NoteSource = (typeof NOTE_SOURCES)[number];
 export type Side = (typeof SIDES)[number];
 
 /** Same two sides on every deal; only the names change by deal type. */

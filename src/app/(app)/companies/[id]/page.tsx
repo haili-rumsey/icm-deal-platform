@@ -19,16 +19,22 @@ import { partyLabel } from "@/domain/options";
 import { companyDeals, getCompany } from "@/server/companies";
 import { listContacts } from "@/server/contacts";
 import { userName } from "@/server/people";
+import { listNotes } from "@/server/notes";
+import { searchParam } from "@/lib/params";
+import { noteOptions } from "@/server/note-options";
+import { NotesPanel } from "@/components/notes-panel";
 import { saveCompany } from "../actions";
 import { CompanyFields } from "../company-fields";
 
-export default async function CompanyPage({ params }: PageProps<"/companies/[id]">) {
-  const { id } = await params;
-  const [user, company, people, partyOn] = await Promise.all([
-    requireUser(),
+export default async function CompanyPage({ params, searchParams }: PageProps<"/companies/[id]">) {
+  const [{ id }, sp] = await Promise.all([params, searchParams]);
+  const user = await requireUser();
+  const [company, people, partyOn, notes, noteOpts] = await Promise.all([
     getCompany(id),
     listContacts({ companyId: id }),
     companyDeals(id),
+    listNotes({ companyId: id }),
+    noteOptions(user.email),
   ]);
   if (!company) notFound();
   const modifiedBy = await userName(company.lastModifiedById);
@@ -62,6 +68,7 @@ export default async function CompanyPage({ params }: PageProps<"/companies/[id]
         }
       />
       <Tabs
+        initial={searchParam(sp.tab)}
         tabs={[
           {
             id: "summary",
@@ -120,6 +127,11 @@ export default async function CompanyPage({ params }: PageProps<"/companies/[id]
                 )}
               </Section>
             ),
+          },
+          {
+            id: "notes",
+            label: `Notes (${notes.length})`,
+            content: <NotesPanel notes={notes} fixed={{ companyId: id }} options={noteOpts} canDelete={user.isAdmin} />,
           },
         ]}
       />

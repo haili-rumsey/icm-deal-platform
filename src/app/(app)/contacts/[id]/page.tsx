@@ -16,12 +16,21 @@ import {
 import { companyOptions } from "@/server/companies";
 import { getContact } from "@/server/contacts";
 import { userName } from "@/server/people";
+import { listNotes } from "@/server/notes";
+import { noteOptions } from "@/server/note-options";
+import { NotesPanel } from "@/components/notes-panel";
 import { saveContact } from "../actions";
 import { ContactFields } from "../contact-fields";
 
 export default async function ContactPage({ params }: PageProps<"/contacts/[id]">) {
   const { id } = await params;
-  const [user, row, companies] = await Promise.all([requireUser(), getContact(id), companyOptions()]);
+  const user = await requireUser();
+  const [row, companies, notes, noteOpts] = await Promise.all([
+    getContact(id),
+    companyOptions(),
+    listNotes({ contactId: id }),
+    noteOptions(user.email),
+  ]);
   if (!row) notFound();
   const { contact, companyName } = row;
   const modifiedBy = await userName(contact.lastModifiedById);
@@ -62,6 +71,8 @@ export default async function ContactPage({ params }: PageProps<"/contacts/[id]"
           </MainForm>
         </Section>
         <ModifiedStamp at={contact.lastModifiedAt} by={modifiedBy} />
+        {/* Notes about this contact; each one lives on the contact's company (PRD §5). */}
+        <NotesPanel notes={notes} fixed={{ contactId: id }} options={noteOpts} canDelete={user.isAdmin} />
       </div>
     </RecordFormProvider>
   );
