@@ -62,6 +62,10 @@ export const LOCATIONS = ["Dallas", "Houston"] as const;
 export const TEAM_ROLES = ["Producer", "Analyst", "Operations", "Designer", "Leasing"] as const;
 
 export const SIDES = ["A", "B"] as const;
+
+/** Bid rounds (PRD §1 Bid), in order. */
+export const BID_ROUNDS = ["Round 1", "Round 2", "Round 3", "Best & Final"] as const;
+export type BidRound = (typeof BID_ROUNDS)[number];
 export type Side = (typeof SIDES)[number];
 
 /** Same two sides on every deal; only the names change by deal type. */

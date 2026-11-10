@@ -28,13 +28,16 @@ import { DealFeeFields, DealMoneyFields } from "../deal-money-fields";
 import { FeeVisibility } from "../fee-visibility";
 import { DealTeamFields } from "../deal-team-fields";
 import { combineOptions, relatedDeals } from "@/server/deal-links";
+import { listBids } from "@/server/bids";
+import { myListLayout } from "@/server/list-layouts";
+import { BidsSection } from "./bids-section";
 import { PartiesSection, PropertiesSection, RelatedDealsSection, TeamSection } from "./sections";
 import { StageBar } from "./stage-bar";
 
 export default async function DealPage({ params, searchParams }: PageProps<"/deals/[id]">) {
   const [{ id }, sp] = await Promise.all([params, searchParams]);
   // Everything the page needs, fetched at once rather than one after another.
-  const [user, data, streamPeople, icmTeam, companies, contacts, properties, related, combinable] = await Promise.all([
+  const [user, data, streamPeople, icmTeam, companies, contacts, properties, related, combinable, bids, bidLayout] = await Promise.all([
     requireUser(),
     getDeal(id),
     streamPeopleOptions(),
@@ -44,6 +47,8 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
     propertyOptions(),
     relatedDeals(id),
     combineOptions(id),
+    listBids(id),
+    myListLayout("deal-bids"),
   ]);
   if (!data) notFound();
   const { deal } = data;
@@ -233,6 +238,21 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
             id: "team",
             label: `Team (${data.team.length})`,
             content: <TeamSection deal={data} locked={locked} />,
+          },
+          {
+            id: "bids",
+            label: `Bids (${bids.length})`,
+            content: (
+              <BidsSection
+                dealId={id}
+                bids={bids}
+                totalSf={totalSf}
+                companies={companyOpts}
+                contacts={contacts}
+                savedColumns={bidLayout}
+                locked={locked}
+              />
+            ),
           },
         ]}
       />

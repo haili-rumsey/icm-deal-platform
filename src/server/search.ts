@@ -1,7 +1,7 @@
 import "server-only";
 import { asc, desc, eq, ilike, inArray, or, sql } from "drizzle-orm";
 import { db } from "@/db";
-import { companies, contacts, dealParties, dealProperties, deals, properties } from "@/db/schema";
+import { bids, companies, contacts, dealParties, dealProperties, deals, properties } from "@/db/schema";
 import { partyLabel } from "@/domain/options";
 
 /**
@@ -88,7 +88,7 @@ export async function search(query: string, limit: number): Promise<SearchResult
 
   const propertyIds = propertyRows.map((p) => p.id);
   const companyIds = companyRows.map((c) => c.id);
-  const [viaProperty, viaCompany] = await Promise.all([
+  const [viaProperty, viaCompany, viaBid] = await Promise.all([
     propertyIds.length
       ? db
           .select({ dealId: dealProperties.dealId, propertyId: dealProperties.propertyId })
@@ -102,11 +102,19 @@ export async function search(query: string, limit: number): Promise<SearchResult
           .innerJoin(deals, eq(deals.id, dealParties.dealId))
           .where(inArray(dealParties.companyId, companyIds))
       : [],
+    // Bidders join in 2.1: a company also brings in every deal it bid on, won or not.
+    companyIds.length
+      ? db
+          .selectDistinct({ dealId: bids.dealId, companyId: bids.companyId })
+          .from(bids)
+          .where(inArray(bids.companyId, companyIds))
+      : [],
   ]);
   const propertyName = new Map(propertyRows.map((p) => [p.id, p.address ?? p.name ?? "property"]));
   const companyName = new Map(companyRows.map((c) => [c.id, c.name]));
   for (const r of viaProperty) note(r.dealId, `Property: ${propertyName.get(r.propertyId)}`);
   for (const r of viaCompany) note(r.dealId, `${partyLabel(r.dealType, r.side)}: ${companyName.get(r.companyId)}`);
+  for (const r of viaBid) note(r.dealId, `Bidder: ${companyName.get(r.companyId)}`);
 
   const extraIds = [...why.keys()].filter((id) => !dealRows.some((d) => d.id === id));
   const extra = extraIds.length

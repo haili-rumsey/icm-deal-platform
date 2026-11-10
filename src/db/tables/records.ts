@@ -14,6 +14,7 @@ import {
 } from "drizzle-orm/pg-core";
 import { sql } from "drizzle-orm";
 import {
+  BID_ROUNDS,
   BUILDING_CLASSES,
   CATEGORIES,
   COMPANY_TYPES,
@@ -305,6 +306,50 @@ export const dealLinks = pgTable(
     createdById: text("created_by_id").references(() => users.id),
   },
   (t) => [index("deal_links_from_idx").on(t.fromDealId), index("deal_links_to_idx").on(t.toDealId)],
+);
+
+/**
+ * Bids and LOIs (PRD §1, milestone 2.1). Attach to the company, not the contact, so the record
+ * survives a contact changing firms. One row per bidder per round. Bid $/SF is calculated from
+ * the deal's total SF, never stored. Fell-out handling (fell_out, date, required note) comes
+ * with 2.2 (Haili, 2026-11-09).
+ */
+export const bidRoundEnum = pgEnum("bid_round", BID_ROUNDS);
+
+export const bids = pgTable(
+  "bids",
+  {
+    id: uuid("id").primaryKey().defaultRandom(),
+    dealId: uuid("deal_id")
+      .notNull()
+      .references(() => deals.id, { onDelete: "cascade" }),
+    companyId: uuid("company_id")
+      .notNull()
+      .references(() => companies.id),
+    contactId: uuid("contact_id").references(() => contacts.id),
+    bidRound: bidRoundEnum("bid_round"),
+    bidAmount: money("bid_amount"),
+    bidDate: date("bid_date"),
+    // Checked = verbal offer; unchecked = formal LOI (Haili, 2026-11-09).
+    isVerbal: boolean("is_verbal").notNull().default(false),
+    // The bidder toured the project (Haili, 2026-11-09).
+    toured: boolean("toured").notNull().default(false),
+    // The winning bid — this is what identifies the buyer. At most one per deal.
+    isAwarded: boolean("is_awarded").notNull().default(false),
+    ddPeriodDays: integer("dd_period_days"),
+    closingPeriodDays: integer("closing_period_days"),
+    initialEm: money("initial_em"),
+    additionalEm: money("additional_em"),
+    debtNotes: text("debt_notes"),
+    // Comments — including which buildings, when an offer covers only part of a portfolio.
+    notes: text("notes"),
+    ...tracking(),
+  },
+  (t) => [
+    index("bids_deal_idx").on(t.dealId),
+    index("bids_company_idx").on(t.companyId),
+    uniqueIndex("bids_one_awarded_idx").on(t.dealId).where(sql`${t.isAwarded}`),
+  ],
 );
 
 /** The single record of who is on a deal. One row per person; several roles allowed. */
