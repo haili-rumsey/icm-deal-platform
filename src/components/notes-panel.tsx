@@ -11,6 +11,8 @@ import { SearchSelect, type Option } from "@/components/search-select";
 import { NOTE_SOURCES } from "@/domain/options";
 import { attribution } from "@/domain/notes";
 import type { NoteRow } from "@/server/notes";
+import type { ListLayout } from "@/server/list-layouts";
+import { DataGrid, type Column, type Row } from "@/components/data-grid";
 
 const smallBtn = "rounded-sm border border-navy px-3 py-1.5 text-sm font-semibold text-navy hover:bg-hover disabled:opacity-50";
 
@@ -22,6 +24,8 @@ export type NoteOptions = {
   authors: Option[];
   /** The signed-in user's contact, when they're on the roster. */
   defaultAuthorId: string | null;
+  /** This person's saved columns for the notes table. */
+  layout: ListLayout | null;
 };
 
 const when = (d: Date) => new Date(d).toLocaleDateString("en-US", { timeZone: "America/Chicago" });
@@ -42,63 +46,136 @@ export function NotesPanel({
   options: NoteOptions;
   canDelete: boolean;
 }) {
-  const [editingId, setEditingId] = useState<string | null>(null);
-  const [round, setRound] = useState(0);
-  const done = () => {
-    setEditingId(null);
-    setRound((n) => n + 1);
+  // The side panel (Haili, 2026-11-10): "new" to add a note, or a note's id to read it — with
+  // `editing` switching that note to its form.
+  const [open, setOpen] = useState<string | null>(null);
+  const [editing, setEditing] = useState(false);
+  const close = () => {
+    setOpen(null);
+    setEditing(false);
   };
+  const note = open && open !== "new" ? notes.find((n) => n.id === open) ?? null : null;
+
+  // Context the page already shows is left out of the table (no Company column on a company page).
+  const columns: Column[] = [
+    { key: "loggedLabel", label: "Logged", sortKey: "logged", type: "date" },
+    { key: "subject", label: "Subject" },
+    { key: "author", label: "Author" },
+    { key: "source", label: "Source" },
+    ...(fixed.companyId ? [] : [{ key: "company", label: "Company" }]),
+    ...(fixed.dealId ? [] : [{ key: "deal", label: "Deal" }]),
+    ...(fixed.contactId ? [] : [{ key: "contact", label: "Contact" }]),
+    { key: "body", label: "Note" },
+  ];
+  const day = (d: Date) => new Date(d).toLocaleDateString("sv-SE", { timeZone: "America/Chicago" });
+  const rows: Row[] = notes.map((n) => ({
+    id: n.id,
+    logged: day(n.loggedAt),
+    loggedLabel: when(n.loggedAt),
+    subject: n.subject,
+    author: attribution(n),
+    source: n.source,
+    company: n.companyName,
+    deal: n.dealName,
+    contact: n.contactName,
+    body: n.body,
+  }));
 
   return (
-    <Section title={`Notes (${notes.length})`}>
-      <div className="flex flex-col gap-4">
-        {editingId === null && <NoteForm key={`new-${round}`} note={null} fixed={fixed} options={options} onDone={done} canDelete={false} />}
-        {notes.length === 0 ? (
-          <p className="text-sm text-muted">No notes yet.</p>
-        ) : (
-          <ul className="divide-y divide-border">
-            {notes.map((n) =>
-              editingId === n.id ? (
-                <li key={n.id} className="py-3">
-                  <NoteForm note={n} fixed={fixed} options={options} onDone={done} canDelete={canDelete} />
-                </li>
-              ) : (
-                <li key={n.id} className="flex flex-col gap-1 py-3 text-sm">
-                  <div className="flex flex-wrap items-baseline justify-between gap-2">
-                    <span className="font-semibold">{attribution(n)}</span>
-                    <span className="flex items-baseline gap-3 text-muted">
-                      {[n.source, when(n.loggedAt)].filter(Boolean).join(" · ")}
-                      <button type="button" onClick={() => setEditingId(n.id)} className="text-xs text-link hover:underline">
-                        Edit
-                      </button>
-                    </span>
-                  </div>
-                  <div className="flex flex-wrap gap-x-3 text-xs text-muted">
-                    {!fixed.companyId && (
-                      <Link href={`/companies/${n.companyId}`} className="text-link hover:underline">
-                        {n.companyName}
-                      </Link>
-                    )}
-                    {!fixed.dealId && n.dealId && (
-                      <Link href={`/deals/${n.dealId}`} className="text-link hover:underline">
-                        Deal: {n.dealName}
-                      </Link>
-                    )}
-                    {!fixed.contactId && n.contactId && (
-                      <Link href={`/contacts/${n.contactId}`} className="text-link hover:underline">
-                        Contact: {n.contactName}
-                      </Link>
-                    )}
-                    {n.lastModifiedAt.getTime() - n.loggedAt.getTime() > 60_000 && <span>Edited {when(n.lastModifiedAt)}</span>}
-                  </div>
-                  <p className="whitespace-pre-wrap">{n.body}</p>
-                </li>
-              ),
+    <Section
+      title={`Notes (${notes.length})`}
+      action={
+        <button type="button" onClick={() => (setOpen("new"), setEditing(true))} className={smallBtn}>
+          + Add note
+        </button>
+      }
+    >
+      {notes.length === 0 ? (
+        <p className="text-sm text-muted">No notes yet.</p>
+      ) : (
+        <DataGrid
+          embedded
+          views={[{ label: "Notes", href: "#", active: true }]}
+          listKey="notes-panel"
+          savedColumns={options.layout}
+          columns={columns}
+          rows={rows}
+          defaultSort={{ key: "logged", dir: "desc" }}
+          onRowClick={(r) => (setOpen(String(r.id)), setEditing(false))}
+          selectedId={open}
+        />
+      )}
+      {open && (
+        <aside
+          aria-label={open === "new" ? "Add a note" : "Note"}
+          className="fixed inset-y-0 right-0 z-40 flex w-[min(36rem,100vw)] flex-col border-l border-border bg-card shadow-2xl"
+        >
+          <div className="flex items-center justify-between gap-3 border-b border-border bg-navy px-5 py-3 text-white">
+            <h2 className="font-serif text-lg">{open === "new" ? "Add a note" : editing ? "Edit note" : "Note"}</h2>
+            <button type="button" onClick={close} aria-label="Close" className="text-sm hover:underline">
+              Close
+            </button>
+          </div>
+          <div className="flex-1 overflow-y-auto p-5">
+            {open === "new" ? (
+              <NoteForm note={null} fixed={fixed} options={options} onDone={close} canDelete={false} />
+            ) : note && editing ? (
+              <NoteForm key={note.id} note={note} fixed={fixed} options={options} onDone={close} canDelete={canDelete} />
+            ) : note ? (
+              <NoteView note={note} onEdit={() => setEditing(true)} />
+            ) : (
+              <p className="text-sm text-muted">This note is no longer here.</p>
             )}
-          </ul>
-        )}
-      </div>
+          </div>
+        </aside>
+      )}
     </Section>
+  );
+}
+
+/** One note, read-only, in the side panel. */
+function NoteView({ note: n, onEdit }: { note: NoteRow; onEdit: () => void }) {
+  const fact = (label: string, value: React.ReactNode) =>
+    value ? (
+      <div className="grid grid-cols-[7rem_1fr] gap-2 text-sm">
+        <span className="text-muted">{label}</span>
+        <span>{value}</span>
+      </div>
+    ) : null;
+  return (
+    <div className="flex flex-col gap-3">
+      {n.subject && <h3 className="font-serif text-lg">{n.subject}</h3>}
+      {fact("Author", attribution(n))}
+      {fact("Logged", when(n.loggedAt))}
+      {fact("Source", n.source)}
+      {fact(
+        "Company",
+        <Link href={`/companies/${n.companyId}?tab=notes`} className="text-link hover:underline">
+          {n.companyName}
+        </Link>,
+      )}
+      {n.dealId &&
+        fact(
+          "Deal",
+          <Link href={`/deals/${n.dealId}?tab=notes`} className="text-link hover:underline">
+            {n.dealName}
+          </Link>,
+        )}
+      {n.contactId &&
+        fact(
+          "Contact",
+          <Link href={`/contacts/${n.contactId}`} className="text-link hover:underline">
+            {n.contactName}
+          </Link>,
+        )}
+      {n.lastModifiedAt.getTime() - n.loggedAt.getTime() > 60_000 && fact("Edited", when(n.lastModifiedAt))}
+      <p className="mt-2 whitespace-pre-wrap rounded-sm border border-border bg-background p-3 text-sm">{n.body}</p>
+      <div>
+        <button type="button" onClick={onEdit} className={smallBtn}>
+          Edit note
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -146,10 +223,9 @@ function NoteForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-3 rounded-sm border border-dashed border-gray p-3">
+    <form action={formAction} className="flex flex-col gap-3">
       {dialog}
-      <p className="text-sm font-semibold">{note ? "Edit note" : "Add a note"}</p>
-      <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+      <div className="grid grid-cols-1 gap-3">
         {fixed.companyId || fixed.contactId ? (
           <input type="hidden" name="companyId" value={companyId ?? ""} />
         ) : (
@@ -201,19 +277,21 @@ function NoteForm({
         </div>
       </div>
       <label className="flex flex-col gap-1 text-sm">
+        <span className="text-muted">Subject</span>
+        <input name="subject" defaultValue={note?.subject ?? ""} className={inputCls} placeholder="e.g. Intro call re: Park 10" />
+      </label>
+      <label className="flex flex-col gap-1 text-sm">
         <span className="text-muted">Note</span>
-        <textarea name="body" defaultValue={note?.body ?? ""} rows={4} className={inputCls} />
+        <textarea name="body" defaultValue={note?.body ?? ""} rows={8} className={inputCls} />
       </label>
       {state.message && <p className="text-sm text-danger">{state.message}</p>}
       <div className="flex flex-wrap items-center gap-3">
         <PendingButton className={smallBtn} pendingLabel="Saving…">
           {note ? "Save note" : "Add note"}
         </PendingButton>
-        {note && (
-          <button type="button" onClick={onDone} className="text-sm text-muted hover:text-foreground">
-            Cancel
-          </button>
-        )}
+        <button type="button" onClick={onDone} className="text-sm text-muted hover:text-foreground">
+          Cancel
+        </button>
         {note && canDelete && (
           <button type="button" disabled={busy} onClick={remove} className="ml-auto text-sm text-muted hover:text-danger">
             Delete note

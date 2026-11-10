@@ -379,6 +379,8 @@ export const notes = pgTable(
     enteredById: text("entered_by_id").references(() => users.id),
     loggedAt: stamp("logged_at").notNull().defaultNow(),
     source: noteSourceEnum("source"),
+    // Short subject line shown in the notes table (Haili, 2026-11-10).
+    subject: text("subject"),
     body: text("body").notNull(),
     ...tracking(),
   },

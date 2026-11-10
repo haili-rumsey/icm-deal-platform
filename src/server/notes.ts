@@ -17,6 +17,7 @@ export type NoteInput = {
   contactId: string | null;
   authorId: string | null;
   source: NoteSource | null;
+  subject: string | null;
   body: string;
 };
 
@@ -46,6 +47,7 @@ export async function listNotes(opts: { companyId?: string; dealId?: string; con
       enteredByEmail: enteredBy.email,
       loggedAt: notes.loggedAt,
       source: notes.source,
+      subject: notes.subject,
       body: notes.body,
       lastModifiedAt: notes.lastModifiedAt,
     })

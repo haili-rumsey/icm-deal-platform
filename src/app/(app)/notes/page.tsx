@@ -38,6 +38,7 @@ export default async function NotesPage({
       emptyText={mine ? "No notes with you as the author yet." : "No notes yet."}
       columns={[
         { key: "loggedLabel", label: "Logged", sortKey: "logged", type: "date" },
+        { key: "subject", label: "Subject" },
         { key: "author", label: "Author" },
         { key: "company", label: "Company", kind: "link", hrefKey: "companyHref" },
         { key: "deal", label: "Deal", kind: "link", hrefKey: "dealHref" },
@@ -50,6 +51,7 @@ export default async function NotesPage({
         id: n.id,
         logged: day(n.loggedAt),
         loggedLabel: shortDay(day(n.loggedAt)),
+        subject: n.subject,
         author: attribution(n),
         company: n.companyName,
         companyHref: `/companies/${n.companyId}?tab=notes`,

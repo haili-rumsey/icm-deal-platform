@@ -19,6 +19,7 @@ function parse(fd: FormData): NoteInput | string {
     contactId: str(fd, "contactId"),
     authorId: str(fd, "authorId"),
     source: oneOf(fd, "source", NOTE_SOURCES),
+    subject: str(fd, "subject"),
     body,
   };
 }

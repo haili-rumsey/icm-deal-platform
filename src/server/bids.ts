@@ -159,6 +159,7 @@ export async function markFellOut(
       authorId: by.authorContactId,
       enteredById: by.userId,
       source: "Internal",
+      subject: "Awarded bid fell out",
       body: `Awarded bid fell out (${Number(m)}/${Number(d)}/${y}): ${note}`,
       createdById: by.userId,
       lastModifiedById: by.userId,
