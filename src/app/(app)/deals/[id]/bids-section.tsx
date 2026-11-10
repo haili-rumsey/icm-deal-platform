@@ -106,6 +106,10 @@ export function BidsSection({
       bidDateLabel: day(b.bidDate),
       isAwarded: b.isAwarded,
       isVerbal: b.isVerbal,
+      // Awarded first, then latest round first (no round last), then highest offer.
+      matrixOrder: b.isAwarded
+        ? 0
+        : (b.bidRound ? BID_ROUNDS.length - BID_ROUNDS.indexOf(b.bidRound) : BID_ROUNDS.length + 1) * 1e13 - (amount ?? 0),
       roundName: b.bidRound,
       notes: b.notes,
       debtNotes: b.debtNotes,
@@ -115,9 +119,12 @@ export function BidsSection({
   // The title dropdown picks a round (Haili, 2026-11-10). It opens on the latest round that has
   // a bid; "All rounds" shows everything. A bid with no round set shows in every view, so a
   // missing round never hides a bid.
+  // Once a bid is awarded the matrix opens on All rounds instead, with the winning bid on top
+  // and the rest below by round, latest round first, highest offer first (Haili, 2026-11-10).
   const rounds = BID_ROUNDS.filter((r) => bids.some((b) => b.bidRound === r));
   const latest = rounds.at(-1) ?? null;
-  const active = round === "all" ? "all" : rounds.find((r) => r === round) ?? latest ?? "all";
+  const awarded = bids.some((b) => b.isAwarded);
+  const active = round === "all" ? "all" : rounds.find((r) => r === round) ?? (awarded ? "all" : latest ?? "all");
   const href = (r: string) => `/deals/${dealId}?tab=bids&round=${encodeURIComponent(r)}`;
   const views = [
     ...rounds.map((r) => ({ label: `Bid matrix — ${r}`, href: href(r), active: active === r })),
@@ -147,7 +154,7 @@ export function BidsSection({
               savedColumns={savedColumns}
               columns={COLUMNS}
               rows={shownRows}
-              defaultSort={{ key: "amount", dir: "desc" }}
+              defaultSort={awarded && active === "all" ? { key: "matrixOrder", dir: "asc" } : { key: "amount", dir: "desc" }}
               onRowClick={locked ? undefined : (r) => setEditingId(String(r.id))}
               selectedId={editingId}
               rowClass={(r) => (r.isAwarded ? AWARDED_ROW : r.isVerbal ? VERBAL_ROW : undefined)}
