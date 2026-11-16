@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState, useEffect, useState, useTransition } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { deleteNoteAction, saveNoteAction, type NoteFormState } from "@/app/(app)/notes/actions";
 import { useConfirm } from "@/components/confirm-dialog";
@@ -56,6 +56,29 @@ export function NotesPanel({
   };
   const note = open && open !== "new" ? notes.find((n) => n.id === open) ?? null : null;
 
+  // Clicking outside the panel closes it (Haili, 2026-11-16) — straight away if nothing was
+  // changed, otherwise after asking. Changes are spotted by comparing the form with how it opened.
+  const formRef = useRef<HTMLFormElement | null>(null);
+  const openedAs = useRef<string | null>(null);
+  const snapshot = (f: HTMLFormElement | null) => (f ? JSON.stringify([...new FormData(f)].map(([k, v]) => [k, String(v)])) : null);
+  useEffect(() => {
+    openedAs.current = snapshot(formRef.current);
+  }, [open, editing]);
+  const [confirmClose, closeDialog] = useConfirm();
+  async function tryClose() {
+    const now = snapshot(formRef.current);
+    if (now !== null && now !== openedAs.current) {
+      const discard = await confirmClose({
+        title: "Discard this note?",
+        message: "You've made changes that aren't saved.",
+        confirmLabel: "Discard changes",
+        cancelLabel: "Keep editing",
+      });
+      if (!discard) return;
+    }
+    close();
+  }
+
   // Context the page already shows is left out of the table (no Company column on a company page).
   const columns: Column[] = [
     { key: "loggedLabel", label: "Logged", sortKey: "logged", type: "date" },
@@ -105,6 +128,8 @@ export function NotesPanel({
           selectedId={open}
         />
       )}
+      {closeDialog}
+      {open && <div aria-hidden className="fixed inset-0 z-30 bg-black/10" onClick={tryClose} />}
       {open && (
         <aside
           aria-label={open === "new" ? "Add a note" : "Note"}
@@ -112,15 +137,24 @@ export function NotesPanel({
         >
           <div className="flex items-center justify-between gap-3 border-b border-border bg-navy px-5 py-3 text-white">
             <h2 className="font-serif text-lg">{open === "new" ? "Add a note" : editing ? "Edit note" : "Note"}</h2>
-            <button type="button" onClick={close} aria-label="Close" className="text-sm hover:underline">
+            <button type="button" onClick={tryClose} aria-label="Close" className="text-sm hover:underline">
               Close
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-5">
             {open === "new" ? (
-              <NoteForm note={null} fixed={fixed} options={options} onDone={close} canDelete={false} />
+              <NoteForm formRef={formRef} note={null} fixed={fixed} options={options} onDone={close} onCancel={tryClose} canDelete={false} />
             ) : note && editing ? (
-              <NoteForm key={note.id} note={note} fixed={fixed} options={options} onDone={close} canDelete={canDelete} />
+              <NoteForm
+                key={note.id}
+                formRef={formRef}
+                note={note}
+                fixed={fixed}
+                options={options}
+                onDone={close}
+                onCancel={tryClose}
+                canDelete={canDelete}
+              />
             ) : note ? (
               <NoteView note={note} onEdit={() => setEditing(true)} />
             ) : (
@@ -180,16 +214,20 @@ function NoteView({ note: n, onEdit }: { note: NoteRow; onEdit: () => void }) {
 }
 
 function NoteForm({
+  formRef,
   note,
   fixed,
   options,
   onDone,
+  onCancel,
   canDelete,
 }: {
+  formRef: React.RefObject<HTMLFormElement | null>;
   note: NoteRow | null;
   fixed: { companyId?: string; dealId?: string; contactId?: string };
   options: NoteOptions;
   onDone: () => void;
+  onCancel: () => void;
   canDelete: boolean;
 }) {
   const [state, formAction] = useActionState<NoteFormState, FormData>(saveNoteAction.bind(null, note?.id ?? null), { message: null });
@@ -223,7 +261,7 @@ function NoteForm({
   }
 
   return (
-    <form action={formAction} className="flex flex-col gap-3">
+    <form ref={formRef} action={formAction} className="flex flex-col gap-3">
       {dialog}
       <div className="grid grid-cols-1 gap-3">
         {fixed.companyId || fixed.contactId ? (
@@ -289,7 +327,7 @@ function NoteForm({
         <PendingButton className={smallBtn} pendingLabel="Saving…">
           {note ? "Save note" : "Add note"}
         </PendingButton>
-        <button type="button" onClick={onDone} className="text-sm text-muted hover:text-foreground">
+        <button type="button" onClick={onCancel} className="text-sm text-muted hover:text-foreground">
           Cancel
         </button>
         {note && canDelete && (
