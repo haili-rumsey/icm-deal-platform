@@ -443,6 +443,12 @@ export async function missingToClose(dealId: string, overrides: Partial<CloseChe
   });
 }
 
+/** When the deal last changed (ms) — compared with the form's copy so stale saves are refused. */
+export async function dealVersion(dealId: string) {
+  const [row] = await db.select({ at: deals.lastModifiedAt }).from(deals).where(eq(deals.id, dealId));
+  return row?.at.getTime() ?? 0;
+}
+
 export async function currentStage(dealId: string) {
   const [row] = await db.select({ stage: deals.stage }).from(deals).where(eq(deals.id, dealId));
   return row?.stage ?? null;

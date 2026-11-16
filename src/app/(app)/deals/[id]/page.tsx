@@ -183,6 +183,8 @@ export default async function DealPage({ params, searchParams }: PageProps<"/dea
                 {/* Re-created whenever the deal changes on the server (stage bar, save), so the
                     form never holds stale values that a later Save would write back. */}
                 <MainForm key={deal.lastModifiedAt.toISOString()} readOnly={locked}>
+                  {/* Which copy of the deal this form shows; a save from an older copy is refused. */}
+                  <input type="hidden" name="version" value={deal.lastModifiedAt.toISOString()} />
                   <Section title="Deal">
                     <DealFields deal={deal} />
                   </Section>

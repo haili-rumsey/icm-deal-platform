@@ -31,6 +31,7 @@ import {
   assertCanEdit,
   createDeal,
   currentStage,
+  dealVersion,
   DealLockedError,
   missingToClose,
   moveStage,
@@ -152,6 +153,16 @@ export async function saveDeal(id: string | null, _prev: SaveState, fd: FormData
   } catch (e) {
     if (e instanceof DealLockedError) return { ok: false, message: e.message };
     throw e;
+  }
+  // Never let an out-of-date copy of the form overwrite a newer change (2026-11-16: a stale form
+  // saved with "Save and continue" wiped the sale price an award had just filled in).
+  const version = str(fd, "version");
+  if (version && (await dealVersion(id)) > new Date(version).getTime()) {
+    return {
+      ok: false,
+      message:
+        "This deal changed after the page loaded (for example, a bid was awarded), so nothing was saved. Click Refresh to load the latest, then make your edit again.",
+    };
   }
   await updateDeal(id, input, user);
   await syncTeam(id, team);
