@@ -25,6 +25,8 @@ Documented in [.env.example](.env.example). In production they are set in Vercel
 | `RESEND_API_KEY` | Resend key used to send sign-in emails |
 | `EMAIL_FROM` | Sender address for sign-in emails |
 | `DATABASE_URL` | Neon Postgres connection string |
+| `CRON_SECRET` | Secret Vercel Cron sends so only it can trigger scheduled jobs |
+| `JOB_TEST_EMAIL` | Recipient of the daily test email (2.3), until the weekly recap replaces it |
 | `GOOGLE_MAPS_API_KEY` | Google Geocoding key for address Look up (optional until set up) |
 
 ## Database changes
